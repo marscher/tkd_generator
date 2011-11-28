@@ -9,15 +9,27 @@
 #define TETRAKAIDEKAEDER_GENERATOR_H_
 
 #include <vector>
+
+#include <boost/geometry/geometry.hpp>
+
+// used ug header
 #include "lib_grid/lg_base.h"
+#include "lib_grid/grid/grid.h"
+#include "lib_grid/file_io/file_io.h"
+#include "common/math/ugmath_types.h"
+#include "registry/registry.h"
 
-namespace ug{
+namespace trans = boost::geometry::strategy::transform;
+using boost::geometry::dsv;
 
-namespace tkdGenerator{
+namespace tkdGenerator {
 
-typedef std::vector<vector3> CoordsArray;
+typedef boost::geometry::model::point<double, 3, boost::geometry::cs::cartesian> point_type;
+
+typedef std::vector<ug::vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
-typedef const vector3& vec3Ref;
+typedef const ug::vector3& vec3Ref;
+typedef double number;
 
 /**
  * \param grid
@@ -25,7 +37,7 @@ typedef const vector3& vec3Ref;
  * \param baseEdgeLength
  * \param diameter
  */
-void GenerateTetrakaidecahedron(Grid& grid, number& height,
+void GenerateTetrakaidecahedron(ug::Grid& grid, number& height,
 		number& baseEdgeLength, number& diameter);
 
 /**
@@ -49,6 +61,5 @@ void createTetrahedron(vec3Ref v1, vec3Ref v2, vec3Ref v3, vec3Ref v4,
 void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter);
 
 } // end of namespace tkdGenerator
-}//	end of namespace ug
 
 #endif /* TETRAKAIDEKAEDER_GENERATOR_H_ */

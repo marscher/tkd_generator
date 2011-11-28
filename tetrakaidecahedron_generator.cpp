@@ -8,8 +8,7 @@
 #include "tetrakaidecahedron_generator.h"
 
 using namespace std;
-
-namespace ug{
+using namespace ug;
 
 namespace tkdGenerator{
 
@@ -234,8 +233,7 @@ void createTetrahedron(vec3Ref v1, vec3Ref v2, vec3Ref v3, vec3Ref v4,
 
 ////////////////////////////////////////////////////////////////////////
 ///	test tetrakaidekahedron generator
-void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter)
-{
+void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter) {
 	Grid g;
 	SubsetHandler sh(g);
 	sh.set_default_subset_index(0);
@@ -246,17 +244,11 @@ void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength,
 	SaveGridToFile(g, sh, outfile);
 }
 
-
-extern "C" UG_API void InitUGPlugin(ug::bridge::Registry* reg, string parentGroup)
-{
+extern "C" UG_API void InitUGPlugin(ug::bridge::Registry* reg, string parentGroup) {
 	string grp(parentGroup); grp.append("tkd_generator/");
 
 	//	add TKD-Generator method
-	reg.add_function("TestTKDGenerator", &TestTKDGenerator, grp);
-
+	reg->add_function("TestTKDGenerator", &TestTKDGenerator, grp);
 }
 
-
-
 }// end of namespace tkdGenerator
-}//	end of namespace ug
