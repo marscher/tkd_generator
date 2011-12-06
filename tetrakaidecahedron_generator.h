@@ -16,15 +16,18 @@
 #include "lib_grid/lg_base.h"
 #include "lib_grid/grid/grid.h"
 #include "lib_grid/file_io/file_io.h"
+#include "lib_grid/algorithms/geom_obj_util/vertex_util.h"
 #include "common/math/ugmath_types.h"
 #include "registry/registry.h"
 
 namespace trans = boost::geometry::strategy::transform;
 using boost::geometry::dsv;
+using boost::geometry::transform;
+using boost::geometry::degree;
 
 namespace tkdGenerator {
 
-typedef boost::geometry::model::point<double, 3, boost::geometry::cs::cartesian> point_type;
+typedef boost::geometry::model::point<double, 3, boost::geometry::cs::cartesian> Point;
 
 typedef std::vector<ug::vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
