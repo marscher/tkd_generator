@@ -19,7 +19,7 @@ void createPrism(vRef v1, vRef v2, vRef v3,
 void createTetrahedron(vRef v1, vRef v2, vRef v3, vRef v4,
 		CoordsArray& posOut, IndexArray& indsOut);
 
-v myTransform(vRef v, rotationMatrix& R, vRef origin);
+v myTransform(vRef v, RotationMatrix& R, vRef origin);
 
 }
 

@@ -21,10 +21,11 @@ namespace tkdGenerator {
  |                   |
  +sin(t)  0   cos(t) +
  */
-class rotationMatrix {
+class RotationMatrix {
 public:
+	void setMirrorXAxis(const bool);
 	void setAngle(const number& theta);
-	rotationMatrix(const number& theta);
+	RotationMatrix(const number& theta, const bool mirror = false);
 	vector3 operator*(const vector3& v);
 
 protected:

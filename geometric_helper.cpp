@@ -58,7 +58,7 @@ void createTetrahedron(vRef v1, vRef v2, vRef v3, vRef v4,
  * @param R rotation matrix to use
  * @param origin offset with which Rv is translated
  */
-v myTransform(vRef v, rotationMatrix& R, vRef origin) {
+v myTransform(vRef v, RotationMatrix& R, vRef origin) {
 	return (R * v) += origin;
 }
 

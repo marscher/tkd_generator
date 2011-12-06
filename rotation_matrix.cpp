@@ -10,7 +10,8 @@
 
 namespace tkdGenerator {
 
-/*
+/**
+ * Rotate around y axis
  *
  +cos(t)  0  - sin(t)+
  |                   |
@@ -18,20 +19,30 @@ namespace tkdGenerator {
  |                   |
  +sin(t)  0   cos(t) +
  */
-void rotationMatrix::setAngle(const number& theta) {
+void RotationMatrix::setAngle(const number& theta) {
 	R[0][0] = cos(theta);
 	R[0][2] = -sin(theta);
 	R[2][0] = sin(theta);
 	R[2][2] = cos(theta);
 }
 
-rotationMatrix::rotationMatrix(const number& theta) {
+void RotationMatrix::setMirrorXAxis(const bool mirror) {
+	if(mirror)
+		R[1][1] = -1;
+	else
+		R[1][1] = 1;
+}
+
+RotationMatrix::RotationMatrix(const number& theta, const bool mirror) {
 	R[0][0] = cos(theta);
 	R[0][1] = 0;
 	R[0][2] = -sin(theta);
 
 	R[1][0] = 0;
-	R[1][1] = 1;
+	if(mirror)
+		R[1][1] = -1;
+	else
+		R[1][1] = 1;
 	R[1][2] = 0;
 
 	R[2][0] = sin(theta);
@@ -39,7 +50,7 @@ rotationMatrix::rotationMatrix(const number& theta) {
 	R[2][2] = cos(theta);
 }
 
-vector3 rotationMatrix::operator*(const vector3& v) {
+vector3 RotationMatrix::operator*(const vector3& v) {
 	// temp values
 	number x, y, z;
 	x = R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2];
