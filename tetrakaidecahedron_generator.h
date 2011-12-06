@@ -10,29 +10,20 @@
 
 #include <vector>
 
-#include <boost/geometry/geometry.hpp>
-
 // used ug header
 #include "lib_grid/lg_base.h"
 #include "lib_grid/grid/grid.h"
 #include "lib_grid/file_io/file_io.h"
 #include "lib_grid/algorithms/geom_obj_util/vertex_util.h"
-#include "common/math/ugmath_types.h"
-#include "registry/registry.h"
 
-namespace trans = boost::geometry::strategy::transform;
-using boost::geometry::dsv;
-using boost::geometry::transform;
-using boost::geometry::degree;
+#include "registry/registry.h"
+#include "common_typedefs.h"
+#include "rotation_matrix.h"
 
 namespace tkdGenerator {
 
-typedef boost::geometry::model::point<double, 3, boost::geometry::cs::cartesian> Point;
-
-typedef std::vector<ug::vector3> CoordsArray;
-typedef std::vector<int> IndexArray;
-typedef const ug::vector3& vec3Ref;
-typedef double number;
+using ug::vector3;
+using ug::Grid;
 
 /**
  * \param grid
@@ -40,7 +31,7 @@ typedef double number;
  * \param baseEdgeLength
  * \param diameter
  */
-void GenerateTetrakaidecahedron(ug::Grid& grid, number& height,
+void GenerateTetrakaidecahedron(Grid& grid, number& height,
 		number& baseEdgeLength, number& diameter);
 
 /**
@@ -54,12 +45,6 @@ void GenerateTetrakaidecahedron(ug::Grid& grid, number& height,
 void GenerateTetrakaidecahedron(CoordsArray&, IndexArray&,
 							  number& height, number& baseEdgeLength, number& diameter);
 
-void createPrism(vec3Ref v1, vec3Ref v2, vec3Ref v3,
-				 vec3Ref v4, vec3Ref v5, vec3Ref v6,
-				 CoordsArray& posOut, IndexArray& indsOut);
-
-void createTetrahedron(vec3Ref v1, vec3Ref v2, vec3Ref v3, vec3Ref v4,
-		CoordsArray& posOut, IndexArray& indsOut);
 
 void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter);
 

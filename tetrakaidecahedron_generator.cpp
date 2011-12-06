@@ -6,65 +6,15 @@
  */
 
 #include "tetrakaidecahedron_generator.h"
+#include "geometric_helper.h"
 
-using namespace std;
 using namespace ug;
 
 namespace tkdGenerator {
 
-/*
- *  +cos(t)  0  - sin(t)+
- |                   |
- |  0     1     0    |
- |                   |
- +sin(t)  0   cos(t) +
- */
-class rotationMatrix {
-public:
-	void setAngle(const number& theta) {
-		R[0][0] = cos(theta);
-		R[0][2] = -sin(theta);
-		R[2][0] = sin(theta);
-		R[2][2] = cos(theta);
-	}
-
-	rotationMatrix(const number& theta) {
-		R[0][0] = cos(theta);
-		R[0][1] = 0;
-		R[0][2] = -sin(theta);
-
-		R[1][0] = 0;
-		R[1][1] = 1;
-		R[1][2] = 0;
-
-		R[2][0] = sin(theta);
-		R[2][1] = 0;
-		R[2][2] = cos(theta);
-	}
-
-	vector3 operator*(const vector3& v) {
-		// temp values
-		number x, y, z;
-		x = R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2];
-		y = R[1][0] * v[0] + R[1][1] * v[1] + R[1][2] * v[2];
-		z = R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
-
-//		v[0] = x;
-//		v[1] = y;
-//		v[2] = z;
-
-		return vector3(x, y, z);
-	}
-
-protected:
-	number R[3][3];
-};
-
-// global index for nodes
-static unsigned int index = 0;
-
 void GenerateTetrakaidecahedron(Grid& grid, number& height,
 		number& baseEdgeLength, number& diameter) {
+
 	CoordsArray positions;
 	IndexArray indices;
 
@@ -104,14 +54,15 @@ void GenerateTetrakaidecahedron(Grid& grid, number& height,
 		case 6:
 			grid.create<Prism>(vd);
 			break;
-		case 8:l
+		case 8:
 			grid.create<Hexahedron>(vd);
 			break;
 		}
 	}
 
-	//todo template parameter für iteratoren wird bei plugins nicht erzeugt
-//		RemoveDoubles(grid, grid.vertices_begin() , grid.vertices_end(), aPosition, 0.1);
+	// remove double vertices
+	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+			aPosition, 0.1);
 }
 
 void GenerateCorneocyteWithLipid(number a_corneocyte, number width, number H,
@@ -119,8 +70,7 @@ void GenerateCorneocyteWithLipid(number a_corneocyte, number width, number H,
 
 	number a1 = sqrt(
 			1.0 / 9.0 * H * H
-					+ 1.0 / 3.0 * (width - 2.0 * a_corneocyte)
-							* (width - 2.0 * a_corneocyte));
+					+ 1.0 / 3.0 * pow((width - 2.0 * a_corneocyte), 2));
 
 	number alpha = acos((width - 2.0 * a_corneocyte) / (2.0 * a1));
 	number beta = 90.0 / 180.0 * PI + acos(1.0 / 3.0 * H / (a1 * sin(alpha)));
@@ -155,10 +105,10 @@ void GenerateTetrakaidecahedron(CoordsArray& posOut, IndexArray& indsOut,
 
 	UG_LOG("g: " << g << endl);
 	UG_LOG("s: " << s << endl);
+	UG_LOG("b: " << b << endl);
 
 	// origin of construction of tkd
-	//TODO this should be an orthonormal basis transformation, simply adding a vector is wrong!
-//	const vector3 origin(0, 0, 0);
+	const v origin(0, 0, 0); //(10, 10, 10);
 
 	// Rotation matrix with initial rotation angle of 0 (rad)
 	rotationMatrix R(0);
@@ -170,15 +120,13 @@ void GenerateTetrakaidecahedron(CoordsArray& posOut, IndexArray& indsOut,
 		R.setAngle(t);
 
 		// begin in origin
-		// copy origin, because operator works in place
-//		vector3 copy = vector3(origin);
-		vector3 v1 = vector3(0,0,0);
+		v v1 = myTransform(v(0, 0, 0), R, origin);
 		// create surrounding vertices relative to origin
-		vector3 v2 = R * vector3(a, 0, 0);
-		vector3 v3 = R * vector3(a / 2, 0, g);
-		vector3 v4 = R * vector3(0, h, 0);
-		vector3 v5 = R * vector3(a, h, 0);
-		vector3 v6 = R * vector3(a / 2, h, g);
+		v v2 = myTransform(v(a, 0, 0), R, origin);
+		v v3 = myTransform(v(a / 2, 0, g), R, origin);
+		v v4 = myTransform(v(0, h, 0), R, origin);
+		v v5 = myTransform(v(a, h, 0), R, origin);
+		v v6 = myTransform(v(a / 2, h, g), R, origin);
 
 		createPrism(v1, v2, v3, v4, v5, v6, posOut, indsOut);
 	}
@@ -186,82 +134,46 @@ void GenerateTetrakaidecahedron(CoordsArray& posOut, IndexArray& indsOut,
 	// create G(Ki -> ObenAussenPr2T)
 	for (number t = 2. / 3 * PI; t < 2 * PI; t += (2. / 3 * PI)) {
 		R.setAngle(t);
-		vector3 v1_a = R * vector3(a / 2, 0, g);
-		vector3 v2_a = R * vector3(a / 2, 0, g + s);
-		vector3 v3_a = R * vector3(a / 2 + b, 0, g + s / 2);
-		vector3 v4_a = R * vector3(a / 2, h, g);
+		 b = sqrt(2) * s;
+		// TODO b ist nicht das korrekte offset, da es nicht paralell zur x achse liegt.
 		// left tetrahedron right of prism of ObenAussenPr
+		v v1_a = myTransform(v(a / 2, 0, g), R, origin);
+		v v2_a = myTransform(v(a / 2, 0, g + s), R, origin);
+		v v3_a = myTransform(v(a / 2 + b, 0, g + s / 2), R, origin);
+		// top
+		v v4_a = myTransform(v(a / 2, h, g), R, origin);
 		createTetrahedron(v1_a, v2_a, v3_a, v4_a, posOut, indsOut);
 
-		// Prism of ObenAussenPr2T
+//		// Prism of ObenAussenPr2T
 		//TODO tiefe von prisma ist s/2 wie von tetraeder, damit die auf einer ebene liegen
-		vector3 v1p = R * vector3(a / 2, 0, g);
-		vector3 v2p = R * vector3(a / 2, h, g);
-		vector3 v3p = R * vector3(a / 2 + b, 0, g + s / 2);
+		v v1p = myTransform(v(a / 2, 0, g), R, origin);
+		v v2p = myTransform(v(a / 2, h, g), R, origin);
+		v v3p = myTransform(v(a / 2 + b, 0, g + s / 2), R, origin);
 
-		vector3 v4p = R * vector3(a, 0, 0);
-		vector3 v5p = R * vector3(a, h, 0);
-		vector3 v6p = R * vector3(a + b, 0, s / 2);
+		v v4p = myTransform(v(a, 0, 0), R, origin);
+		v v5p = myTransform(v(a, h, 0), R, origin);
+		v v6p = myTransform(v(a + b, 0, s / 2), R, origin);
 
 		createPrism(v1p, v2p, v3p, v4p, v5p, v6p, posOut, indsOut);
 
 		// right of prism ObenAussenPr2T
-		vector3 v1_b = R * vector3(a, 0, 0);
-		vector3 v2_b = R * vector3(a, b, 0);
-		vector3 v3_b = R * vector3(a + b, 0, 0);
+		v v1_b = myTransform(v(a, 0, 0), R, origin);
+		v v2_b = myTransform(v(a, b, 0), R, origin);
+		v v3_b = myTransform(v(a + b, 0, 0), R, origin);
 
-		vector3 v4_b = R * vector3(a, h, 0);
-//		createTetrahedron(v1_b, v2_b, v3_b, v4_b, posOut, indsOut);
-
+		v v4_b = myTransform(v(a, h, 0), R, origin);
+//		createTetrahedron(v1_b, v2_b, v3_b, v4_b, posOut, indsOut), R, origin);
+//
 		// create G(Ki -> ObenAussenPr):
 		// create 3 prisms every 120° or 2/3 PI (rad)
-		vector3 v1 = R * vector3(a / 2, 0, g);
-		vector3 v2 = R * vector3(a / 2, h, g);
-		vector3 v3 = R * vector3(a / 2, 0, g + s);
-		vector3 v4 = R * vector3(-a / 2, 0, g);
-		vector3 v5 = R * vector3(-a / 2, h, g);
-		vector3 v6 = R * vector3(-a / 2, 0, g + s);
+		v v1 = myTransform(v(a / 2, 0, g), R, origin);
+		v v2 = myTransform(v(a / 2, h, g), R, origin);
+		v v3 = myTransform(v(a / 2, 0, g + s), R, origin);
+		v v4 = myTransform(v(-a / 2, 0, g), R, origin);
+		v v5 = myTransform(v(-a / 2, h, g), R, origin);
+		v v6 = myTransform(v(-a / 2, 0, g + s), R, origin);
 
 		createPrism(v1, v2, v3, v4, v5, v6, posOut, indsOut);
-	}
-}
-
-void createPrism(vec3Ref v1, vec3Ref v2, vec3Ref v3, vec3Ref v4, vec3Ref v5,
-		vec3Ref v6, CoordsArray& posOut, IndexArray& indsOut) {
-	posOut.push_back(v1);
-	posOut.push_back(v2);
-	posOut.push_back(v3);
-
-	posOut.push_back(v4);
-	posOut.push_back(v5);
-	posOut.push_back(v6);
-
-	// 6 nodes
-	indsOut.push_back(6);
-	// enum each node of prism to assign unique node index
-	for (unsigned int current = index; index < current + 6; index++) {
-		indsOut.push_back(index);
-	}
-}
-
-/**
- * please be sure to pass the vertices in the correct order:
- * v1, v2, v3: bottom-vertices in counterclockwise order (if viewed from the top).
- * v4: top
- */
-void createTetrahedron(vec3Ref v1, vec3Ref v2, vec3Ref v3, vec3Ref v4,
-		CoordsArray& posOut, IndexArray& indsOut) {
-	posOut.push_back(v1);
-	posOut.push_back(v2);
-	posOut.push_back(v3);
-	// top
-	posOut.push_back(v4);
-
-	// 4 nodes
-	indsOut.push_back(4);
-	// enum each node of prism to assign unique node index
-	for (unsigned int current = index; index < current + 4; index++) {
-		indsOut.push_back(index);
 	}
 }
 
@@ -281,8 +193,8 @@ void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength,
 }
 
 extern "C" UG_API void InitUGPlugin(ug::bridge::Registry* reg,
-		string parentGroup) {
-	string grp(parentGroup);
+		std::string parentGroup) {
+	std::string grp(parentGroup);
 	grp.append("tkd_generator/");
 
 	//	add TKD-Generator method
