@@ -12,14 +12,22 @@
 #include "rotation_matrix.h"
 namespace tkdGenerator {
 
-void createPrism(vRef v1, vRef v2, vRef v3,
-				 vRef v4, vRef v5, vRef v6,
-				 CoordsArray& posOut, IndexArray& indsOut);
+//void createGeometricObject(int numVertices, const CoordsArray & posIn,
+//		CoordsArray & posOut, IndexArray & indsOut);
 
-void createTetrahedron(vRef v1, vRef v2, vRef v3, vRef v4,
-		CoordsArray& posOut, IndexArray& indsOut);
+CoordsArray& operator<<(CoordsArray& array, const v& vector);
 
-v myTransform(vRef v, RotationMatrix& R, vRef origin);
+std::ostream& operator<<(std::ostream& out, const CoordsArray& arr);
+
+class myTransform {
+public:
+	myTransform(RotationMatrix&, const v& origin);
+	const v perform(const v&);
+	CoordsArray perform(CoordsArray&);
+protected:
+	RotationMatrix& m_R;
+	const v& m_origin;
+};
 
 }
 

@@ -10,13 +10,16 @@
 
 #include <vector>
 #include "common/math/ugmath_types.h"
+#include "common/math/misc/math_util.h"
+
 
 typedef ug::vector3 v;
 typedef std::vector<v> CoordsArray;
 typedef std::vector<int> IndexArray;
-typedef const v& vRef;
 typedef double number;
 
+
+using ug::PI;
 using std::endl;
 using std::string;
 

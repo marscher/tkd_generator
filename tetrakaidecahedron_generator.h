@@ -45,11 +45,11 @@ void GenerateTetrakaidecahedron(Grid& grid, number& height,
 void GenerateTetrakaidecahedron(CoordsArray&, IndexArray&,
 							  number& height, number& baseEdgeLength, number& diameter);
 
-void createTop(CoordsArray& posOut, IndexArray& indsOut,
-		number& height, number& a, number& diameter, RotationMatrix& R, vRef origin);
-
-void createMiddle(CoordsArray& posOut, IndexArray& indsOut,
-		number& height, number& a, number& diameter, RotationMatrix& R, vRef origin);
+//void createTop(CoordsArray& posOut, IndexArray& indsOut,
+//		number& height, number& a, number& diameter, RotationMatrix& R, const v& origin);
+//
+//void createMiddle(CoordsArray& posOut, IndexArray& indsOut,
+//		number& height, number& a, number& diameter, RotationMatrix& R, const v& origin);
 
 
 void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter);

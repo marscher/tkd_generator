@@ -17,7 +17,8 @@ include("../../../ug_plugin_cmake_includes.txt")
 # sources
 set(SOURCES	tetrakaidecahedron_generator.cpp
 			rotation_matrix.cpp
-			geometric_helper.cpp)
+			geometric_helper.cpp
+			generator.cpp)
 
 
 # create a shared library from the sources and link it against ug4.
