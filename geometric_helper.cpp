@@ -5,15 +5,9 @@
  *      Author: marscher
  */
 #include "geometric_helper.h"
-#include <cassert>
 #include "common/log.h"
-#include "common/assert.h"
 
 namespace tkdGenerator {
-
-myTransform::myTransform(RotationMatrix& R, const v& origin) :
-		m_R(R), m_origin(origin) {
-}
 
 /**
  * This method first rotates vector v with rotation matrix R and then translates
@@ -26,10 +20,10 @@ const v myTransform::perform(const v& v) {
 	return (m_R * v) += m_origin;
 }
 
-CoordsArray myTransform::perform(CoordsArray& coords) {
-	CoordsArray result(coords);
+CoordsArray myTransform::perform(const CoordsArray& coords) {
+	CoordsArray result;
 	for (size_t i = 0; i < coords.size(); i++) {
-		result[i] = perform(coords[i]);
+		result.push_back(perform(coords[i]));
 	}
 	return result;
 }
@@ -45,11 +39,43 @@ CoordsArray& operator<<(CoordsArray& array, const v& vector) {
 /**
  * print vector of vectors
  */
-std::ostream& operator<<(std::ostream& out, std::vector<v>& arr) {
-	for (size_t i = 0; i < arr.size(); i++) {
-		out << arr[i] << endl;
+std::ostream & operator <<(std::ostream & out, const CoordsArray& coords) {
+	for (size_t i = 0; i < coords.size(); i++) {
+		out << coords[i] << ", ";
 	}
 	return out;
+}
+
+v mirror(const v& vec, const int axis) {
+	v result;
+	result.x = vec.x * (axis == xAxis ? -1 : 1);
+	result.y = vec.y * (axis == yAxis ? -1 : 1);
+	result.z = vec.z * (axis == zAxis ? -1 : 1);
+	return result;
+}
+
+CoordsArray mirror(const CoordsArray coords, const int axis) {
+	CoordsArray result;
+	for (size_t i = 0; i < coords.size(); i++) {
+		result.push_back(mirror(coords[i], axis));
+	}
+	return result;
+}
+
+v translate(const v& vec, const v& offset) {
+	v result;
+	result.x = vec.x + offset.x;
+	result.y = vec.y + offset.y;
+	result.z = vec.z + offset.z;
+	return result;
+}
+
+CoordsArray translate(const CoordsArray& coords, const v& offset) {
+	CoordsArray result;
+	for (size_t i = 0; i < coords.size(); i++) {
+		result.push_back(translate(coords[i], offset));
+	}
+	return result;
 }
 
 } // end of namespace tkdGenerator

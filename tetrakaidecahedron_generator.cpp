@@ -8,6 +8,8 @@
 #include "tetrakaidecahedron_generator.h"
 #include "generator.h"
 
+#include "lib_grid/algorithms/extrusion/extrude.h"
+
 using namespace ug;
 
 namespace tkdGenerator {
@@ -61,31 +63,53 @@ void GenerateTetrakaidecahedron(Grid& grid, number& height,
 	}
 
 	// remove double vertices
-	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
-			aPosition, 0.1);
+//	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+//			aPosition, 0.1);
 }
 
+// TODO create corneocyte and lipid tkd and merge them somehow
 void GenerateCorneocyteWithLipid(number a_corneocyte, number width, number H,
 		number d_lipid) {
-// stolen parameters from old tkd modeler
 
-//	number a1 = sqrt(
-//			1.0 / 9.0 * H * H
-//					+ 1.0 / 3.0 * pow((width - 2.0 * a_corneocyte), 2));
-//
-//	number alpha = acos((width - 2.0 * a_corneocyte) / (2.0 * a1));
-//	number beta = 90.0 / 180.0 * PI + acos(1.0 / 3.0 * H / (a1 * sin(alpha)));
-//	number gamma = acos(1.0 / 3.0 * H / a1) + 90.0 / 180.0 * PI;
-//
-//	number m1 = (d_lipid / 2) / tan(beta / 2);
-//	number m2 = (d_lipid / 2) / tan(gamma / 2);
-//
-//	number a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
-//	number h_lipid = d_lipid + H;
-//	number w_lipid;
+	// stolen parameters from old tkd modeler
+	number a1 = sqrt(
+			1.0 / 9.0 * H * H
+					+ 1.0 / 3.0 * pow((width - 2.0 * a_corneocyte), 2));
 
-	// create corneocyte and lipid tkd and merge them somehow
-	//GenerateTetrakaidecahedron()
+	number alpha = acos((width - 2.0 * a_corneocyte) / (2.0 * a1));
+	number beta = 90.0 / 180.0 * PI + acos(1.0 / 3.0 * H / (a1 * sin(alpha)));
+	number gamma = acos(1.0 / 3.0 * H / a1) + 90.0 / 180.0 * PI;
+
+	number m1 = (d_lipid / 2) / tan(beta / 2);
+	number m2 = (d_lipid / 2) / tan(gamma / 2);
+
+	number a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
+	number h_lipid = d_lipid + H;
+	number w_lipid;
+
+	/**
+	 * some thoughts:
+	 * with current implementation we need to create lipid and corneocytes seperately (2 generators)
+	 * for each pair we need to call Extrude(). <- could this be more efficient?
+	 */
+	CoordsArray posOut;
+	IndexArray indsOut;
+
+	Generator gCorneocyte(H, a_corneocyte, width, posOut, indsOut);
+	Generator gLipid(h_lipid, a_lipid, w_lipid, posOut, indsOut);
+
+	// both start construction of top in 0,0,0
+	//TODO this must be the "center of mass" or else extrude might not be working..
+	// schwerpunkt := aussenkoordinaten von tkd / N
+	// N := # aussenkoordinaten
+	gCorneocyte.createTKD();
+	gLipid.createTKD();
+
+	//TODO questions sebastian:
+	/**
+	 *
+	 */
+	//	Extrude();
 }
 
 ////////////////////////////////////////////////////////////////////////

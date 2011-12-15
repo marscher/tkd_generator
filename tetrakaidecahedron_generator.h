@@ -22,7 +22,6 @@
 
 namespace tkdGenerator {
 
-using ug::vector3;
 using ug::Grid;
 
 /**
@@ -44,13 +43,6 @@ void GenerateTetrakaidecahedron(Grid& grid, number& height,
  */
 void GenerateTetrakaidecahedron(CoordsArray&, IndexArray&,
 							  number& height, number& baseEdgeLength, number& diameter);
-
-//void createTop(CoordsArray& posOut, IndexArray& indsOut,
-//		number& height, number& a, number& diameter, RotationMatrix& R, const v& origin);
-//
-//void createMiddle(CoordsArray& posOut, IndexArray& indsOut,
-//		number& height, number& a, number& diameter, RotationMatrix& R, const v& origin);
-
 
 void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter);
 

@@ -10,23 +10,23 @@
 #ifndef _ROTATION_MATRIX_
 #define _ROTATION_MATRIX_
 
-using ug::vector3;
-
 namespace tkdGenerator {
 
-/*
- +cos(t)  0  - sin(t)+
+/**
+ * class to perform transformation of rotation around z axis with following matrix
+ *
+ +cos(r)  - sin(r)  0+
  |                   |
- |  0     1     0    |
+ |sin(r)   cos(r)   0|
  |                   |
- +sin(t)  0   cos(t) +
+ +  0        0      1+
  */
 class RotationMatrix {
 public:
-	void setMirrorXAxis(const bool);
+	void setMirrorZAxis(const bool);
 	void setAngle(const number& theta);
-	RotationMatrix(const number& theta, const bool mirror = false);
-	vector3 operator*(const vector3& v);
+	RotationMatrix(const number& theta = 0, const bool mirror = false);
+	v operator*(const v& vector);
 
 protected:
 	number R[3][3];

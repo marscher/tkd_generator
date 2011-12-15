@@ -25,37 +25,46 @@ const static v origin(0, 0, 0);
 
 class Generator {
 public:
-	// 0, 0, 0
-	v v1;
-	// a, 0, 0
-	v v2;
-	// (a / 2, 0, g)
-	v v3;
-	// (0, h, 0)
-	v v4;
-	// (a, h, 0)
-	v v5;
-	// (a / 2, h, g)
-	v v6;
-	// (a / 2, 0, g + s)
-	v v7;
-	// (-a / 2, 0, g)
-	v v8;
-	// (-a / 2, h, g)
-	v v9;
-	// (-a / 2, 0, g + s)
-	v v10;
-	// (a / 2 + hs, 0, g + q)
-	v v11;
-	// (a + hs, 0, q)
-	v v12;
-	// fixme (a + hs + q, 0, -q)
-	v v13;
+	///// segments of top and bottom
+	CoordsArray obenInnen;
+	// G(Ki -> ObenAussenPr)
+	CoordsArray obenAussenPrism;
+
+	CoordsArray obenAussenPr_rightTetrahedron;
+	CoordsArray obenAussenPr_leftTetrahedrson;
+
+	CoordsArray obenAussenPr2T_prism;
+
+	///// segments of middle part
+	// outer prism
+	CoordsArray mitteAussenP1;
+	// inner prism
+	CoordsArray mitteAussenP2;
+
+	// symetric with mittAussenH2Pr!
+	//	CoordsArray mittAussen2PrH;
+
+	// below obenAussenPr_rightTetrahedron
+	CoordsArray mitteAussenH2Pr_tetrahedron;
+	CoordsArray mitteAussenH2Pr_pyramid;
+
+	CoordsArray mitteAussen2PrH_tetrahedron;
+	CoordsArray mitteAussen2PrH_pyramid;
+
+	// below obenAussenPrism
+	CoordsArray mitteAussenHexahedron;
+	///////////////////////////////////
 
 	void createTKD();
-
 	void createTKD(const v& origin);
 
+	/**
+	 * @param height
+	 * @param baseEdgeLength
+	 * @param diameter
+	 * @param posOut
+	 * @param indsOut
+	 */
 	Generator(number height, number baseEdgeLength, number diameter,
 			CoordsArray& posOut, IndexArray& indsOut) :
 			h(height / 3), a(baseEdgeLength), w(diameter), posOut(posOut), indsOut(
@@ -63,8 +72,12 @@ public:
 		init();
 	}
 
+	number getVolume() const;
+
+	number getSurface() const;
+
 protected:
-	// height of one third of tkd
+	// height of one third of tkd : h = 1/3 * h_tkd
 	number h;
 	// base edge length of central hexahedron
 	number a;
@@ -76,11 +89,6 @@ protected:
 	number g;
 	// height of base triangle of tetrahedron of ObenAussenPr2T
 	number b;
-	/* height of hyphotenuse s in base triangle of tetrahedron of ObenAussenPr2T
-	 describing offset in x direction */
-	number hs;
-	// segment of hypothenuse s describing offset in x direction
-	number q;
 
 	/**
 	 * stores a reference to CoordsArray owned by creator of this instance
@@ -105,7 +113,7 @@ protected:
 	/**
 	 *	creates the upper part of tkd (symmetric to bottom part!)
 	 */
-	void createTop(const v& offset);
+	void createTop(const v& offset, const number rotationOffset = 0);
 
 	/**
 	 * creates middle part with given offset
