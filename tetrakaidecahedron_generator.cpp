@@ -111,9 +111,10 @@ void GenerateCorneocyteWithLipid(Grid& grid, number a_corneocyte,
 	std::vector<Face*> boundaryFaces;
 	std::vector<VertexBase*> verticesOut;
 	std::vector<EdgeBase*> edgesOut;
-	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-			++iter) {
-		if (IsVolumeBoundaryFace(grid, *iter))
+	for (FaceIterator iter = grid.begin<Face>();
+		iter != grid.end<Face>(); ++iter)
+	{
+		if(IsVolumeBoundaryFace(grid, *iter))
 			boundaryFaces.push_back(*iter);
 	}
 	UG_LOG("num faces: " << grid.num<Face>() << endl);
@@ -138,7 +139,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, number a_corneocyte,
 ///	test tetrakaidekahedron generator
 void TestTKDGenerator(const char *outfile, number height, number baseEdgeLength,
 		number diameter, number d_lipid) {
-	Grid g(GRIDOPT_AUTOGENERATE_SIDES);
+	Grid g(GRIDOPT_STANDARD_INTERCONNECTION);
 	SubsetHandler sh(g);
 	sh.set_default_subset_index(0);
 	g.attach_to_vertices(aPosition);
