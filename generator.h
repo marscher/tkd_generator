@@ -25,36 +25,6 @@ const static v origin(0, 0, 0);
 
 class Generator {
 public:
-	///// segments of top and bottom
-	CoordsArray obenInnen;
-	// G(Ki -> ObenAussenPr)
-	CoordsArray obenAussenPrism;
-
-	CoordsArray obenAussenPr_rightTetrahedron;
-	CoordsArray obenAussenPr_leftTetrahedrson;
-
-	CoordsArray obenAussenPr2T_prism;
-
-	///// segments of middle part
-	// outer prism
-	CoordsArray mitteAussenP1;
-	// inner prism
-	CoordsArray mitteAussenP2;
-
-	// symetric with mittAussenH2Pr!
-	//	CoordsArray mittAussen2PrH;
-
-	// below obenAussenPr_rightTetrahedron
-	CoordsArray mitteAussenH2Pr_tetrahedron;
-	CoordsArray mitteAussenH2Pr_pyramid;
-
-	CoordsArray mitteAussen2PrH_tetrahedron;
-	CoordsArray mitteAussen2PrH_pyramid;
-
-	// below obenAussenPrism
-	CoordsArray mitteAussenHexahedron;
-	///////////////////////////////////
-
 	void createTKD();
 	void createTKD(const v& origin);
 
@@ -128,7 +98,34 @@ protected:
 	 */
 	void createGeometricObject(const CoordsArray & posIn);
 
-	void calcCenterOfMass();
+	///// segments of top and bottom
+	CoordsArray obenInnen;
+	// G(Ki -> ObenAussenPr)
+	CoordsArray obenAussenPrism;
+
+	CoordsArray obenAussenPr_rightTetrahedron;
+	CoordsArray obenAussenPr_leftTetrahedrson;
+
+	CoordsArray obenAussenPr2T_prism;
+
+	///// segments of middle part
+	// outer prism
+	CoordsArray mitteAussenP1;
+	// inner prism
+	CoordsArray mitteAussenP2;
+
+	// symetric with mittAussenH2Pr!
+	//	CoordsArray mittAussen2PrH;
+
+	// below obenAussenPr_rightTetrahedron
+	CoordsArray mitteAussenH2Pr_tetrahedron;
+	CoordsArray mitteAussenH2Pr_pyramid;
+
+	CoordsArray mitteAussen2PrH_tetrahedron;
+	CoordsArray mitteAussen2PrH_pyramid;
+
+	// below obenAussenPrism
+	CoordsArray mitteAussenHexahedron;
 };
 
 } //end of namespace

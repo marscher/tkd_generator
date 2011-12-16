@@ -197,8 +197,4 @@ void Generator::createGeometricObject(const CoordsArray & posIn) {
 	}
 }
 
-void Generator::calcCenterOfMass() {
-
-}
-
 } // end of namespace tkdGenerator
