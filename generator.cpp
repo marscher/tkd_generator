@@ -80,12 +80,19 @@ void Generator::createMiddle(const v& origin) {
  */
 void Generator::createTKD() {
 	createTKD(origin);
+	UG_LOG(
+			"inds size: " << indsOut.size() << "\n" << "pos Size: " << posOut.size() << endl);
 }
 
 /**
  * creates a tkd starting with
  */
 void Generator::createTKD(const v& offset) {
+	// reserve memory
+	// TODO this is ugly... use lists...
+//	indsOut.reserve(numTKDsGenerated * 405);
+//	posOut.reserve(numTKDsGenerated * 342);
+
 	createTop(offset, 0);
 	v offset_h(offset.x, offset.y, offset.z - h);
 
@@ -115,49 +122,51 @@ void Generator::init() {
 	UG_LOG("b: " << b << endl);
 
 	// assign common vertices needed for construction.
-	//TODO renumber if everything works
-	const v v2(a, 0, 0);
-	const v v3(a / 2, g, 0);
-	const v v4(0, 0, h);
-	const v v5(a, 0, h);
-	const v v6(a / 2, g, h);
-	const v v7(a / 2, g + s, 0);
-	const v v8(-a / 2, g, 0);
-	const v v9(-a / 2, g, h);
-	const v v10(-a / 2, g + s, 0);
-	const v v11(a / 2, g + s / 2, 0);
-	const v v12(-a / 2, g + s / 2, 0);
-	const v v13(a / 2 + b, g + s / 2, 0);
+	const v v1(a, 0, 0);
+	const v v2(0, 0, h);
+	const v v3(a, 0, h);
 
-	const v v14(a / 2, g + s, h);
-	const v v15(-a / 2, g + s, h);
-	const v v16(-a / 2, g + s / 2, h);
-	const v v17(a / 2, g + s / 2, h);
+	const v v4(a / 2, g, 0);
+	const v v5(a / 2, g, h);
 
-	const v v20(a / 2 + b, g + s / 2, h);
-	const v v21(a / 2 + b, g + s / 2, 0);
-	const v v22(a / 2 + b, g + s, h);
+	const v v6(-a / 2, g, 0);
+	const v v7(-a / 2, g, h);
+
+	const v v8(a / 2, g + s, 0);
+	const v v9(-a / 2, g + s, 0);
+	const v v10(a / 2, g + s, h);
+	const v v11(-a / 2, g + s, h);
+
+	const v v12(a / 2, g + s / 2, 0);
+	const v v13(-a / 2, g + s / 2, 0);
+	const v v14(-a / 2, g + s / 2, h);
+	const v v15(a / 2, g + s / 2, h);
+
+	const v v16(a / 2 + b, g + s / 2, 0);
+	const v v17(a / 2 + b, g + s / 2, h);
+	const v v18(a / 2 + b, g + s, h);
+
 
 	///// intialisation of top/bottom segments
-	obenInnen << origin << v2 << v3 << v4 << v5 << v6;
-	obenAussenPrism << v3 << v6 << v7 << v8 << v9 << v10;
-	obenAussenPr_rightTetrahedron << v3 << v11 << v13 << v6;
-	obenAussenPr2T_prism << v3 << v6 << v11 << v8 << v9 << v12;
+	obenInnen << origin << v1 << v4 << v2 << v3 << v5;
+	obenAussenPrism << v4 << v5 << v8 << v6 << v7 << v9;
+	obenAussenPr_rightTetrahedron << v4 << v12 << v16 << v5;
+	obenAussenPr2T_prism << v4 << v5 << v12 << v6 << v7 << v13;
 
 	// mirror right tetrahedron at x-axis to obtain left tetrahedron
 	obenAussenPr_leftTetrahedrson = mirror(obenAussenPr_rightTetrahedron,
 			xAxis);
 
 	///// intialisiation of middle segments
-	mitteAussenHexahedron << v3 << v6 << v14 << v11 << v8 << v9 << v15 << v12;
-	mitteAussenP1 << v9 << v16 << v10 << v6 << v17 << v7;
-	mitteAussenP2 << v8 << v9 << v10 << v3 << v6 << v7;
+	mitteAussenHexahedron << v4 << v5 << v10 << v12 << v6 << v7 << v11 << v13;
+	mitteAussenP1 << v7 << v14 << v9 << v5 << v15 << v8;
+	mitteAussenP2 << v6 << v7 << v9 << v4 << v5 << v8;
 
 	/// this is tetrahedron of mitteAussenH2Pr right of mitteAussenHexahedron
-	mitteAussenH2Pr_tetrahedron << v6 << v17 << v20 << v7;
+	mitteAussenH2Pr_tetrahedron << v5 << v15 << v17 << v8;
 	mitteAussen2PrH_tetrahedron = mirror(mitteAussenH2Pr_tetrahedron, xAxis);
 
-	mitteAussenH2Pr_pyramid << v3 << v6 << v14 << v11 << v21;
+	mitteAussenH2Pr_pyramid << v4 << v5 << v10 << v12 << v16;
 	mitteAussen2PrH_pyramid = mirror(mitteAussenH2Pr_pyramid, xAxis);
 }
 
@@ -186,6 +195,10 @@ void Generator::createGeometricObject(const CoordsArray & posIn) {
 	for (size_t current = index; index < current + numCoords; index++) {
 		indsOut.push_back(index);
 	}
+}
+
+void Generator::calcCenterOfMass() {
+
 }
 
 } // end of namespace tkdGenerator

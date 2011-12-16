@@ -90,6 +90,8 @@ protected:
 	// height of base triangle of tetrahedron of ObenAussenPr2T
 	number b;
 
+	number centerOfMass;
+
 	/**
 	 * stores a reference to CoordsArray owned by creator of this instance
 	 */
@@ -125,6 +127,8 @@ protected:
 	 * indices for each vertex which are pushed into global indsOut reference
 	 */
 	void createGeometricObject(const CoordsArray & posIn);
+
+	void calcCenterOfMass();
 };
 
 } //end of namespace

@@ -14,15 +14,18 @@ using namespace ug;
 
 namespace tkdGenerator {
 
-void GenerateTetrakaidecahedron(Grid& grid, number& height,
-		number& baseEdgeLength, number& diameter) {
-
-	CoordsArray positions;
-	IndexArray indices;
-	Generator generator(height, baseEdgeLength, diameter, positions, indices);
-
-//	fill the arrays
-	generator.createTKD();
+/**
+ * @param grid grid instance in which geometric objects will be created
+ * @param positions
+ * @param indices: numInds1, ind1_1, ind1_2, ..., numInds2, ind2_1, ind2_2, ...
+ *
+ * numInds == 4: tetrahedron
+ * numInds == 5: pyramid
+ * numInds == 6: prism
+ * numInds == 8: hexahedron
+ */
+void createGrid(Grid& grid, const CoordsArray& positions,
+		const IndexArray& indices) {
 
 //	access vertex position data
 	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
@@ -63,65 +66,84 @@ void GenerateTetrakaidecahedron(Grid& grid, number& height,
 	}
 
 	// remove double vertices
-//	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
-//			aPosition, 0.1);
+	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+			aPosition, 10E-5);
 }
 
-// TODO create corneocyte and lipid tkd and merge them somehow
-void GenerateCorneocyteWithLipid(number a_corneocyte, number width, number H,
-		number d_lipid) {
+void GenerateCorneocyteWithLipid(Grid& grid, number a_corneocyte,
+		number w_corneocyte, number h_corneocyte, number d_lipid) {
 
-	// stolen parameters from old tkd modeler
-	number a1 = sqrt(
-			1.0 / 9.0 * H * H
-					+ 1.0 / 3.0 * pow((width - 2.0 * a_corneocyte), 2));
+//	// stolen parameters from old tkd modeler
+//	number a1 = sqrt(
+//			1.0 / 9.0 * h_corneocyte * h_corneocyte
+//					+ 1.0 / 3.0 * pow((w_corneocyte - 2.0 * a_corneocyte), 2));
+//
+//	number alpha = acos((w_corneocyte - 2.0 * a_corneocyte) / (2.0 * a1));
+//	number beta = 90.0 / 180.0 * PI
+//			+ acos(1.0 / 3.0 * h_corneocyte / (a1 * sin(alpha)));
+//	number gamma = acos(1.0 / 3.0 * h_corneocyte / a1) + 90.0 / 180.0 * PI;
+//
+//	number m1 = (d_lipid / 2) / tan(beta / 2);
+//	number m2 = (d_lipid / 2) / tan(gamma / 2);
+//
+//	number a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
+//	// fixme is this correct?
+//	number h_lipid = h_corneocyte + d_lipid;
+//	// fixme is this correct?
+//	number w_lipid = w_corneocyte + d_lipid;
+//
+//	UG_LOG(
+//			"a_c: " << a_corneocyte << "\n" << "w_c: " << w_corneocyte << "\n" << "h_c: " << h_corneocyte << endl);
+//
+//	UG_LOG(
+//			"a_l: " << a_lipid << "\n" << "w_l: " << w_lipid << "\n" << "h_l: " << h_lipid << endl);
 
-	number alpha = acos((width - 2.0 * a_corneocyte) / (2.0 * a1));
-	number beta = 90.0 / 180.0 * PI + acos(1.0 / 3.0 * H / (a1 * sin(alpha)));
-	number gamma = acos(1.0 / 3.0 * H / a1) + 90.0 / 180.0 * PI;
-
-	number m1 = (d_lipid / 2) / tan(beta / 2);
-	number m2 = (d_lipid / 2) / tan(gamma / 2);
-
-	number a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
-	number h_lipid = d_lipid + H;
-	number w_lipid;
-
-	/**
-	 * some thoughts:
-	 * with current implementation we need to create lipid and corneocytes seperately (2 generators)
-	 * for each pair we need to call Extrude(). <- could this be more efficient?
-	 */
 	CoordsArray posOut;
 	IndexArray indsOut;
 
-	Generator gCorneocyte(H, a_corneocyte, width, posOut, indsOut);
-	Generator gLipid(h_lipid, a_lipid, w_lipid, posOut, indsOut);
+	Generator gCorneocyte(h_corneocyte, a_corneocyte, w_corneocyte, posOut,
+			indsOut);
 
-	// both start construction of top in 0,0,0
-	//TODO this must be the "center of mass" or else extrude might not be working..
-	// schwerpunkt := aussenkoordinaten von tkd / N
-	// N := # aussenkoordinaten
 	gCorneocyte.createTKD();
-	gLipid.createTKD();
 
-	//TODO questions sebastian:
-	/**
-	 *
-	 */
-	//	Extrude();
+	createGrid(grid, posOut, indsOut);
+
+	std::vector<Face*> boundaryFaces;
+	std::vector<VertexBase*> verticesOut;
+	std::vector<EdgeBase*> edgesOut;
+	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
+			++iter) {
+		if (IsVolumeBoundaryFace(grid, *iter))
+			boundaryFaces.push_back(*iter);
+	}
+	UG_LOG("num faces: " << grid.num<Face>() << endl);
+	UG_LOG("size boundaryFaces: " << boundaryFaces.size() << endl);
+
+	Extrude(grid, &verticesOut, &edgesOut, &boundaryFaces, origin);
+
+	//TODO scale verticesOut to match d_lipid
+	// extruded tkd height = d_lipid + h_corneocyte
+	number scale = 1;
+
+	//	access vertex position data
+	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
+	for (size_t i = 0; i < verticesOut.size(); i++) {
+//		VertexBase& vertex = *verticesOut[i];
+//		v& coord = aaPos[i];
+//		VecScale(coord, coord, scale);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////
 ///	test tetrakaidekahedron generator
 void TestTKDGenerator(const char *outfile, number height, number baseEdgeLength,
-		number diameter) {
-	Grid g;
+		number diameter, number d_lipid) {
+	Grid g(GRIDOPT_AUTOGENERATE_SIDES);
 	SubsetHandler sh(g);
 	sh.set_default_subset_index(0);
 	g.attach_to_vertices(aPosition);
-	tkdGenerator::GenerateTetrakaidecahedron(g, height, baseEdgeLength,
-			diameter);
+
+	GenerateCorneocyteWithLipid(g, baseEdgeLength, diameter, height, d_lipid);
 	SaveGridToFile(g, sh, outfile);
 }
 

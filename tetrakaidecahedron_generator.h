@@ -30,21 +30,10 @@ using ug::Grid;
  * \param baseEdgeLength
  * \param diameter
  */
-void GenerateTetrakaidecahedron(Grid& grid, number& height,
-		number& baseEdgeLength, number& diameter);
+void createGrid(Grid& grid, const CoordsArray& positions,
+		const IndexArray& indices);
 
-/**
- * indsOut: numInds1, ind1_1, ind1_2, ..., numInds2, ind2_1, ind2_2, ...
- *
- * numInds == 4: tetrahedron
- * numInds == 5: pyramid
- * numInds == 6: prism
- * numInds == 8: hexahedron
- */
-void GenerateTetrakaidecahedron(CoordsArray&, IndexArray&,
-							  number& height, number& baseEdgeLength, number& diameter);
-
-void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter);
+void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter, number d_lipid);
 
 } // end of namespace tkdGenerator
 
