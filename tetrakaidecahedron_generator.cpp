@@ -9,6 +9,7 @@
 #include "generator.h"
 
 #include "lib_grid/algorithms/extrusion/extrude.h"
+#include "lib_grid/algorithms/duplicate.h"
 
 using namespace ug;
 
@@ -70,33 +71,33 @@ void createGrid(Grid& grid, const CoordsArray& positions,
 			aPosition, 10E-5);
 }
 
-void GenerateCorneocyteWithLipid(Grid& grid, number a_corneocyte,
-		number w_corneocyte, number h_corneocyte, number d_lipid) {
+void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler sh,
+		number a_corneocyte, number w_corneocyte, number h_corneocyte,
+		number d_lipid) {
 
-//	// stolen parameters from old tkd modeler
-//	number a1 = sqrt(
-//			1.0 / 9.0 * h_corneocyte * h_corneocyte
-//					+ 1.0 / 3.0 * pow((w_corneocyte - 2.0 * a_corneocyte), 2));
-//
-//	number alpha = acos((w_corneocyte - 2.0 * a_corneocyte) / (2.0 * a1));
-//	number beta = 90.0 / 180.0 * PI
-//			+ acos(1.0 / 3.0 * h_corneocyte / (a1 * sin(alpha)));
-//	number gamma = acos(1.0 / 3.0 * h_corneocyte / a1) + 90.0 / 180.0 * PI;
-//
-//	number m1 = (d_lipid / 2) / tan(beta / 2);
-//	number m2 = (d_lipid / 2) / tan(gamma / 2);
-//
-//	number a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
-//	// fixme is this correct?
-//	number h_lipid = h_corneocyte + d_lipid;
-//	// fixme is this correct?
-//	number w_lipid = w_corneocyte + d_lipid;
-//
-//	UG_LOG(
-//			"a_c: " << a_corneocyte << "\n" << "w_c: " << w_corneocyte << "\n" << "h_c: " << h_corneocyte << endl);
-//
-//	UG_LOG(
-//			"a_l: " << a_lipid << "\n" << "w_l: " << w_lipid << "\n" << "h_l: " << h_lipid << endl);
+	// stolen parameters from old tkd modeler
+	number a1 = sqrt(
+			1.0 / 9.0 * h_corneocyte * h_corneocyte
+					+ 1.0 / 3.0 * pow((w_corneocyte - 2.0 * a_corneocyte), 2));
+
+	number alpha = acos((w_corneocyte - 2.0 * a_corneocyte) / (2.0 * a1));
+	number beta = 90.0 / 180.0 * PI
+			+ acos(1.0 / 3.0 * h_corneocyte / (a1 * sin(alpha)));
+	number gamma = acos(1.0 / 3.0 * h_corneocyte / a1) + 90.0 / 180.0 * PI;
+
+	number m1 = (d_lipid / 2) / tan(beta / 2);
+	number m2 = (d_lipid / 2) / tan(gamma / 2);
+
+	number a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
+	// fixme is this correct?
+	number h_lipid = h_corneocyte + d_lipid;
+	// fixme is this correct?
+	number w_lipid = w_corneocyte + d_lipid;
+	UG_LOG(
+			"a_c: " << a_corneocyte << "\n" << "w_c: " << w_corneocyte << "\n" << "h_c: " << h_corneocyte << endl);
+
+	UG_LOG(
+			"a_l: " << a_lipid << "\n" << "w_l: " << w_lipid << "\n" << "h_l: " << h_lipid << endl);
 
 	CoordsArray posOut;
 	IndexArray indsOut;
@@ -109,30 +110,63 @@ void GenerateCorneocyteWithLipid(Grid& grid, number a_corneocyte,
 	createGrid(grid, posOut, indsOut);
 
 	std::vector<Face*> boundaryFaces;
-	std::vector<VertexBase*> verticesOut;
-	std::vector<EdgeBase*> edgesOut;
-	for (FaceIterator iter = grid.begin<Face>();
-		iter != grid.end<Face>(); ++iter)
-	{
-		if(IsVolumeBoundaryFace(grid, *iter))
+	std::vector<Face*>::iterator bfIter;
+
+	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
+			++iter) {
+		if (IsVolumeBoundaryFace(grid, *iter))
 			boundaryFaces.push_back(*iter);
 	}
-	UG_LOG("num faces: " << grid.num<Face>() << endl);
-	UG_LOG("size boundaryFaces: " << boundaryFaces.size() << endl);
 
-	Extrude(grid, &verticesOut, &edgesOut, &boundaryFaces, origin);
+	// select vertices which are beeing extruded
+	Selector sel(grid);
+	sel.enable_autoselection(true);
+
+	// extruding boundary faces
+	Extrude(grid, NULL, NULL, &boundaryFaces, origin);
 
 	//TODO scale verticesOut to match d_lipid
 	// extruded tkd height = d_lipid + h_corneocyte
-	number scale = 1;
+	number scale = a_corneocyte / a_lipid;
+	UG_LOG("scale: " << scale << endl);
 
 	//	access vertex position data
 	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
-	for (size_t i = 0; i < verticesOut.size(); i++) {
-//		VertexBase& vertex = *verticesOut[i];
-//		v& coord = aaPos[i];
-//		VecScale(coord, coord, scale);
+
+	for (VertexBaseIterator iter = sel.begin<VertexBase>();
+			iter != sel.end<VertexBase>(); iter++) {
+		VertexBase* vrt = *iter;
+		vector3 vec = aaPos[vrt];
+		VecScale(vec, vec, scale);
+		aaPos[vrt] = vec;
 	}
+
+	sel.clear();
+	sel.select(grid.begin<Volume>(), grid.end<Volume>());
+
+	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), 1);
+
+	// do not select duplicates so we can continue to work with initial selection
+	bool selectNew = false;
+	bool deselectOld = false;
+
+	number offsetX = 0;
+	number offsetY = 0;
+	number offsetZ = 0;
+
+	//Todo parameterize this
+	int rows = 1, cols = 1, high = 3;
+
+	for (int i = 0; i < rows; i++, (offsetX += w_corneocyte)) {
+		for (int j = 0; j < cols; j++, (offsetY += w_corneocyte)) {
+			//fixme offsetZ
+			for (int k = 0; k < high; k++, (offsetZ += h_corneocyte + 2*d_lipid)) {
+				Duplicate(grid, sel, vector3(offsetX, offsetY, offsetZ),
+						aPosition, deselectOld, selectNew);
+			}
+		}
+	}
+
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -142,9 +176,22 @@ void TestTKDGenerator(const char *outfile, number height, number baseEdgeLength,
 	Grid g(GRIDOPT_STANDARD_INTERCONNECTION);
 	SubsetHandler sh(g);
 	sh.set_default_subset_index(0);
+
+	SubsetInfo infoLipid, infoCorneocyte;
+	infoLipid.name = "lipid matrix";
+	infoLipid.color = vector4(255, 0, 0, 0);
+
+	infoCorneocyte.name = "corneocytes";
+	infoCorneocyte.color = vector4(1, 1, 1, 1);
+
+	sh.set_subset_info(0, infoCorneocyte);
+	sh.set_subset_info(1, infoLipid);
+
 	g.attach_to_vertices(aPosition);
 
-	GenerateCorneocyteWithLipid(g, baseEdgeLength, diameter, height, d_lipid);
+	GenerateCorneocyteWithLipid(g, sh, baseEdgeLength, diameter, height,
+			d_lipid);
+
 	SaveGridToFile(g, sh, outfile);
 }
 
