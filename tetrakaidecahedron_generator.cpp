@@ -133,8 +133,8 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 
 	// access distances from inner faces to outer faces
 	ANumber aDist;
-	Grid::FaceAttachmentAccessor<ANumber> aaDist(grid, aDist);
 	grid.attach_to_faces(aDist);
+	Grid::FaceAttachmentAccessor<ANumber> aaDist(grid, aDist);
 
 	// scale every vertex of selection
 	for (VertexBaseIterator iter = sel.begin<VertexBase>();
@@ -183,30 +183,31 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		number dist = VecDistance(center1, point);
 		UG_LOG("distance : " << dist << endl);
 		number diff = dist - d_lipid / 2;
+		faces.clear();
 		if (fabs(diff > 0.1)) {
 			sel.select(v);
-			std::vector<Face*> faces2;
-			CollectAssociated(faces2, grid, v);
-			for (size_t i_face = 0; i_face < faces2.size(); ++i_face) {
+			CollectAssociated(faces, grid, v);
+			for (size_t i_face = 0; i_face < faces.size(); ++i_face) {
 				Face* f = faces[i_face];
 				if (IsVolumeBoundaryFace(grid, f)) {
 					aaDist[f] = diff;
 					toCorrect.push_back(f);
+					UG_LOG("aadist[f]: " << aaDist[f] << endl);
 				}
 			}
 		}
 	}
 
 //	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), 2);
-
+	UG_LOG("beginning correction..." << endl);
 	for (size_t i = 0; i < toCorrect.size(); i++) {
 		Face* outerFace = toCorrect[i];
-		// fixme why is it not possible to access attachment
 		number correction = aaDist[outerFace];
-		for (size_t i = 0; i < outerFace->num_vertices(); i++) {
-			VertexBase* vrt = outerFace->vertex(i);
+		for (size_t j = 0; j < outerFace->num_vertices(); j++) {
+			VertexBase* vrt = outerFace->vertex(j);
 			vector3& vec = aaPos[vrt];
-			vec -= correction;
+			//fixme
+//			vec -= correction;
 			aaPos[vrt] = vec;
 		}
 	}
