@@ -8,21 +8,10 @@
 #ifndef TETRAKAIDEKAEDER_GENERATOR_H_
 #define TETRAKAIDEKAEDER_GENERATOR_H_
 
-#include <vector>
-
-// used ug header
-#include "lib_grid/lg_base.h"
-#include "lib_grid/grid/grid.h"
-#include "lib_grid/file_io/file_io.h"
-#include "lib_grid/algorithms/geom_obj_util/vertex_util.h"
-
-#include "registry/registry.h"
+#include "lib_grid/lib_grid.h"
 #include "common_typedefs.h"
-#include "rotation_matrix.h"
 
 namespace tkdGenerator {
-
-using ug::Grid;
 
 /**
  * \param grid
@@ -30,10 +19,11 @@ using ug::Grid;
  * \param baseEdgeLength
  * \param diameter
  */
-void createGrid(Grid& grid, const CoordsArray& positions,
+void createGrid(ug::Grid& grid, const CoordsArray& positions,
 		const IndexArray& indices);
 
-void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength, number diameter, number d_lipid);
+void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength,
+		number diameter, number d_lipid, int rows, int cols, int high);
 
 } // end of namespace tkdGenerator
 

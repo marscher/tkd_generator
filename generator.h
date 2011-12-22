@@ -21,12 +21,16 @@ enum SolidFigures {
 	Tetrahedron = 4, Pyramid = 5, Prism = 6, Hexahedron = 8
 };
 
-const static v origin(0, 0, 0);
+const static vector3 origin(0, 0, 0);
 
+/**
+ * generates domain decomposition of tetrakaidecahedron.
+ * After calling createTKD() you need to get PosOut and IndsOut to construct their according geometries with a proper library (e.g. lib_grid)
+ */
 class Generator {
 public:
 	void createTKD();
-	void createTKD(const v& origin);
+	void createTKD(const vector3& origin);
 
 	/**
 	 * @param height
@@ -35,16 +39,20 @@ public:
 	 * @param posOut
 	 * @param indsOut
 	 */
-	Generator(number height, number baseEdgeLength, number diameter,
-			CoordsArray& posOut, IndexArray& indsOut) :
-			h(height / 3), a(baseEdgeLength), w(diameter), posOut(posOut), indsOut(
-					indsOut), R(0) {
-		init();
+	Generator(number height, number baseEdgeLength, number diameter) :
+			h(height / 3), a(baseEdgeLength), w(diameter), R(0) {
+		// reserve memory
+		indsOut.reserve(405);
+		posOut.reserve(342);
+
+		initGeometricParams();
 	}
 
 	number getVolume() const;
 
 	number getSurface() const;
+	const IndexArray& getIndsOut() const;
+	const CoordsArray& getPosOut() const;
 
 protected:
 	// height of one third of tkd : h = 1/3 * h_tkd
@@ -60,16 +68,15 @@ protected:
 	// height of base triangle of tetrahedron of ObenAussenPr2T
 	number b;
 
-	number centerOfMass;
+	/**
+	 * stores coordinates of points
+	 */
+	CoordsArray posOut;
 
 	/**
-	 * stores a reference to CoordsArray owned by creator of this instance
+	 * stores indices for points
 	 */
-	CoordsArray& posOut;
-	/**
-	 * stores a reference to IndexArray owned by creator of this instance
-	 */
-	IndexArray& indsOut;
+	IndexArray indsOut;
 
 	// matrix used to rotate all geometric objects
 	RotationMatrix R;
@@ -80,17 +87,17 @@ protected:
 	/**
 	 * inits base geometric parameters
 	 */
-	void init();
+	void initGeometricParams();
 
 	/**
 	 *	creates the upper part of tkd (symmetric to bottom part!)
 	 */
-	void createTop(const v& offset, const number rotationOffset = 0);
+	void createTop(const vector3& offset, const number rotationOffset = 0);
 
 	/**
 	 * creates middle part with given offset
 	 */
-	void createMiddle(const v& offset);
+	void createMiddle(const vector3& offset);
 
 	/**
 	 * pushes posIn into global posOut reference and creates

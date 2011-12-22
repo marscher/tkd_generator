@@ -5,10 +5,10 @@
  *      Author: marscher
  */
 
-#include "common_typedefs.h"
-
 #ifndef _ROTATION_MATRIX_
 #define _ROTATION_MATRIX_
+
+#include "common_typedefs.h"
 
 namespace tkdGenerator {
 
@@ -26,10 +26,11 @@ public:
 	void setMirrorZAxis(const bool);
 	void setAngle(const number& theta);
 	RotationMatrix(const number& theta = 0, const bool mirror = false);
-	v operator*(const v& vector);
+	vector3 operator*(const vector3& vector);
 
 protected:
-	number R[3][3];
+//	number R[3][3];
+	matrix33 R;
 };
 
 } // end of namespace

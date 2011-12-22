@@ -12,7 +12,7 @@ namespace tkdGenerator {
  * @param offset
  * @param rotationOffset
  */
-void Generator::createTop(const v& offset, const number rotationOffset) {
+void Generator::createTop(const vector3& offset, const number rotationOffset) {
 	myTransform t(R, offset);
 
 	// create G(Ki -> ObenInnen) = 6 prism with equilateral sites
@@ -48,7 +48,7 @@ void Generator::createTop(const v& offset, const number rotationOffset) {
 	}
 }
 
-void Generator::createMiddle(const v& origin) {
+void Generator::createMiddle(const vector3& origin) {
 	myTransform t(R, origin);
 
 	for (int r = 0; r < 360; r += 60) {
@@ -76,25 +76,19 @@ void Generator::createMiddle(const v& origin) {
 }
 
 /**
- * creates a tkd starting construction in (0, 0, 0)
+ * creates a tkd starting construction in (0, 0, h/2),
+ * so that center of geometry of tkd is (0, 0, 0), which is very important for extruding.
  */
 void Generator::createTKD() {
-	createTKD(origin);
-	UG_LOG(
-			"inds size: " << indsOut.size() << "\n" << "pos Size: " << posOut.size() << endl);
+	createTKD(vector3(0, 0, h / 2));
 }
 
 /**
- * creates a tkd starting with
+ * creates a tkd starting construction with offset. Construction is performed down the z axis
  */
-void Generator::createTKD(const v& offset) {
-	// reserve memory
-	// TODO this is ugly... use lists...
-//	indsOut.reserve(numTKDsGenerated * 405);
-//	posOut.reserve(numTKDsGenerated * 342);
-
+void Generator::createTKD(const vector3& offset) {
 	createTop(offset, 0);
-	v offset_h(offset.x, offset.y, offset.z - h);
+	vector3 offset_h(offset.x, offset.y, offset.z - h);
 
 	createMiddle(offset_h);
 
@@ -107,7 +101,7 @@ void Generator::createTKD(const v& offset) {
 /**
  * init basis geometrical parameters
  */
-void Generator::init() {
+void Generator::initGeometricParams() {
 	// global index for grid vertices
 	index = 0;
 
@@ -117,35 +111,30 @@ void Generator::init() {
 	// height of base triangle of tetrahedron of ObenAussenPr2T
 	b = sqrt(3) * s / 2;
 
-	UG_LOG("g: " << g << endl);
-	UG_LOG("s: " << s << endl);
-	UG_LOG("b: " << b << endl);
-
 	// assign common vertices needed for construction.
-	const v v1(a, 0, 0);
-	const v v2(0, 0, h);
-	const v v3(a, 0, h);
+	const vector3 v1(a, 0, 0);
+	const vector3 v2(0, 0, h);
+	const vector3 v3(a, 0, h);
 
-	const v v4(a / 2, g, 0);
-	const v v5(a / 2, g, h);
+	const vector3 v4(a / 2, g, 0);
+	const vector3 v5(a / 2, g, h);
 
-	const v v6(-a / 2, g, 0);
-	const v v7(-a / 2, g, h);
+	const vector3 v6(-a / 2, g, 0);
+	const vector3 v7(-a / 2, g, h);
 
-	const v v8(a / 2, g + s, 0);
-	const v v9(-a / 2, g + s, 0);
-	const v v10(a / 2, g + s, h);
-	const v v11(-a / 2, g + s, h);
+	const vector3 v8(a / 2, g + s, 0);
+	const vector3 v9(-a / 2, g + s, 0);
+	const vector3 v10(a / 2, g + s, h);
+	const vector3 v11(-a / 2, g + s, h);
 
-	const v v12(a / 2, g + s / 2, 0);
-	const v v13(-a / 2, g + s / 2, 0);
-	const v v14(-a / 2, g + s / 2, h);
-	const v v15(a / 2, g + s / 2, h);
+	const vector3 v12(a / 2, g + s / 2, 0);
+	const vector3 v13(-a / 2, g + s / 2, 0);
+	const vector3 v14(-a / 2, g + s / 2, h);
+	const vector3 v15(a / 2, g + s / 2, h);
 
-	const v v16(a / 2 + b, g + s / 2, 0);
-	const v v17(a / 2 + b, g + s / 2, h);
-	const v v18(a / 2 + b, g + s, h);
-
+	const vector3 v16(a / 2 + b, g + s / 2, 0);
+	const vector3 v17(a / 2 + b, g + s / 2, h);
+	const vector3 v18(a / 2 + b, g + s, h);
 
 	///// intialisation of top/bottom segments
 	obenInnen << origin << v1 << v4 << v2 << v3 << v5;
@@ -178,6 +167,14 @@ number Generator::getVolume() const {
 number Generator::getSurface() const {
 	return 3 * a * a * sqrt(3) + 6 * a * sqrt(1 / 9 * h * h + s * s)
 			+ 6 * sqrt(1 / 9 * h * h + s * s / 4) * (2 * a + s * sqrt(3));
+}
+
+const IndexArray& Generator::getIndsOut() const {
+	return indsOut;
+}
+
+const CoordsArray& Generator::getPosOut() const {
+	return posOut;
 }
 
 void Generator::createGeometricObject(const CoordsArray & posIn) {

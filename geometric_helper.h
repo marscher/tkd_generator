@@ -10,30 +10,31 @@
 
 #include "common_typedefs.h"
 #include "rotation_matrix.h"
+
 namespace tkdGenerator {
 
 enum axis {
 	xAxis = 0, yAxis = 1, zAxis = 2
 };
 
-CoordsArray& operator<<(CoordsArray& array, const v& vector);
+CoordsArray& operator<<(CoordsArray& array, const vector3& vector);
 std::ostream& operator<<(std::ostream& out, const CoordsArray& arr);
 
-v mirror(const v& vec, const int axis);
+vector3 mirror(const vector3& vec, const int axis);
 CoordsArray mirror(const CoordsArray coords, const int axis);
 
-v translate(const v& vec, const v& offset);
-CoordsArray translate(const CoordsArray&, const v& offset);
+vector3 translate(const vector3& vec, const vector3& offset);
+CoordsArray translate(const CoordsArray&, const vector3& offset);
 
 class myTransform {
 public:
-	myTransform(RotationMatrix& R, const v& origin) :
+	myTransform(RotationMatrix& R, const vector3& origin) :
 		m_R(R), m_origin(origin) {};
-	const v perform(const v&);
+	const vector3 perform(const vector3&);
 	CoordsArray perform(const CoordsArray&);
 protected:
 	RotationMatrix& m_R;
-	const v& m_origin;
+	const vector3& m_origin;
 };
 
 }

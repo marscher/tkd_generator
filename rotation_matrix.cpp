@@ -6,6 +6,8 @@
  */
 
 #include "rotation_matrix.h"
+// needed for M_PI macro
+#define _USE_MATH_DEFINES
 #include <cmath>
 
 namespace tkdGenerator {
@@ -14,7 +16,7 @@ namespace tkdGenerator {
  * sets rotation angle around z axis in degree
  */
 void RotationMatrix::setAngle(const number& deg) {
-	number theta = deg * PI / 180.0;
+	number theta = deg * M_PI / 180.0;
 
 	R[0][0] = cos(theta);
 	R[0][1] = -sin(theta);
@@ -38,7 +40,7 @@ void RotationMatrix::setMirrorZAxis(const bool mirror) {
  * @param mirror true if mirroring around z axis should be applied
  */
 RotationMatrix::RotationMatrix(const number& deg, const bool mirror) {
-	number theta = deg * PI / 180.0;
+	number theta = deg * M_PI / 180.0;
 
 	R[0][0] = cos(theta);
 	R[0][1] = -sin(theta);
@@ -61,12 +63,12 @@ RotationMatrix::RotationMatrix(const number& deg, const bool mirror) {
  * performs rotation and if set mirroring around z axis. Result is a copy
  * @param vec vector to rotate (and mirror)
  */
-v RotationMatrix::operator*(const v& vec) {
-	v result;
-
+vector3 RotationMatrix::operator*(const vector3& vec) {
+	vector3 result;
+	// TODO replace this with some matmult function
 	result.x = R[0][0] * vec[0] + R[0][1] * vec[1] + R[0][2] * vec[2];
 	result.y = R[1][0] * vec[0] + R[1][1] * vec[1] + R[1][2] * vec[2];
-	result.z= R[2][0] * vec[0] + R[2][1] * vec[1] + R[2][2] * vec[2];
+	result.z = R[2][0] * vec[0] + R[2][1] * vec[1] + R[2][2] * vec[2];
 
 	return result;
 }
