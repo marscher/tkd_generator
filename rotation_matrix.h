@@ -21,16 +21,12 @@ namespace tkdGenerator {
  |                   |
  +  0        0      1+
  */
-class RotationMatrix {
+class RotationMatrix : public matrix33 {
 public:
 	void setMirrorZAxis(const bool);
 	void setAngle(const number& theta);
 	RotationMatrix(const number& theta = 0, const bool mirror = false);
-	vector3 operator*(const vector3& vector);
-
-protected:
-//	number R[3][3];
-	matrix33 R;
+	vector3 operator*(const vector3& vector) const;
 };
 
 } // end of namespace

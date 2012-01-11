@@ -55,7 +55,7 @@ vector3 mirror(const vector3& vec, const int axis) {
 	return result;
 }
 
-CoordsArray mirror(const CoordsArray coords, const int axis) {
+CoordsArray mirror(const CoordsArray& coords, const int axis) {
 	CoordsArray result;
 	for (size_t i = 0; i < coords.size(); i++) {
 		result.push_back(mirror(coords[i], axis));

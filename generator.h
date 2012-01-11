@@ -14,59 +14,66 @@
 
 namespace tkdGenerator {
 
-/**
- * number of vertices of used solid figures
- */
-enum SolidFigures {
-	Tetrahedron = 4, Pyramid = 5, Prism = 6, Hexahedron = 8
+// subset indices
+enum Subsets {
+	LIPID = 0, CORNEOCYTE, BROKEN
 };
 
 const static vector3 origin(0, 0, 0);
 
 /**
  * generates domain decomposition of tetrakaidecahedron.
- * After calling createTKD() you need to get PosOut and IndsOut to construct their according geometries with a proper library (e.g. lib_grid)
+ * After calling createDomain() you can get the positions and indices
+ * of the created geometries to create a Grid object
  */
-class Generator {
+class TKDGeometryGenerator {
+
 public:
-	void createTKD();
-	void createTKD(const vector3& origin);
+	void createDomain();
+	void createCorneocyte(const vector3& origin);
+	void createLipid(const vector3& origin);
 
 	/**
 	 * @param height
 	 * @param baseEdgeLength
 	 * @param diameter
-	 * @param posOut
-	 * @param indsOut
+	 * @param d_lipid
 	 */
-	Generator(number height, number baseEdgeLength, number diameter) :
-			h(height / 3), a(baseEdgeLength), w(diameter), R(0) {
-		// reserve memory
-		indsOut.reserve(405);
-		posOut.reserve(342);
+	TKDGeometryGenerator(number height, number baseEdgeLength, number diameter,
+			number d_lipid);
 
-		initGeometricParams();
-	}
-
-	number getVolume() const;
-
-	number getSurface() const;
-	const IndexArray& getIndsOut() const;
-	const CoordsArray& getPosOut() const;
+	number getVolume(int subset = CORNEOCYTE) const;
+	number getVolume(number a, number s, number h) const;
+	number getSurface(int subset = CORNEOCYTE) const;
+	number getSurface(number a, number s, number h) const;
+	const IndexArray& getIndices() const;
+	const CoordsArray& getPositions() const;
+	number getHeight() const;
+	number getOverlap() const;
 
 protected:
+	/**
+	 * number of vertices of used solid figures
+	 */
+	enum SolidFigures {
+		Tetrahedron = 4, Pyramid = 5, Prism = 6, Hexahedron = 8
+	};
+
 	// height of one third of tkd : h = 1/3 * h_tkd
-	number h;
+	number h_corneocyte;
 	// base edge length of central hexahedron
-	number a;
+	number a_corneocyte;
 	// diameter
-	number w;
-	// quantity s, overlap of two aligned tkd's
-	number s;
-	// height of base triangle of top inner prism
-	number g;
-	// height of base triangle of tetrahedron of ObenAussenPr2T
-	number b;
+	number w_corneocyte;
+	number s_corneocyte;
+	// thickness of lipid matrix
+	number d_lipid;
+	// base edge length of lipid matrix
+	number a_lipid;
+	// height of 1/3 of lipid matrix
+	number h_lipid;
+	// quantity s, overlap of two aligned tkds with lipid matrix
+	number s_lipid;
 
 	/**
 	 * stores coordinates of points
@@ -92,18 +99,24 @@ protected:
 	/**
 	 *	creates the upper part of tkd (symmetric to bottom part!)
 	 */
-	void createTop(const vector3& offset, const number rotationOffset = 0);
+	void createCorneocyteTop(const vector3& offset,
+			const number rotationOffset = 0);
+
+	void createLipidTop(const vector3& offset, const number rotationOffset = 0);
 
 	/**
 	 * creates middle part with given offset
 	 */
-	void createMiddle(const vector3& offset);
+	void createCorneocyteMiddle(const vector3& offset);
+
+	void createLipidMiddle(const vector3& offset, const number rotationOffset =
+			0);
 
 	/**
 	 * pushes posIn into global posOut reference and creates
 	 * indices for each vertex which are pushed into global indsOut reference
 	 */
-	void createGeometricObject(const CoordsArray & posIn);
+	void createGeometricObject(const CoordsArray& posIn);
 
 	///// segments of top and bottom
 	CoordsArray obenInnen;
@@ -133,6 +146,14 @@ protected:
 
 	// below obenAussenPrism
 	CoordsArray mitteAussenHexahedron;
+
+	//// lipid segments
+	CoordsArray lipidTop;
+
+	CoordsArray sideQuadHexahedron;
+
+	CoordsArray sideHexagonHexahedron;
+	CoordsArray sideHexagonLeftPrism;
 };
 
 } //end of namespace

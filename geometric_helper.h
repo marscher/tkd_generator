@@ -14,14 +14,14 @@
 namespace tkdGenerator {
 
 enum axis {
-	xAxis = 0, yAxis = 1, zAxis = 2
+	xAxis = 0, yAxis, zAxis
 };
 
 CoordsArray& operator<<(CoordsArray& array, const vector3& vector);
 std::ostream& operator<<(std::ostream& out, const CoordsArray& arr);
 
 vector3 mirror(const vector3& vec, const int axis);
-CoordsArray mirror(const CoordsArray coords, const int axis);
+CoordsArray mirror(const CoordsArray& coords, const int axis);
 
 vector3 translate(const vector3& vec, const vector3& offset);
 CoordsArray translate(const CoordsArray&, const vector3& offset);

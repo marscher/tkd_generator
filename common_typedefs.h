@@ -9,6 +9,7 @@
 #define COMMON_TYPEDEFS_H_
 
 #include <vector>
+#include <common/types.h>
 #include "common/math/ugmath_types.h"
 #include "common/math/misc/math_util.h"
 
@@ -17,9 +18,9 @@ using ug::matrix33;
 
 using std::endl;
 using std::string;
+using std::vector;
 
-typedef std::vector<vector3> CoordsArray;
-typedef std::vector<int> IndexArray;
-typedef double number;
+typedef vector<vector3> CoordsArray;
+typedef vector<int> IndexArray;
 
 #endif /* COMMON_TYPEDEFS_H_ */

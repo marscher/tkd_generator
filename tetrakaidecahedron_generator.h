@@ -15,11 +15,12 @@ namespace tkdGenerator {
 
 /**
  * \param grid
+ * \param sh
  * \param height
  * \param baseEdgeLength
  * \param diameter
  */
-void createGrid(ug::Grid& grid, const CoordsArray& positions,
+void createGrid(ug::Grid& grid, ug::SubsetHandler& sh, const CoordsArray& positions,
 		const IndexArray& indices);
 
 void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength,

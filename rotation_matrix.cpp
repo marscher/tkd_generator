@@ -6,6 +6,7 @@
  */
 
 #include "rotation_matrix.h"
+#include "common/math/math_vector_matrix/math_matrix_vector_functions.h"
 // needed for M_PI macro
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -18,10 +19,10 @@ namespace tkdGenerator {
 void RotationMatrix::setAngle(const number& deg) {
 	number theta = deg * M_PI / 180.0;
 
-	R[0][0] = cos(theta);
-	R[0][1] = -sin(theta);
-	R[1][0] = sin(theta);
-	R[1][1] = cos(theta);
+	m_data[0][0] = cos(theta);
+	m_data[0][1] = -sin(theta);
+	m_data[1][0] = sin(theta);
+	m_data[1][1] = cos(theta);
 }
 
 /**
@@ -30,9 +31,9 @@ void RotationMatrix::setAngle(const number& deg) {
  */
 void RotationMatrix::setMirrorZAxis(const bool mirror) {
 	if (mirror)
-		R[2][2] = -1;
+		m_data[2][2] = -1;
 	else
-		R[2][2] = 1;
+		m_data[2][2] = 1;
 }
 
 /**
@@ -42,34 +43,30 @@ void RotationMatrix::setMirrorZAxis(const bool mirror) {
 RotationMatrix::RotationMatrix(const number& deg, const bool mirror) {
 	number theta = deg * M_PI / 180.0;
 
-	R[0][0] = cos(theta);
-	R[0][1] = -sin(theta);
-	R[0][2] = 0;
+	m_data[0][0] = cos(theta);
+	m_data[0][1] = -sin(theta);
+	m_data[0][2] = 0;
 
-	R[1][0] = sin(theta);
-	R[1][1] = cos(theta);
-	R[1][2] = 0;
+	m_data[1][0] = sin(theta);
+	m_data[1][1] = cos(theta);
+	m_data[1][2] = 0;
 
-	R[2][0] = 0;
-	R[2][1] = 0;
+	m_data[2][0] = 0;
+	m_data[2][1] = 0;
 
 	if (mirror)
-		R[2][2] = -1;
+		m_data[2][2] = -1;
 	else
-		R[2][2] = 1;
+		m_data[2][2] = 1;
 }
 
 /**
- * performs rotation and if set mirroring around z axis. Result is a copy
+ * performs rotation and, if set, mirroring around z axis.
  * @param vec vector to rotate (and mirror)
  */
-vector3 RotationMatrix::operator*(const vector3& vec) {
+vector3 RotationMatrix::operator*(const vector3& vec) const {
 	vector3 result;
-	// TODO replace this with some matmult function
-	result.x = R[0][0] * vec[0] + R[0][1] * vec[1] + R[0][2] * vec[2];
-	result.y = R[1][0] * vec[0] + R[1][1] * vec[1] + R[1][2] * vec[2];
-	result.z = R[2][0] * vec[0] + R[2][1] * vec[1] + R[2][2] * vec[2];
-
+	MatVecMult(result, *this, vec);
 	return result;
 }
 
