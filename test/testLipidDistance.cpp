@@ -4,6 +4,7 @@
  *  Created on: 10.01.2012
  *      Author: marscher
  */
+#define BOOST_AUTO_TEST_MAIN
 #define BOOST_TEST_MODULE testLipid
 
 #include <boost/test/included/unit_test.hpp>

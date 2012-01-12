@@ -23,11 +23,12 @@ set(SOURCES	tetrakaidecahedron_generator.cpp
 			generator.cpp)
 
 # sources test
-set(SOURCES_TEST test/testLipidDistance.cpp)
-add_executable(TKDTestsuite ${SOURCES_TEST})
+set(SOURCES_TEST test/testLipidDistance.cpp
+				 test/testVolume.cpp)
 
 # create a shared library from the sources and link it against ug4.
 add_library(TKDGenerator SHARED ${SOURCES})
+add_executable(TKDTestsuite ${SOURCES_TEST})
 
 if(STATIC)
 	target_link_libraries (TKDGenerator ug4_s)
