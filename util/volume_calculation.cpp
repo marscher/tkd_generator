@@ -63,10 +63,42 @@ number CalculateVolume(const Tetrahedron& tet) {
 	return result;
 }
 
-//TODO impl me
 number CalculateVolume(const Prism& prism) {
-	number result = -1;
-	return result;
+	Grid grid;
+	Grid::VertexAttachmentAccessor<APosition> aaPos;
+	const VolumeVertices* cvolvert = &prism;
+	VolumeVertices* volvert = const_cast<VolumeVertices*>(cvolvert);
+	vector3 centerPos = CalculateCenter(volvert, aaPos);
+
+	VertexBase* center = *grid.create<Vertex>();
+
+	aaPos[center] = centerPos;
+
+	VertexBase* v0 = prism.vertex(0);
+	VertexBase* v1 = prism.vertex(1);
+	VertexBase* v2 = prism.vertex(2);
+	VertexBase* v3 = prism.vertex(3);
+	VertexBase* v4 = prism.vertex(4);
+	VertexBase* v5 = prism.vertex(5);
+
+	// top
+	TetrahedronDescriptor t1(v0, v1, v2, center);
+
+	PyramidDescriptor p1(v0, v1, v4, v3, center);
+	PyramidDescriptor p2(v1, v2, v5, v4, center);
+	PyramidDescriptor p3(v0, v3, v5, v2, center);
+
+	// bottom
+	TetrahedronDescriptor t2(v3, v4, v5, center);
+
+	grid.create<Pyramid>(p1);
+	grid.create<Pyramid>(p2);
+	grid.create<Pyramid>(p3);
+
+	grid.create<Tetrahedron>(t1);
+	grid.create<Tetrahedron>(t2);
+
+	return CalculateVolume(grid.begin<Volume>(), grid.end<Volume>());
 }
 
 number CalculateVolume(const Pyramid& pyramid) {
@@ -97,11 +129,6 @@ number CalculateVolume(const Pyramid& pyramid) {
 number CalculateVolume(const Hexahedron& hexa) {
 	number result;
 	Grid::VertexAttachmentAccessor<APosition> aaPos;
-	if(!&hexa)
-	{
-		UG_LOG("null wtf " << endl);
-		return 0;
-	}
 	// bottom quad
 	vector3& a = aaPos[hexa.vertex(0)];
 	vector3& b = aaPos[hexa.vertex(1)];
@@ -112,7 +139,6 @@ number CalculateVolume(const Hexahedron& hexa) {
 	vector3& f = aaPos[hexa.vertex(5)];
 	vector3& g = aaPos[hexa.vertex(6)];
 	vector3& h = aaPos[hexa.vertex(7)];
-	UG_LOG("vertices assigned" << endl);
 
 	// determine long diagonal
 	vector<number> diagonalLength;
@@ -134,7 +160,6 @@ number CalculateVolume(const Hexahedron& hexa) {
 	// determine longest diagonal
 	iter = max_element(diagonalLength.begin(), diagonalLength.end());
 	uint pos = distance(diagonalLength.begin(), iter);
-	UG_LOG("pos: " << pos << endl);
 	switch (pos) {
 	case 0:
 		LD = &ag;
@@ -148,7 +173,6 @@ number CalculateVolume(const Hexahedron& hexa) {
 	case 3:
 		LD = &df;
 	}
-	UG_LOG("diagonal calced..." << endl);
 
 	// matrices to calculate determinant
 	matrix33 d1, d2, d3;
@@ -176,7 +200,7 @@ number CalculateVolume(const Hexahedron& hexa) {
 	return result = Determinant(d1) + Determinant(d2) + Determinant(d3);
 }
 
-number CalculateVolume(VolumeIterator& begin, VolumeIterator& end) {
+number CalculateVolume(geometry_traits<Volume>::iterator begin, geometry_traits<Volume>::iterator end) {
 	number result = 0;
 	for (VolumeIterator iter = begin; iter != end; iter++) {
 		result += CalculateVolume(**iter);

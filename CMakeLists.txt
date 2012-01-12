@@ -20,7 +20,8 @@ include_directories("${UG_ROOT_PATH}/unit_tests/src"b)
 set(SOURCES	tetrakaidecahedron_generator.cpp
 			rotation_matrix.cpp
 			geometric_helper.cpp
-			generator.cpp)
+			generator.cpp
+			util/volume_calculation.cpp)
 
 # sources test
 set(SOURCES_TEST test/testLipidDistance.cpp

@@ -12,16 +12,13 @@
 
 namespace ug {
 
-// fixme params should be const, but can't because they're calling non const workers
 number CalculateVolume(const Tetrahedron&);
 number CalculateVolume(const Prism&);
 number CalculateVolume(const Pyramid&);
 number CalculateVolume(const Hexahedron&);
 number CalculateVolume(const Volume&);
-number CalculateVolume(VolumeIterator& begin, VolumeIterator& end);
-} // end namespace ug
+number CalculateVolume(geometry_traits<Volume>::iterator, geometry_traits<Volume>::iterator);
 
-// include implementation
-//#include "volume_calculation_impl.h"
+} // end namespace ug
 
 #endif /* VOLUME_CALCULATION_H_ */
