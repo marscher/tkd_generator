@@ -68,6 +68,8 @@ number CalculateVolume(const Prism& prism) {
 	Grid::VertexAttachmentAccessor<APosition> aaPos;
 	const VolumeVertices* cvolvert = &prism;
 	VolumeVertices* volvert = const_cast<VolumeVertices*>(cvolvert);
+	// fixme compiler tries to cast volvert to FaceVertices*
+	// (perhaps because overrided template CalculateCenter() is instanced in this unit another time with FaceVertices*
 	vector3 centerPos = CalculateCenter(volvert, aaPos);
 
 	VertexBase* center = *grid.create<Vertex>();
