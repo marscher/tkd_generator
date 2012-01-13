@@ -13,7 +13,7 @@
 namespace ug {
 
 number CalculateVolume(const Tetrahedron&);
-number CalculateVolume(const Prism&);
+number CalculateVolume(Prism&);
 number CalculateVolume(const Pyramid&);
 number CalculateVolume(const Hexahedron&);
 number CalculateVolume(const Volume&);

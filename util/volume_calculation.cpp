@@ -1,19 +1,21 @@
 /*
- * volume_calculation_impl.h
+ * volume_calculation.c
  *
  *  Created on: 11.01.2012
  *      Author: marscher
+ *
+ *  uses algorithm for hexahedron volume calculation from
+ *  J. Grandy. October 30, 1997. Efficient Computation of Volume of. Hexahedral Cells.
  */
 
 #ifndef VOLUME_CALCULATION_IMPL_H_
 #define VOLUME_CALCULATION_IMPL_H_
 
 #include "volume_calculation.h"
-//#include "lib_grid/lg_base.h"
 #include "lib_grid/grid/geometric_base_objects.h"
 #include "lib_grid/grid/grid.h"
-#include "lib_grid/algorithms/geom_obj_util/face_util.h"
 #include "lib_algebra/common/operations_vec.h"
+#include "lib_grid/algorithms/algorithms.h"
 
 #include <vector>
 #include <algorithm>
@@ -63,14 +65,10 @@ number CalculateVolume(const Tetrahedron& tet) {
 	return result;
 }
 
-number CalculateVolume(const Prism& prism) {
+number CalculateVolume(Prism& prism) {
 	Grid grid;
 	Grid::VertexAttachmentAccessor<APosition> aaPos;
-	const VolumeVertices* cvolvert = &prism;
-	VolumeVertices* volvert = const_cast<VolumeVertices*>(cvolvert);
-	// fixme compiler tries to cast volvert to FaceVertices*
-	// (perhaps because overrided template CalculateCenter() is instanced in this unit another time with FaceVertices*
-	vector3 centerPos = CalculateCenter(volvert, aaPos);
+	vector3 centerPos = CalculateCenter(&prism, aaPos);
 
 	VertexBase* center = *grid.create<Vertex>();
 
@@ -114,7 +112,7 @@ number CalculateVolume(const Pyramid& pyramid) {
 
 	//TODO is face[0] base area?
 	FaceDescriptor base = pyramid.face(0);
-	vector3 center = CalculateCenter(dynamic_cast<FaceVertices*>(&base), aaPos);
+	vector3 center = CalculateCenter(&base, aaPos);
 	number h = VecLength(top -= center);
 	vector3 cross1, cross2;
 	VecCross(cross1, a, b);

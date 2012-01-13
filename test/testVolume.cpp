@@ -14,7 +14,10 @@ BOOST_AUTO_TEST_SUITE(volume);
 
 BOOST_AUTO_TEST_CASE(volHexahedron) {
 	Grid grid;
-
+	//	attach position data
+	grid.attach_to_vertices(aPosition);
+	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
+	BOOST_CHECKPOINT("before hex vertex");
 	//	create vertices
 	Vertex* v1 = *grid.create<Vertex> ();
 	Vertex* v2 = *grid.create<Vertex> ();
@@ -24,10 +27,6 @@ BOOST_AUTO_TEST_CASE(volHexahedron) {
 	Vertex* v6 = *grid.create<Vertex> ();
 	Vertex* v7 = *grid.create<Vertex> ();
 	Vertex* v8 = *grid.create<Vertex> ();
-
-	//	attach position data
-	grid.attach_to_vertices(aPosition);
-	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
 	//	assign coordinates of unit cube
 	aaPos[v1] = vector3(0, -1, 0);
@@ -52,6 +51,9 @@ BOOST_AUTO_TEST_CASE(volTetrahedron) {
 	BOOST_MESSAGE("testing vol calc of tetrahedron");
 	Grid grid;
 	Grid::VertexAttachmentAccessor<APosition> aaPos(grid,aPosition);
+	grid.attach_to_vertices(aPosition);
+
+	BOOST_CHECKPOINT("before tet vertex");
 	//	create vertices
 	Vertex* v1 = *grid.create<Vertex> ();
 	Vertex* v2 = *grid.create<Vertex> ();
