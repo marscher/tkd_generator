@@ -7,6 +7,7 @@
 #define BOOST_AUTO_TEST_MAIN
 #define BOOST_TEST_MODULE testLipid
 
+// as this is the main, use included header to avoid linking
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/parameterized_test.hpp>
 
@@ -35,6 +36,7 @@ void checkThickness(number a, number h, number w, number d_lipid) {
 
 // init libgrid objects
 	Grid gridNew(GRIDOPT_STANDARD_INTERCONNECTION);
+	gridNew.attach_to_vertices(aPosition);
 	SubsetHandler shnew(gridNew);
 	vector<number> distnew = meassureLipidThickness(gridNew, shnew, d_lipid);
 

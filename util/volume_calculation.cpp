@@ -20,24 +20,23 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
-using namespace std;
 
 namespace ug {
 
-number CalculateVolume(const Volume& vol) {
+number CalculateVolume(const Volume& vol, Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	number result = -1;
 	switch (vol.reference_object_id()) {
 	case ROID_TETRAHEDRON:
-		result = CalculateVolume(static_cast<Tetrahedron>(vol));
+		result = CalculateVolume(static_cast<Tetrahedron>(vol), aaPos);
 		break;
 	case ROID_PRISM:
-		result = CalculateVolume(static_cast<Prism>(vol));
+		result = CalculateVolume(static_cast<Prism>(vol), aaPos);
 		break;
 	case ROID_PYRAMID:
-		result = CalculateVolume(static_cast<Pyramid>(vol));
+		result = CalculateVolume(static_cast<Pyramid>(vol), aaPos);
 		break;
 	case ROID_HEXAHEDRON:
-		result = CalculateVolume(static_cast<Hexahedron>(vol));
+		result = CalculateVolume(static_cast<Hexahedron>(vol), aaPos);
 		break;
 	default:
 		break;
@@ -46,9 +45,9 @@ number CalculateVolume(const Volume& vol) {
 	return result;
 }
 
-number CalculateVolume(const Tetrahedron& tet) {
+number CalculateVolume(const Tetrahedron& tet,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	number result;
-	Grid::VertexAttachmentAccessor<APosition> aaPos;
 	vector3& a = aaPos[tet.vertex(0)];
 	vector3& b = aaPos[tet.vertex(1)];
 	vector3& c = aaPos[tet.vertex(2)];
@@ -65,9 +64,10 @@ number CalculateVolume(const Tetrahedron& tet) {
 	return result;
 }
 
-number CalculateVolume(Prism& prism) {
+number CalculateVolume(Prism& prism,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
+	// we need this grid instance, as we divide the prism in smaller geometries
 	Grid grid;
-	Grid::VertexAttachmentAccessor<APosition> aaPos;
 	vector3 centerPos = CalculateCenter(&prism, aaPos);
 
 	VertexBase* center = *grid.create<Vertex>();
@@ -98,12 +98,12 @@ number CalculateVolume(Prism& prism) {
 	grid.create<Tetrahedron>(t1);
 	grid.create<Tetrahedron>(t2);
 
-	return CalculateVolume(grid.begin<Volume>(), grid.end<Volume>());
+	return CalculateVolume(grid.begin<Volume>(), grid.end<Volume>(), aaPos);
 }
 
-number CalculateVolume(const Pyramid& pyramid) {
+number CalculateVolume(const Pyramid& pyramid,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	number result;
-	Grid::VertexAttachmentAccessor<APosition> aaPos;
 	vector3& a = aaPos[pyramid.vertex(0)];
 	vector3& b = aaPos[pyramid.vertex(1)];
 	vector3& c = aaPos[pyramid.vertex(2)];
@@ -126,9 +126,9 @@ number CalculateVolume(const Pyramid& pyramid) {
 /**
  * Algorithm (14) from J.Grandy "Efficient Computation of Volume of Hexahedral Cells"
  */
-number CalculateVolume(const Hexahedron& hexa) {
-	number result;
-	Grid::VertexAttachmentAccessor<APosition> aaPos;
+number CalculateVolume(const Hexahedron& hexa,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
+	number result = 0;
 	// bottom quad
 	vector3& a = aaPos[hexa.vertex(0)];
 	vector3& b = aaPos[hexa.vertex(1)];
@@ -200,10 +200,12 @@ number CalculateVolume(const Hexahedron& hexa) {
 	return result = Determinant(d1) + Determinant(d2) + Determinant(d3);
 }
 
-number CalculateVolume(geometry_traits<Volume>::iterator begin, geometry_traits<Volume>::iterator end) {
+number CalculateVolume(geometry_traits<Volume>::iterator begin,
+		geometry_traits<Volume>::iterator end,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	number result = 0;
 	for (VolumeIterator iter = begin; iter != end; iter++) {
-		result += CalculateVolume(**iter);
+		result += CalculateVolume(**iter, aaPos);
 	}
 	return result;
 }

@@ -8,16 +8,18 @@
 #ifndef VOLUME_CALCULATION_H_
 #define VOLUME_CALCULATION_H_
 
-#include "lib_grid/lg_base.h"
+#include "lib_grid/lib_grid.h"
 
 namespace ug {
 
-number CalculateVolume(const Tetrahedron&);
-number CalculateVolume(Prism&);
-number CalculateVolume(const Pyramid&);
-number CalculateVolume(const Hexahedron&);
-number CalculateVolume(const Volume&);
-number CalculateVolume(geometry_traits<Volume>::iterator, geometry_traits<Volume>::iterator);
+number CalculateVolume(const Tetrahedron&, Grid::VertexAttachmentAccessor<APosition>&);
+number CalculateVolume(Prism&, Grid::VertexAttachmentAccessor<APosition>&);
+number CalculateVolume(const Pyramid&, Grid::VertexAttachmentAccessor<APosition>&);
+number CalculateVolume(const Hexahedron&, Grid::VertexAttachmentAccessor<APosition>&);
+number CalculateVolume(const Volume&, Grid::VertexAttachmentAccessor<APosition>&);
+number CalculateVolume(geometry_traits<Volume>::iterator,
+					   geometry_traits<Volume>::iterator,
+					   Grid::VertexAttachmentAccessor<APosition>&);
 
 } // end namespace ug
 
