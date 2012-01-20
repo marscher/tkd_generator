@@ -28,7 +28,8 @@ TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 	number m2 = (d_lipid / 2) / tan(gamma / 2);
 
 	a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
-	h_lipid = (h_corneocyte + d_lipid) / 3.0;
+	// height of lipid is full height of inner tkd + d_lipid
+	h_lipid = (height + d_lipid) / 3.0;
 
 	UG_LOG(
 			"h_c: " << h_corneocyte*3 << "\nd_l: " << d_lipid<<"\nh_l: " << h_lipid*3 << endl);
@@ -167,8 +168,7 @@ void TKDGeometryGenerator::createLipid(const vector3& offset) {
 	createLipidTop(vector3(offset.x, offset.y, offset.z + h_corneocyte));
 
 	// create middle
-	// todo fix offset
-	createLipidMiddle(vector3(offset.x, offset.y, offset.z + h_corneocyte));
+	createLipidMiddle(offset);
 	R.setMirrorZAxis(true);
 	// same elements but rotated by 60° and mirrored at z axis
 	createLipidMiddle(
