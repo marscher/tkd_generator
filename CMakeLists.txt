@@ -14,7 +14,7 @@ project(TKD_GENERATOR)
 # include the definitions and dependencies for ug-plugins.
 include("../../../ug_plugin_cmake_includes.txt")
 # needed for initialization of ug parallel env in boost testing framework
-include_directories("${UG_ROOT_PATH}/unit_tests/src"b)
+include_directories("${UG_ROOT_PATH}/unit_tests/src")
 
 # sources plugin
 set(SOURCES	tetrakaidecahedron_generator.cpp
