@@ -8,7 +8,6 @@
 #ifndef GENERATOR_H_
 #define GENERATOR_H_
 
-#include "geometric_helper.h"
 #include "common_typedefs.h"
 #include "rotation_matrix.h"
 
@@ -30,8 +29,6 @@ class TKDGeometryGenerator {
 
 public:
 	void createDomain();
-	void createCorneocyte(const vector3& origin);
-	void createLipid(const vector3& origin);
 
 	/**
 	 * @param height
@@ -42,9 +39,9 @@ public:
 	TKDGeometryGenerator(number height, number baseEdgeLength, number diameter,
 			number d_lipid);
 
-	number getVolume(int subset = CORNEOCYTE) const;
+	number getVolume() const;
 	number getVolume(number a, number s, number h) const;
-	number getSurface(int subset = CORNEOCYTE) const;
+	number getSurface() const;
 	number getSurface(number a, number s, number h) const;
 	const IndexArray& getIndices() const;
 	const CoordsArray& getPositions() const;
@@ -96,21 +93,18 @@ protected:
 	 */
 	void initGeometricParams();
 
+	void createCorneocyte(const vector3&);
+
 	/**
 	 *	creates the upper part of tkd (symmetric to bottom part!)
 	 */
 	void createCorneocyteTop(const vector3& offset,
 			const number rotationOffset = 0);
 
-	void createLipidTop(const vector3& offset, const number rotationOffset = 0);
-
 	/**
 	 * creates middle part with given offset
 	 */
 	void createCorneocyteMiddle(const vector3& offset);
-
-	void createLipidMiddle(const vector3& offset, const number rotationOffset =
-			0);
 
 	/**
 	 * pushes posIn into global posOut reference and creates
@@ -146,14 +140,6 @@ protected:
 
 	// below obenAussenPrism
 	CoordsArray mitteAussenHexahedron;
-
-	//// lipid segments
-	CoordsArray lipidTop;
-
-	CoordsArray sideQuadHexahedron;
-
-	CoordsArray sideHexagonHexahedron;
-	CoordsArray sideHexagonLeftPrism;
 };
 
 } //end of namespace

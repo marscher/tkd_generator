@@ -5,40 +5,39 @@
  *      Author: marscher
  */
 #include "generator.h"
+#include "geometric_helper.h"
+#include <stdexcept>
+
 namespace tkdGenerator {
 
 TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 		number diameter, number d_lipid) :
 		h_corneocyte(height / 3), a_corneocyte(baseEdgeLength), w_corneocyte(
 				diameter), d_lipid(d_lipid), R(0), index(0) {
-	// TODO reserve memory
 	indsOut.reserve(405);
 	posOut.reserve(342);
 
-	number a1 = sqrt(
-			1.0 / 9.0 * height * height
-					+ 1.0 / 3.0 * pow((diameter - 2.0 * baseEdgeLength), 2));
+	number w2a = w_corneocyte - 2 * a_corneocyte;
+	s_corneocyte = 1 / sqrt(3) * w2a;
 
-	number alpha = acos((diameter - 2.0 * baseEdgeLength) / (2.0 * a1));
-	number beta = 90.0 / 180.0 * M_PI
-			+ acos(1.0 / 3.0 * height / (a1 * sin(alpha)));
-	number gamma = acos(1.0 / 3.0 * height / a1) + 90.0 / 180.0 * M_PI;
+	number a1 = sqrt(1 / 9. * height * height + 1 / 3. * w2a * w2a);
+
+	number alpha = acos(w2a / (2 * a1));
+	number beta = 90 / 180. * M_PI + acos(1 / 3. * height / (a1 * sin(alpha)));
+	number gamma = acos(1 / 3. * height / a1) + 90 / 180. * M_PI;
 
 	number m1 = (d_lipid / 2) / tan(beta / 2);
 	number m2 = (d_lipid / 2) / tan(gamma / 2);
 
+	// TODO is calculation correct? stolen from old tkdmodeler
 	a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
 	// height of lipid is full height of inner tkd + d_lipid
-	h_lipid = (height + d_lipid) / 3.0;
-
-	UG_LOG(
-			"h_c: " << h_corneocyte*3 << "\nd_l: " << d_lipid<<"\nh_l: " << h_lipid*3 << endl);
+	h_lipid = (height + d_lipid) / 3;
 
 	//TODO is this correct?
 	number w_lipid = w_corneocyte + d_lipid;
 
 	s_lipid = 1 / sqrt(3) * (w_lipid - 2 * a_lipid);
-	s_corneocyte = 1 / sqrt(3) * (w_corneocyte - 2 * a_corneocyte);
 
 	initGeometricParams();
 }
@@ -85,19 +84,6 @@ void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
 	}
 }
 
-void TKDGeometryGenerator::createLipidTop(const vector3& offset,
-		const number rotationOffset) {
-	myTransform t(R, offset);
-
-	// create G(Ki -> ObenInnen) = 6 prism with equilateral sites
-	// step angle 60°
-	for (int r = rotationOffset; r < 360 + rotationOffset; r += 60) {
-		// sets the angle of rotation matrix which is applied on all points in this loop
-		R.setAngle(r);
-		createGeometricObject(t.perform(lipidTop));
-	}
-}
-
 void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
 	myTransform t(R, origin);
 
@@ -125,25 +111,13 @@ void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
 	}
 }
 
-void TKDGeometryGenerator::createLipidMiddle(const vector3& offset,
-		const number rotationOffset) {
-	myTransform t(R, offset);
-
-	for (int r = rotationOffset; r < 360; r += 120) {
-		R.setAngle(r);
-		createGeometricObject(t.perform(sideQuadHexahedron));
-	}
-}
-
 /**
- * creates two nested tetrakaidecahedrons (inner one with instanced geometric parameters)
- * and outer one with distance d_lipid / 2 to inner one. Starting construction in (0, 0, h/2),
+ * creates one tkd starting construction in (0, 0, h/2),
  * so that center of geometry of tkd is (0, 0, 0)
  */
 void TKDGeometryGenerator::createDomain() {
 	vector3 offset(0, 0, h_corneocyte / 2);
 	createCorneocyte(offset);
-	createLipid(offset);
 }
 
 /**
@@ -156,26 +130,10 @@ void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
 
 	createCorneocyteMiddle(offset_h);
 
-	// offset is same like middle because bottom is mirrored around x axis
+	// offset is same like middle because bottom is mirrored around z axis
 	R.setMirrorZAxis(true);
 	// in fact this is the bottom part, rotated with 60° relative to top
 	createCorneocyteTop(offset_h, 60);
-	// reset mirror status
-	R.setMirrorZAxis(false);
-}
-
-void TKDGeometryGenerator::createLipid(const vector3& offset) {
-	createLipidTop(vector3(offset.x, offset.y, offset.z + h_corneocyte));
-
-	// create middle
-	createLipidMiddle(offset);
-	R.setMirrorZAxis(true);
-	// same elements but rotated by 60° and mirrored at z axis
-	createLipidMiddle(
-			vector3(offset.x, offset.y, offset.z - 2 * h_corneocyte / 2), 60);
-
-	// bottom
-	createLipidTop(vector3(offset.x, offset.y, offset.z - 2 * h_corneocyte));
 	// reset mirror status
 	R.setMirrorZAxis(false);
 }
@@ -186,7 +144,6 @@ void TKDGeometryGenerator::createLipid(const vector3& offset) {
 void TKDGeometryGenerator::initGeometricParams() {
 	// height of base triangle of top inner prism
 	number g_cornoecyte = sqrt(3) * a_corneocyte / 2;
-	number g_lipid = sqrt(3) * a_lipid / 2;
 	// height of base triangle of tetrahedron of ObenAussenPr2T
 	number b = sqrt(3) * s_corneocyte / 2;
 
@@ -215,18 +172,6 @@ void TKDGeometryGenerator::initGeometricParams() {
 	const vector3 v17(v16.x, v12.y, h_corneocyte);
 	const vector3 v18(v16.x, v8.y, h_corneocyte);
 
-	//// lipid vertices
-	// top
-	const vector3 v19(0, 0, d_lipid / 2);
-	const vector3 v20(a_lipid, 0, v19.z);
-	const vector3 v21(a_lipid / 2, g_lipid, v19.z);
-	// side hexagon hexahedron
-	//TODO find correct values
-	number x = 0;
-	const vector3 v22(a_lipid / 2, g_lipid + x, h_lipid);
-	const vector3 v23(a_lipid, v22.y, 0);
-	const vector3 v24(a_lipid, 0, v19.z);
-
 	///// Initialization of top/bottom segments
 	obenInnen << origin << v1 << v4 << v2 << v3 << v5;
 	obenAussenPrism << v4 << v5 << v8 << v6 << v7 << v9;
@@ -248,30 +193,14 @@ void TKDGeometryGenerator::initGeometricParams() {
 
 	mitteAussenH2Pr_pyramid << v4 << v5 << v10 << v12 << v16;
 	mitteAussen2PrH_pyramid = mirror(mitteAussenH2Pr_pyramid, xAxis);
-
-	///// Initialization of lipid
-	/// top segment
-	lipidTop << origin << v1 << v4 << v19 << v20 << v21;
-	//	sideHexagonHexahedron;
-
-	// shares face with ObenAussenPrism
-	sideQuadHexahedron << v5 << v8 << v9 << v7;
 }
 
-number TKDGeometryGenerator::getVolume(int subset) const {
-	if (subset == CORNEOCYTE)
-		return getVolume(a_corneocyte, s_corneocyte, h_corneocyte);
-	if (subset == LIPID)
-		return getVolume(a_lipid, s_lipid, h_lipid);
-	return -1;
+number TKDGeometryGenerator::getVolume() const {
+	return getVolume(a_corneocyte, s_corneocyte, h_corneocyte);
 }
 
-number TKDGeometryGenerator::getSurface(int subset) const {
-	if (subset == CORNEOCYTE)
-		return getSurface(a_corneocyte, s_corneocyte, h_corneocyte);
-	if (subset == LIPID)
-		return getSurface(a_lipid, s_lipid, h_lipid);
-	return -1;
+number TKDGeometryGenerator::getSurface() const {
+	return getSurface(a_corneocyte, s_corneocyte, h_corneocyte);
 }
 
 number TKDGeometryGenerator::getVolume(number a, number s, number h) const {
@@ -280,8 +209,8 @@ number TKDGeometryGenerator::getVolume(number a, number s, number h) const {
 }
 
 number TKDGeometryGenerator::getSurface(number a, number s, number h) const {
-	return 3 * a * a * sqrt(3) + 6 * a * sqrt(1.0 / 9 * h * h + s * s)
-			+ 6 * sqrt(1.0 / 9 * h * h + s * s / 4) * (2 * a + s * sqrt(3));
+	return 3 * a * a * sqrt(3) + 6 * a * sqrt(1. / 9 * h * h + s * s)
+			+ 6 * sqrt(1. / 9 * h * h + s * s / 4) * (2 * a + s * sqrt(3));
 }
 
 const IndexArray& TKDGeometryGenerator::getIndices() const {

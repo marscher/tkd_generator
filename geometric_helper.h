@@ -26,6 +26,8 @@ CoordsArray mirror(const CoordsArray& coords, const int axis);
 vector3 translate(const vector3& vec, const vector3& offset);
 CoordsArray translate(const CoordsArray&, const vector3& offset);
 
+//void reflect(vector3& vOut, const vector3& v, const vector3& l, const number& c);
+
 class myTransform {
 public:
 	myTransform(RotationMatrix& R, const vector3& origin) :

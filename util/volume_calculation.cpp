@@ -8,9 +8,6 @@
  *  J. Grandy. October 30, 1997. Efficient Computation of Volume of. Hexahedral Cells.
  */
 
-#ifndef VOLUME_CALCULATION_IMPL_H_
-#define VOLUME_CALCULATION_IMPL_H_
-
 #include "volume_calculation.h"
 #include "lib_grid/grid/geometric_base_objects.h"
 #include "lib_grid/grid/grid.h"
@@ -23,8 +20,9 @@
 
 namespace ug {
 
-number CalculateVolume(const Volume& vol, Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	number result = -1;
+number CalculateVolume(const Volume& vol,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
+	number result = NAN;
 	switch (vol.reference_object_id()) {
 	case ROID_TETRAHEDRON:
 		result = CalculateVolume(static_cast<Tetrahedron>(vol), aaPos);
@@ -60,14 +58,15 @@ number CalculateVolume(const Tetrahedron& tet,
 
 	vector3 cross;
 	VecCross(cross, bd, cd);
-	result = VecProd(cross, ad) / 6;
+	result = fabs(VecProd(cross, ad)) / 6;
 	return result;
 }
 
-number CalculateVolume(Prism& prism,
+// fixme horrible wrong!
+number CalculateVolume(const Prism& prism,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	// we need this grid instance, as we divide the prism in smaller geometries
-	Grid grid;
+	Grid grid(VRTOPT_STORE_ASSOCIATED_FACES);
 	vector3 centerPos = CalculateCenter(&prism, aaPos);
 
 	VertexBase* center = *grid.create<Vertex>();
@@ -200,15 +199,25 @@ number CalculateVolume(const Hexahedron& hexa,
 	return result = Determinant(d1) + Determinant(d2) + Determinant(d3);
 }
 
+/**
+ * util to sum up volumes (in parallel) via for_each
+ */
+struct adder: public unary_function<Volume, void> {
+	adder(Grid::VertexAttachmentAccessor<APosition>& aaPos) :
+			sum(0), m_aaPos(aaPos) {}
+	number sum;
+	Grid::VertexAttachmentAccessor<APosition>& m_aaPos;
+	void operator()(Volume* x) {
+		sum += CalculateVolume(*x, m_aaPos);
+	}
+};
+
 number CalculateVolume(geometry_traits<Volume>::iterator begin,
 		geometry_traits<Volume>::iterator end,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	number result = 0;
-	for (VolumeIterator iter = begin; iter != end; iter++) {
-		result += CalculateVolume(**iter, aaPos);
-	}
-	return result;
+	adder result(aaPos);
+	for_each(begin, end, adder(aaPos));
+	return result.sum;
 }
 
 } // end of namespace ug
-#endif /* VOLUME_CALCULATION_IMPL_H_ */

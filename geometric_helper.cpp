@@ -79,4 +79,10 @@ CoordsArray translate(const CoordsArray& coords, const vector3& offset) {
 	return result;
 }
 
+//void reflect(vector3& vOut, const vector3& v, const vector3& a, const number& c) {
+//	number s = 2 * (VecDot(v, a) - c) / VecDot(a, a);
+//	VecScale(vOut, a, s);
+//	VecSubtract(vOut, v, vOut);
+//}
+
 } // end of namespace tkdGenerator

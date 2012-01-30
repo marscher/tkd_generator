@@ -13,7 +13,7 @@
 namespace ug {
 
 number CalculateVolume(const Tetrahedron&, Grid::VertexAttachmentAccessor<APosition>&);
-number CalculateVolume(Prism&, Grid::VertexAttachmentAccessor<APosition>&);
+number CalculateVolume(const Prism&, Grid::VertexAttachmentAccessor<APosition>&);
 number CalculateVolume(const Pyramid&, Grid::VertexAttachmentAccessor<APosition>&);
 number CalculateVolume(const Hexahedron&, Grid::VertexAttachmentAccessor<APosition>&);
 number CalculateVolume(const Volume&, Grid::VertexAttachmentAccessor<APosition>&);

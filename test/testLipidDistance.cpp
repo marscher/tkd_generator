@@ -44,7 +44,7 @@ void checkThickness(number a, number h, number w, number d_lipid) {
 	TKDGeometryGenerator gen(h, a, w, d_lipid);
 	gen.createDomain();
 	gridNew.attach_to_vertices(aPosition);
-	createGrid(gridNew, shnew, gen.getPositions(), gen.getIndices());
+	createGridFromArrays(gridNew, shnew, gen.getPositions(), gen.getIndices());
 
 //	BOOST_MESSAGE(
 //			"max dist: " << *std::max_element(distnew.begin(), distnew.end())
@@ -105,25 +105,26 @@ BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	TKDGeometryGenerator gen(h, a, w, d_lipid);
 	gen.createDomain();
 	gridNew.attach_to_vertices(aPosition);
-	createGrid(gridNew, shnew, gen.getPositions(), gen.getIndices());
+	gridOld.attach_to_vertices(aPosition);
+	createGridFromArrays(gridNew, shnew, gen.getPositions(), gen.getIndices());
 
 	// grid created with same params with old tkdmodeller
 	string oldfile = PathProvider::get_path(ROOT_PATH)
-	+ "/plugins/experimental/tkd_generator/test/nucleus3d_10-24.495-30-8.000_1x1x1.ugx";
+	+ "/../plugins/experimental/tkd_generator/test/nucleus3d_10-24.495-30-8.000_1x1x1.ugx";
 
 	bool gridLoaded = LoadGridFromFile(gridOld, shold, oldfile.c_str());
-//	BOOST_REQUIRE_MESSAGE(gridLoaded, "old grid file "
-//			<< oldfile << " could not be loaded.");
+	BOOST_REQUIRE_MESSAGE(gridLoaded, "old grid file "
+			<< oldfile << " could not be loaded.");
 
+	BOOST_MESSAGE("old tkdmodeler: ________________________________");
 	vector<number> distold = meassureLipidThickness(gridOld, shold, d_lipid);
-
-	BOOST_MESSAGE("______________________________________\n");
+	BOOST_MESSAGE("tkdgeometrygenerator: ________________________________");
 	vector<number> distnew = meassureLipidThickness(gridNew, shnew, d_lipid);
-
+	BOOST_MESSAGE("old tkdmodeler: ________________________________");
 	BOOST_MESSAGE(
 			"max dist: " << *std::max_element(distold.begin(), distold.end())
 			<< " min dist: " << *std::min_element(distold.begin(), distold.end()) << "\n" );
-	BOOST_MESSAGE("______________________________________\n");
+	BOOST_MESSAGE("tkdgeometrygenerator: ________________________________");
 	BOOST_MESSAGE(
 			"max dist: " << *std::max_element(distnew.begin(), distnew.end())
 			<< " min dist: " << *std::min_element(distnew.begin(), distnew.end()) << "\n");

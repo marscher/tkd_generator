@@ -20,7 +20,7 @@ namespace tkdGenerator {
  * \param baseEdgeLength
  * \param diameter
  */
-void createGrid(ug::Grid& grid, ug::SubsetHandler& sh, const CoordsArray& positions,
+void createGridFromArrays(ug::Grid& grid, ug::SubsetHandler& sh, const CoordsArray& positions,
 		const IndexArray& indices);
 
 void TestTKDGenerator(const char* outfile, number height, number baseEdgeLength,

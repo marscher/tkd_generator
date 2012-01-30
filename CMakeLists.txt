@@ -29,6 +29,7 @@ set(SOURCES_TEST test/testLipidDistance.cpp
 
 # create a shared library from the sources and link it against ug4.
 add_library(TKDGenerator SHARED ${SOURCES})
+# TODO: dont write exe to plugin out dir
 add_executable(TKDTestsuite ${SOURCES_TEST})
 
 if(STATIC)
