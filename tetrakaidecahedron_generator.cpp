@@ -143,73 +143,129 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	////////// End of extrusion
 
 	// assigns wrong distanced faces to subset BROKEN
-	meassureLipidThickness(grid, sh, d_lipid, true);
+//	meassureLipidThickness(grid, sh, d_lipid, true);
 
 	///// Correction of distance of side quadrilaterals
 	// for all edges
 	// fixme is it enough to iterate over subset LIPID only?
-	for (EdgeBaseIterator iter = sel.begin<EdgeBase>();
-			iter != sel.end<EdgeBase>(); iter++) {
+//	for (EdgeBaseIterator iter = sel.begin<EdgeBase>();
+//			iter != sel.end<EdgeBase>(); iter++) {
+//		EdgeBase* edge = *iter;
+//		// for all boundary edges
+//		if (IsBoundaryEdge3D(grid, edge)) {
+//			vector<Face*> faces;
+//			CollectAssociated(faces, grid, edge);
+//			Face* triangles[2] = { NULL, NULL };
+//			// for all edge associated faces
+//			for (size_t i = 0; i < faces.size(); i++) {
+//				Face* f = faces[i];
+//				// assign faces if they are triangles
+//				if (f->reference_object_id() == ROID_TRIANGLE) {
+//					if (triangles[0])
+//						triangles[1] = f;
+//					else
+//						triangles[0] = f;
+//				}
+//			}
+//
+//			// for all edges assiociated to 2 triangles
+//			if (triangles[0] && triangles[1]) {
+//				vector3 n1, n2;
+//				CalculateNormal(n1, triangles[0], aaPos);
+//				CalculateNormal(n2, triangles[1], aaPos);
+//				number d = fabs(VecDot(n1, n2));
+//				// ensure the 2 triangles does not have the same orientation
+//				if (fabs(d - 1) > 10E-6) {
+//					// faces[3] should be quadrilateral with wrong distance
+//					UG_ASSERT(
+//							faces[3]->reference_object_id() == ROID_QUADRILATERAL,
+//							"faces[3] is not a quad");
+//
+//					/*for(sh.begin<Face>(BROKEN))
+//					 *TODO ensure face[3] is broken...
+//					 */
+//
+//					vector3 d1, d2;
+//					vector3& v1 = aaPos[edge->vertex(0)], v2 =
+//							aaPos[edge->vertex(1)];
+//
+//					VecSubtract(d1, v1, v2);
+//					VecScale(d2, d1, -1);
+//					vector3 offset;
+//					vector3 normal;
+//					CalculateNormal(normal, faces[3], aaPos);
+//					number len1 = VecDot(normal, d1);
+//					number len2 = VecDot(normal, d2);
+//					// direction * normal = 0
+//					UG_LOG("n * d1: " << len1 << "\t n*d2: " << len2 << endl);
+//					// TODO move v1, v2 in direction of center of edge
+////					VecScale(v1, v1, 1. / len2);
+////					VecScale(v2, v2, 1. / len1);
+//					sh.assign_subset(edge, 3);
+//				}
+//			}
+//		}
+//	}
+
+	Selector selEdges(grid);
+
+	vector<Face*> faces;
+	for (EdgeBaseIterator iter = grid.begin<Edge>(); iter != grid.end<Edge>();
+			iter++) {
 		EdgeBase* edge = *iter;
-		// for all boundary edges
 		if (IsBoundaryEdge3D(grid, edge)) {
-			vector<Face*> faces;
-			CollectAssociated(faces, grid, edge);
-			Face* triangles[2] = { NULL, NULL };
-			// for all edge associated faces
-			for (size_t i = 0; i < faces.size(); i++) {
-				Face* f = faces[i];
-				// assign faces if they are triangles
-				if (f->reference_object_id() == ROID_TRIANGLE) {
-					if (triangles[0])
-						triangles[1] = f;
+			CollectAssociated(faces, grid, edge, true);
+
+			Face* f[2] = { NULL, NULL };
+			for (uint i = 0; i < faces.size(); i++) {
+				if (LiesOnBoundary(grid, faces[i])) {
+					if (f[0])
+						f[1] = faces[i];
 					else
-						triangles[0] = f;
+						f[0] = faces[i];
 				}
 			}
 
-			// for all edges assiociated to 2 triangles
-			if (triangles[0] && triangles[1]) {
-				vector3 n1, n2;
-				CalculateNormal(n1, triangles[0], aaPos);
-				CalculateNormal(n2, triangles[1], aaPos);
-				number d = fabs(VecDot(n1, n2));
-				// ensure the 2 triangles does not have the same orientation
-				if (fabs(d - 1) > 10E-6) {
-					// faces[3] should be quadrilateral with wrong distance
-					UG_ASSERT(
-							faces[3]->reference_object_id() == ROID_QUADRILATERAL,
-							"faces[3] is not a quad");
+			vector3 n1, n2;
+			CalculateNormal(n1, faces[0], aaPos);
+			CalculateNormal(n2, faces[1], aaPos);
 
-					/*for(sh.begin<Face>(BROKEN))
-					 *TODO ensure face[3] is broken...
-					 */
-
-					vector3 d1, d2;
-					vector3& v1 = aaPos[edge->vertex(0)], v2 =
-							aaPos[edge->vertex(1)];
-
-					VecSubtract(d1, v1, v2);
-					VecScale(d2, d1, -1);
-					vector3 offset;
-					vector3 normal;
-					CalculateNormal(normal, faces[3], aaPos);
-					number len1 = VecDot(normal, d1);
-					number len2 = VecDot(normal, d2);
-					// direction * normal = 0
-					UG_LOG("n * d1: " << len1 << "\t n*d2: " << len2 << endl);
-					// TODO move v1, v2 in direction of center of edge
-//					VecScale(v1, v1, 1. / len2);
-//					VecScale(v2, v2, 1. / len1);
-					sh.assign_subset(edge, 3);
-				}
+			number d1 = fabs(VecDot(n1, n2));
+			number epsilon = 10E-6;
+			number delta = fabs(d1 - 1);
+			UG_LOG("d1: " << d1 << "\tdelta: " << delta << endl);
+			if (delta > epsilon) {
+//				UG_LOG("selecting edge..." << endl);
+				selEdges.select(edge);
+			} else {
+				UG_LOG("normals are parallel." << endl);
 			}
 		}
 	}
 
+	vector<EdgeBase*> face_egdes;
+	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
+			iter++) {
+		Face* face = *iter;
+		if (IsBoundaryFace3D(grid, face)) {
+			CollectAssociated(face_egdes, grid, face, true);
+
+			int selected = 0, num_edges = face->num_edges();
+			for (int i = 0; i < num_edges; i++) {
+				if (selEdges.is_selected(grid.get_edge(face, i)))
+					selected++;
+			}
+
+			if (selected == num_edges) {
+				selEdges.deselect(face_egdes.begin(), face_egdes.end());
+			}
+		}
+	}
+
+	sh.assign_subset(selEdges.begin<Edge>(), selEdges.end<Edge>(), 3);
+
 	sh.subset_info(3).name = "scale_edges";
 	sh.subset_info(3).color = vector4(1, 0, 0, 0);
-
 
 	//// Copy extruded tkd in each dimension
 	uint count = rows * cols * high;
