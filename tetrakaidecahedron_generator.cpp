@@ -226,19 +226,15 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 				}
 			}
 
+			UG_ASSERT(f[0] && f[1], "two faces are needed.");
+
 			vector3 n1, n2;
-			CalculateNormal(n1, faces[0], aaPos);
-			CalculateNormal(n2, faces[1], aaPos);
+			CalculateNormal(n1, f[0], aaPos);
+			CalculateNormal(n2, f[1], aaPos);
 
 			number d1 = fabs(VecDot(n1, n2));
-			number epsilon = 10E-6;
-			number delta = fabs(d1 - 1);
-			UG_LOG("d1: " << d1 << "\tdelta: " << delta << endl);
-			if (delta > epsilon) {
-//				UG_LOG("selecting edge..." << endl);
+			if (d1 > 0.4) {
 				selEdges.select(edge);
-			} else {
-				UG_LOG("normals are parallel." << endl);
 			}
 		}
 	}
