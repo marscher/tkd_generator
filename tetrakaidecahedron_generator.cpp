@@ -207,7 +207,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 //		}
 //	}
 
-	Selector selEdges(grid);
+	sel.clear();
 
 	vector<Face*> faces;
 	for (EdgeBaseIterator iter = grid.begin<Edge>(); iter != grid.end<Edge>();
@@ -233,8 +233,8 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 			CalculateNormal(n2, f[1], aaPos);
 
 			number d1 = fabs(VecDot(n1, n2));
-			if (d1 > 0.4) {
-				selEdges.select(edge);
+			if (d1 > .5) {
+				sel.select(edge);
 			}
 		}
 	}
@@ -248,17 +248,17 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 
 			int selected = 0, num_edges = face->num_edges();
 			for (int i = 0; i < num_edges; i++) {
-				if (selEdges.is_selected(grid.get_edge(face, i)))
+				if (sel.is_selected(grid.get_edge(face, i)))
 					selected++;
 			}
 
 			if (selected == num_edges) {
-				selEdges.deselect(face_egdes.begin(), face_egdes.end());
+				sel.deselect(face_egdes.begin(), face_egdes.end());
 			}
 		}
 	}
 
-	sh.assign_subset(selEdges.begin<Edge>(), selEdges.end<Edge>(), 3);
+	sh.assign_subset(sel.begin<Edge>(), sel.end<Edge>(), 3);
 
 	sh.subset_info(3).name = "scale_edges";
 	sh.subset_info(3).color = vector4(1, 0, 0, 0);
@@ -268,7 +268,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	if (count > 1) {
 		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
 
-		Selector sel(grid);
+		sel.clear();
 		sel.enable_autoselection(false);
 		// select lipid and corneocyte of first tkd for duplication
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
