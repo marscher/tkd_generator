@@ -99,7 +99,7 @@ protected:
 	 *	creates the upper part of tkd (symmetric to bottom part!)
 	 */
 	void createCorneocyteTop(const vector3& offset,
-			const number rotationOffset = 0);
+			const number rotationOffset = 0, bool bottom = false);
 
 	/**
 	 * creates middle part with given offset
@@ -118,9 +118,9 @@ protected:
 	CoordsArray obenAussenPrism;
 
 	CoordsArray obenAussenPr_rightTetrahedron;
-	CoordsArray obenAussenPr_leftTetrahedrson;
-
+	CoordsArray obenAussenPr_leftTetrahedron;
 	CoordsArray obenAussenPr2T_prism;
+
 
 	///// segments of middle part
 	// outer prism

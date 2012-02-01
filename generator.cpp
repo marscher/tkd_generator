@@ -7,8 +7,10 @@
 #include "generator.h"
 #include "geometric_helper.h"
 #include <stdexcept>
+#include <algorithm>
 
 namespace tkdGenerator {
+using namespace std;
 
 TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 		number diameter, number d_lipid) :
@@ -48,8 +50,26 @@ TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
  * @param rotationOffset
  */
 void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
-		const number rotationOffset) {
+		const number rotationOffset, bool bottom) {
 	myTransform t(R, offset);
+
+	// if we are creating the bottom part, flip orientation of all volumes
+	if (bottom) {
+		swap(obenInnen[0], obenInnen[3]);
+		swap(obenInnen[1], obenInnen[4]);
+		swap(obenInnen[2], obenInnen[5]);
+
+		swap(obenAussenPrism[0], obenAussenPrism[3]);
+		swap(obenAussenPrism[1], obenAussenPrism[4]);
+		swap(obenAussenPrism[2], obenAussenPrism[5]);
+
+		swap(obenAussenPr2T_prism[0], obenAussenPr2T_prism[3]);
+		swap(obenAussenPr2T_prism[1], obenAussenPr2T_prism[4]);
+		swap(obenAussenPr2T_prism[2], obenAussenPr2T_prism[5]);
+
+		swap(obenAussenPr_leftTetrahedron[0], obenAussenPr_leftTetrahedron[2]);
+		swap(obenAussenPr_rightTetrahedron[0], obenAussenPr_rightTetrahedron[2]);
+	}
 
 	// create G(Ki -> ObenInnen) = 6 prism with equilateral sites
 	// step angle 60°
@@ -76,7 +96,7 @@ void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
 
 		/* tetrahedron left of prism of ObenAussenPr2T which
 		 shares 3 points with prism of ObenAussenPr */
-		createGeometricObject(t.perform(obenAussenPr_leftTetrahedrson));
+		createGeometricObject(t.perform(obenAussenPr_leftTetrahedron));
 
 		/* tetrahedron right of prism ObenAussenPr2T which shares
 		 3 points with prism obenAussenPr2T_prism */
@@ -133,7 +153,7 @@ void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
 	// offset is same like middle because bottom is mirrored around z axis
 	R.setMirrorZAxis(true);
 	// in fact this is the bottom part, rotated with 60° relative to top
-	createCorneocyteTop(offset_h, 60);
+	createCorneocyteTop(offset_h, 60, true);
 	// reset mirror status
 	R.setMirrorZAxis(false);
 }
@@ -175,24 +195,31 @@ void TKDGeometryGenerator::initGeometricParams() {
 	///// Initialization of top/bottom segments
 	obenInnen << origin << v1 << v4 << v2 << v3 << v5;
 	obenAussenPrism << v4 << v5 << v8 << v6 << v7 << v9;
-	obenAussenPr_rightTetrahedron << v4 << v12 << v16 << v5;
+	obenAussenPr_rightTetrahedron << v16 << v12 << v4 << v5;
 	obenAussenPr2T_prism << v4 << v5 << v12 << v6 << v7 << v13;
 
 	// mirror right tetrahedron at x-axis to obtain left tetrahedron
-	obenAussenPr_leftTetrahedrson = mirror(obenAussenPr_rightTetrahedron,
-			xAxis);
+	obenAussenPr_leftTetrahedron = mirror(obenAussenPr_rightTetrahedron, xAxis);
+	// swap first and third vertex to fix orientation after mirroring
+	swap(obenAussenPr_leftTetrahedron[0], obenAussenPr_leftTetrahedron[2]);
 
 	///// Initialization of middle segments
-	mitteAussenHexahedron << v4 << v5 << v10 << v12 << v6 << v7 << v11 << v13;
-	mitteAussenP1 << v7 << v14 << v9 << v5 << v15 << v8;
-	mitteAussenP2 << v6 << v7 << v9 << v4 << v5 << v8;
+	mitteAussenHexahedron << v5 << v7 << v11 << v10 << v4 << v6 << v13 << v12;
+
+	mitteAussenP1 << v4 << v5 << v15 << v6 << v7 << v14;
+	mitteAussenP2 << v4 << v15 << v8 << v6 << v14 << v9;
 
 	/// this is tetrahedron of mitteAussenH2Pr right of mitteAussenHexahedron
 	mitteAussenH2Pr_tetrahedron << v5 << v15 << v17 << v8;
 	mitteAussen2PrH_tetrahedron = mirror(mitteAussenH2Pr_tetrahedron, xAxis);
+	// swap first and third vertex to fix orientation after mirroring
+	swap(mitteAussen2PrH_tetrahedron[0], mitteAussen2PrH_tetrahedron[2]);
 
-	mitteAussenH2Pr_pyramid << v4 << v5 << v10 << v12 << v16;
+	mitteAussenH2Pr_pyramid << v10 << v5 << v4 << v12 << v16;
 	mitteAussen2PrH_pyramid = mirror(mitteAussenH2Pr_pyramid, xAxis);
+	// fix orientation
+	swap(mitteAussen2PrH_pyramid[0], mitteAussen2PrH_pyramid[3]);
+	swap(mitteAussen2PrH_pyramid[1], mitteAussen2PrH_pyramid[2]);
 }
 
 number TKDGeometryGenerator::getVolume() const {

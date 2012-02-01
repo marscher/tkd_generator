@@ -52,29 +52,29 @@ void createGridFromArrays(Grid& grid, SubsetHandler& sh,
 		for (int j = 0; j < num; ++j)
 			vd.set_vertex(j, vertices[indices[i++]]);
 
-		Volume* vol;
 		switch (num) {
 		case 4:
-			vol = *grid.create<ug::Tetrahedron>(vd);
+			grid.create<ug::Tetrahedron>(vd);
 			break;
 		case 5:
-			vol = *grid.create<ug::Pyramid>(vd);
+			grid.create<ug::Pyramid>(vd);
 			break;
 		case 6:
-			vol = *grid.create<ug::Prism>(vd);
+			grid.create<ug::Prism>(vd);
 			break;
 		case 8:
-			vol = *grid.create<ug::Hexahedron>(vd);
+			grid.create<ug::Hexahedron>(vd);
 			break;
 		}
-
-		// all volumes belongs to corneocyte subset
-		sh.assign_subset(vol, CORNEOCYTE);
 	}
 
 	// remove double vertices
 	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
 			aPosition, 10E-5);
+
+//	sh.assign_subset(grid.begin<Vertex>(), grid.end<Vertex>(), CORNEOCYTE);
+//	sh.assign_subset(grid.begin<Edge>(), grid.end<Edge>(), CORNEOCYTE);
+	sh.assign_subset(grid.begin<Volume>(), grid.end<Volume>(), CORNEOCYTE);
 }
 
 void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
@@ -135,133 +135,82 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		VertexBase* vrt = *iter;
 		vector3& vec = aaPos[vrt];
 		VecScale(vec, vec, h_scale);
-		aaPos[vrt] = vec;
 	}
 
 	// assign extruded selection to lipid subset
+	// todo edges for testing only
+
+	sh.assign_subset(sel.begin<Edge>(), sel.end<Edge>(), LIPID);
 	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), LIPID);
+//	for (EdgeIterator iter = sel.begin<Edge>(); iter != sel.end<Edge>();
+//			iter++) {
+//		EdgeBase* e  = *iter;
+//		if (LiesOnBoundary(grid, e)) {
+//			sh.assign_subset(e, LIPID);
+//		}
+//	}
+	sel.clear();
 	////////// End of extrusion
 
 	// assigns wrong distanced faces to subset BROKEN
 //	meassureLipidThickness(grid, sh, d_lipid, true);
 
 	///// Correction of distance of side quadrilaterals
-	// for all edges
-	// fixme is it enough to iterate over subset LIPID only?
-//	for (EdgeBaseIterator iter = sel.begin<EdgeBase>();
-//			iter != sel.end<EdgeBase>(); iter++) {
+
+//	vector<Face*> faces;
+//	for (EdgeBaseIterator iter = grid.begin<Edge>(); iter != grid.end<Edge>();
+//			iter++) {
 //		EdgeBase* edge = *iter;
-//		// for all boundary edges
 //		if (IsBoundaryEdge3D(grid, edge)) {
-//			vector<Face*> faces;
-//			CollectAssociated(faces, grid, edge);
-//			Face* triangles[2] = { NULL, NULL };
-//			// for all edge associated faces
-//			for (size_t i = 0; i < faces.size(); i++) {
-//				Face* f = faces[i];
-//				// assign faces if they are triangles
-//				if (f->reference_object_id() == ROID_TRIANGLE) {
-//					if (triangles[0])
-//						triangles[1] = f;
+//			CollectAssociated(faces, grid, edge, true);
+//
+//			Face* f[2] = { NULL, NULL };
+//			for (uint i = 0; i < faces.size(); i++) {
+//				if (LiesOnBoundary(grid, faces[i])) {
+//					if (f[0])
+//						f[1] = faces[i];
 //					else
-//						triangles[0] = f;
+//						f[0] = faces[i];
 //				}
 //			}
 //
-//			// for all edges assiociated to 2 triangles
-//			if (triangles[0] && triangles[1]) {
-//				vector3 n1, n2;
-//				CalculateNormal(n1, triangles[0], aaPos);
-//				CalculateNormal(n2, triangles[1], aaPos);
-//				number d = fabs(VecDot(n1, n2));
-//				// ensure the 2 triangles does not have the same orientation
-//				if (fabs(d - 1) > 10E-6) {
-//					// faces[3] should be quadrilateral with wrong distance
-//					UG_ASSERT(
-//							faces[3]->reference_object_id() == ROID_QUADRILATERAL,
-//							"faces[3] is not a quad");
+//			UG_ASSERT(f[0] && f[1], "two faces are needed.");
 //
-//					/*for(sh.begin<Face>(BROKEN))
-//					 *TODO ensure face[3] is broken...
-//					 */
+//			vector3 n1, n2;
+//			CalculateNormal(n1, f[0], aaPos);
+//			CalculateNormal(n2, f[1], aaPos);
 //
-//					vector3 d1, d2;
-//					vector3& v1 = aaPos[edge->vertex(0)], v2 =
-//							aaPos[edge->vertex(1)];
-//
-//					VecSubtract(d1, v1, v2);
-//					VecScale(d2, d1, -1);
-//					vector3 offset;
-//					vector3 normal;
-//					CalculateNormal(normal, faces[3], aaPos);
-//					number len1 = VecDot(normal, d1);
-//					number len2 = VecDot(normal, d2);
-//					// direction * normal = 0
-//					UG_LOG("n * d1: " << len1 << "\t n*d2: " << len2 << endl);
-//					// TODO move v1, v2 in direction of center of edge
-////					VecScale(v1, v1, 1. / len2);
-////					VecScale(v2, v2, 1. / len1);
-//					sh.assign_subset(edge, 3);
-//				}
+//			number d1 = fabs(VecDot(n1, n2));
+//			if (d1 > .5) {
+//				sel.select(edge);
 //			}
 //		}
 //	}
-
-	sel.clear();
-
-	vector<Face*> faces;
-	for (EdgeBaseIterator iter = grid.begin<Edge>(); iter != grid.end<Edge>();
-			iter++) {
-		EdgeBase* edge = *iter;
-		if (IsBoundaryEdge3D(grid, edge)) {
-			CollectAssociated(faces, grid, edge, true);
-
-			Face* f[2] = { NULL, NULL };
-			for (uint i = 0; i < faces.size(); i++) {
-				if (LiesOnBoundary(grid, faces[i])) {
-					if (f[0])
-						f[1] = faces[i];
-					else
-						f[0] = faces[i];
-				}
-			}
-
-			UG_ASSERT(f[0] && f[1], "two faces are needed.");
-
-			vector3 n1, n2;
-			CalculateNormal(n1, f[0], aaPos);
-			CalculateNormal(n2, f[1], aaPos);
-
-			number d1 = fabs(VecDot(n1, n2));
-			if (d1 > .5) {
-				sel.select(edge);
-			}
-		}
-	}
-
-	vector<EdgeBase*> face_egdes;
-	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-			iter++) {
-		Face* face = *iter;
-		if (IsBoundaryFace3D(grid, face)) {
-			CollectAssociated(face_egdes, grid, face, true);
-
-			int selected = 0, num_edges = face->num_edges();
-			for (int i = 0; i < num_edges; i++) {
-				if (sel.is_selected(grid.get_edge(face, i)))
-					selected++;
-			}
-
-			if (selected == num_edges) {
-				sel.deselect(face_egdes.begin(), face_egdes.end());
-			}
-		}
-	}
-
-	sh.assign_subset(sel.begin<Edge>(), sel.end<Edge>(), 3);
-
-	sh.subset_info(3).name = "scale_edges";
-	sh.subset_info(3).color = vector4(1, 0, 0, 0);
+//
+//	vector<EdgeBase*> face_egdes;
+//	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
+//			iter++) {
+//		Face* face = *iter;
+//		if (IsBoundaryFace3D(grid, face)) {
+//			CollectAssociated(face_egdes, grid, face, true);
+//
+//			int selected = 0, num_edges = face->num_edges();
+//			for (int i = 0; i < num_edges; i++) {
+//				if (sel.is_selected(grid.get_edge(face, i)))
+//					selected++;
+//			}
+//
+//			if (selected == num_edges) {
+//				sel.deselect(face_egdes.begin(), face_egdes.end());
+//			}
+//		}
+//	}
+//
+//	UG_LOG("selected edges: " << sel.num<Edge>() << endl);
+//	sh.assign_subset(sel.begin<Edge>(), sel.end<Edge>(), 3);
+//
+//	sh.subset_info(3).name = "scale_edges";
+//	sh.subset_info(3).color = vector4(1, 0, 0, 0);
 
 	//// Copy extruded tkd in each dimension
 	uint count = rows * cols * high;
@@ -277,37 +226,65 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		bool selectNew = false;
 		bool deselectOld = false;
 
-		number offsetX = 0;
-		number offsetY = 0;
-		number offsetZ = 0;
+		vector3 offset(0, 0, 0);
+
+		// determine dimensions of extruded tkd
+		vector3 min, max, dimension;
+		CalculateBoundingBox(min, max, grid.begin<Vertex>(), grid.end<Vertex>(),
+				aaPos);
+
+		VecSubtract(dimension, max, min);
+		UG_LOG(
+				"bbox: " << min << " "<< max << "\ndimensions: " << dimension << endl);
+
+		// fixme x != y
+		number d = dimension.x;
+		number h = dimension.z;
+		// determine length of 1 edge of base hexagon (equilateral triangles)
+		number a = a_corneocyte * h_scale;
+
+//		number w = 1. / 6
+//				* (sqrt(3) * sqrt(-9 * a * a + 9 * d * d - h * h) - 3 * a);
+		number w = w_corneocyte * h_scale;//(sqrt(3) * a + 3 * dimension.x) / 2 * sqrt(3);
+		number s = 1 / sqrt(3) * (w - 2 * a);
+		UG_LOG("a: "<< a << " w : " << w << " s: " << s << endl);
+		UG_ASSERT(w > 2*a, "geometrical constraints not met.");
 
 		// 1 tkd = three segments with each 1/3 h
-		number third_height = (1. / 3 * generator.getHeight());
-		number s_lipid = generator.getOverlap();
-		// overlap in x and y direction is overlap of lipid
-		for (int i = 0; i < rows; i++, offsetX += s_lipid) {
-			offsetY = 0;
-			// every even row is shifted by 1/3 h_lipid
+
+		number h_shift = 2 * h / 3;
+		for (int i = 0; i < rows; i++) {
+			offset.x += 2*s;
+			// reset y offset, as we are in a new row
+			offset.y = 0;
+			// every even row is shifted by 2/3 h_lipid
 			if (i % 2) {
-				offsetZ += third_height;
+				offset.z += h_shift;
 			}
-			for (int j = 0; j < cols; j++, offsetY += s_lipid) {
-				offsetZ = 0;
-				// every even column is shifted by 1/3 h_lipid
+
+			for (int j = 0; j < cols; j++) {
+				offset.y += d;
+				// reset z offset, as we are in a new col
+				offset.z = 0;
+				// every even column is shifted by 2/3 h_lipid
 				if (j % 2) {
-					offsetZ += third_height;
+					offset.z += h_shift;
 				}
-				for (int k = 0; k < high;
-						k++, offsetZ += generator.getHeight()) {
-					vector3 offset(offsetX, offsetY, offsetZ);
+
+				for (int k = 0; k < high; k++) {
+					offset.z += h;
+					UG_LOG(
+							"offset(" << i << ", " << j << ", " << k << "): " << offset << endl);
 					Duplicate(grid, sel, offset, aPosition, deselectOld,
 							selectNew);
 				}
 			}
 		}
 
-		// todo delete first created tkd, because it is offset o the others
-		// grid.erase(sel.begin<Volume>(), sel.end<Volume>());
+		// delete first created tkd, because it is offset o the others
+		grid.erase(sel.begin<Vertex>(), sel.end<Vertex>());
+		grid.erase(sel.begin<Edge>(), sel.end<Edge>());
+		grid.erase(sel.begin<Volume>(), sel.end<Volume>());
 
 		// finally remove double vertices
 		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
