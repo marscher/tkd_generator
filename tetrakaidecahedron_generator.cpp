@@ -12,7 +12,10 @@
 #include "lib_grid/lib_grid.h"
 #include "registry/registry.h"
 
+#include <set>
+
 using namespace ug;
+using namespace std;
 
 namespace tkdGenerator {
 
@@ -72,9 +75,90 @@ void createGridFromArrays(Grid& grid, SubsetHandler& sh,
 	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
 			aPosition, 10E-5);
 
-//	sh.assign_subset(grid.begin<Vertex>(), grid.end<Vertex>(), CORNEOCYTE);
-//	sh.assign_subset(grid.begin<Edge>(), grid.end<Edge>(), CORNEOCYTE);
 	sh.assign_subset(grid.begin<Volume>(), grid.end<Volume>(), CORNEOCYTE);
+}
+
+struct vecComperator {
+	bool operator()(const vector3& a, const vector3& b) const {
+		return VecDistance(a, b) < 10E-6;
+	}
+};
+
+void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh, number h,
+		number d_lipid) {
+
+	vector<Face*> boundaryFaces;
+	set<vector3, vecComperator> normals;
+	// to scale some vertices
+	number h_scale = (h + d_lipid) / h;
+
+	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
+			++iter) {
+		if (IsVolumeBoundaryFace(grid, *iter))
+			boundaryFaces.push_back(*iter);
+	}
+
+	// select vertices which are beeing extruded
+	Selector sel(grid);
+	sel.enable_autoselection(true);
+
+	// extruding boundary faces
+	Extrude(grid, NULL, NULL, &boundaryFaces, origin);
+
+	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), LIPID);
+
+	//	access vertex position data
+	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
+
+	// scale every extruded vertex
+	for (VertexBaseIterator iter = sel.begin<VertexBase>();
+			iter != sel.end<VertexBase>(); iter++) {
+
+		VertexBase* v = *iter;
+		// for all boundary vertices
+		if (IsBoundaryVertex3D(grid, v)) {
+			CollectAssociated(boundaryFaces, grid, v);
+			// collect normals only for this vertex
+			normals.clear();
+			// for all faces associated to v
+			for (size_t i = 0; i < boundaryFaces.size(); i++) {
+				if (IsBoundaryFace3D(grid, boundaryFaces[i])) {
+					vector3 normal;
+					CalculateNormal(normal, boundaryFaces[i], aaPos);
+					normals.insert(normal);
+				}
+			}
+
+			/*
+			 für die knoten, die an einer ecke liegen, ist das doch einfach der schnittpunkt der ebenen der angrenzenden flächen
+			 und für die die im inneren eines sechsecks liegen, ist es einfach die richtung der normale mal der dicke
+			 also beim ersten meine ich natürlich die entlang ihrer normalen verschobenen ebenen
+			 */
+			if (normals.size() == 1) {
+				// (vertex liegt innerhalb eines sechsecks)
+				vector3 n = *normals.begin();
+				// scale normal so it fits to half of lipid thickness
+				VecScale(n, n, d_lipid / 2);
+
+				// copy attachment of
+				vector3& vPos = aaPos[v];
+				UG_LOG("vpos: " << vPos << endl);
+				// fixme transform
+				VecSubtract(vPos, vPos, n);
+				UG_LOG("vpos': " << vPos << endl << "---------" << endl);
+			} else if (normals.size() == 3) {
+				// (vertex liegt auf einer Kante)
+				// verschiebene ebene um d/2
+			} else if (normals.size() == 4) {
+
+			} else {
+//				vector3& vec = aaPos[v];
+//				VecScale(vec, vec, h_scale);
+//				UG_ASSERT(false, "should never get here?" );
+//				UG_LOG("n size: " << normals.size() << endl);
+			}
+		}
+	}
 }
 
 void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
@@ -91,7 +175,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	sh.set_default_subset_index(CORNEOCYTE);
 	sh.subset_info(CORNEOCYTE).name = "corneocytes";
 	sh.subset_info(LIPID).name = "lipid matrix";
-	sh.subset_info(BROKEN).name = "broken";
+//	sh.subset_info(BROKEN).name = "broken";
 	//// Colors
 	// argb: green
 	sh.subset_info(LIPID).color = vector4(0, 1, 0, 0);
@@ -106,118 +190,17 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	createGridFromArrays(grid, sh, generator.getPositions(),
 			generator.getIndices());
 
-	//// extrude the tkd to match given lipid thickness size and correct quadrilaterals afterwards
-	// extruded tkd height = d_lipid + h_corneocyte
-	number h_lipid = h_corneocyte + d_lipid;
-	number h_scale = h_lipid / h_corneocyte;
-//	UG_LOG("h_scale: " << h_scale << endl);
-
-	vector<Face*> boundaryFaces;
-	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-			++iter) {
-		if (IsVolumeBoundaryFace(grid, *iter))
-			boundaryFaces.push_back(*iter);
-	}
-
-	// select vertices which are beeing extruded
-	Selector sel(grid);
-	sel.enable_autoselection(true);
-
-	// extruding boundary faces
-	Extrude(grid, NULL, NULL, &boundaryFaces, origin);
-
-	//	access vertex position data
-	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
-
-	// scale every vertex of selection
-	for (VertexBaseIterator iter = sel.begin<VertexBase>();
-			iter != sel.end<VertexBase>(); iter++) {
-		VertexBase* vrt = *iter;
-		vector3& vec = aaPos[vrt];
-		VecScale(vec, vec, h_scale);
-	}
-
-	// assign extruded selection to lipid subset
-	// todo edges for testing only
-
-	sh.assign_subset(sel.begin<Edge>(), sel.end<Edge>(), LIPID);
-	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), LIPID);
-//	for (EdgeIterator iter = sel.begin<Edge>(); iter != sel.end<Edge>();
-//			iter++) {
-//		EdgeBase* e  = *iter;
-//		if (LiesOnBoundary(grid, e)) {
-//			sh.assign_subset(e, LIPID);
-//		}
-//	}
-	sel.clear();
-	////////// End of extrusion
+	generateLipidMatrixForSingleTKD(grid, sh, h_corneocyte, d_lipid);
 
 	// assigns wrong distanced faces to subset BROKEN
 //	meassureLipidThickness(grid, sh, d_lipid, true);
-
-	///// Correction of distance of side quadrilaterals
-
-//	vector<Face*> faces;
-//	for (EdgeBaseIterator iter = grid.begin<Edge>(); iter != grid.end<Edge>();
-//			iter++) {
-//		EdgeBase* edge = *iter;
-//		if (IsBoundaryEdge3D(grid, edge)) {
-//			CollectAssociated(faces, grid, edge, true);
-//
-//			Face* f[2] = { NULL, NULL };
-//			for (uint i = 0; i < faces.size(); i++) {
-//				if (LiesOnBoundary(grid, faces[i])) {
-//					if (f[0])
-//						f[1] = faces[i];
-//					else
-//						f[0] = faces[i];
-//				}
-//			}
-//
-//			UG_ASSERT(f[0] && f[1], "two faces are needed.");
-//
-//			vector3 n1, n2;
-//			CalculateNormal(n1, f[0], aaPos);
-//			CalculateNormal(n2, f[1], aaPos);
-//
-//			number d1 = fabs(VecDot(n1, n2));
-//			if (d1 > .5) {
-//				sel.select(edge);
-//			}
-//		}
-//	}
-//
-//	vector<EdgeBase*> face_egdes;
-//	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-//			iter++) {
-//		Face* face = *iter;
-//		if (IsBoundaryFace3D(grid, face)) {
-//			CollectAssociated(face_egdes, grid, face, true);
-//
-//			int selected = 0, num_edges = face->num_edges();
-//			for (int i = 0; i < num_edges; i++) {
-//				if (sel.is_selected(grid.get_edge(face, i)))
-//					selected++;
-//			}
-//
-//			if (selected == num_edges) {
-//				sel.deselect(face_egdes.begin(), face_egdes.end());
-//			}
-//		}
-//	}
-//
-//	UG_LOG("selected edges: " << sel.num<Edge>() << endl);
-//	sh.assign_subset(sel.begin<Edge>(), sel.end<Edge>(), 3);
-//
-//	sh.subset_info(3).name = "scale_edges";
-//	sh.subset_info(3).color = vector4(1, 0, 0, 0);
 
 	//// Copy extruded tkd in each dimension
 	uint count = rows * cols * high;
 	if (count > 1) {
 		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
 
-		sel.clear();
+		Selector sel(grid);
 		sel.enable_autoselection(false);
 		// select lipid and corneocyte of first tkd for duplication
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
@@ -228,18 +211,10 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 
 		vector3 offset(0, 0, 0);
 
-		// determine dimensions of extruded tkd
-		vector3 min, max, dimension;
-		CalculateBoundingBox(min, max, grid.begin<Vertex>(), grid.end<Vertex>(),
-				aaPos);
-
-		VecSubtract(dimension, max, min);
-		UG_LOG(
-				"bbox: " << min << " "<< max << "\ndimensions: " << dimension << endl);
-
 		// fixme x != y
-		number d = dimension.x;
-		number h = dimension.z;
+		number h_scale = (h_corneocyte + d_lipid) / h_corneocyte;
+		number d = 0;
+		number h = h_corneocyte * h_scale;
 		// determine length of 1 edge of base hexagon (equilateral triangles)
 		number a = a_corneocyte * h_scale;
 
@@ -254,7 +229,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 
 		number h_shift = 2 * h / 3;
 		for (int i = 0; i < rows; i++) {
-			offset.x += 2*s;
+			offset.x += 2 * s;
 			// reset y offset, as we are in a new row
 			offset.y = 0;
 			// every even row is shifted by 2/3 h_lipid
