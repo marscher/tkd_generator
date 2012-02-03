@@ -15,7 +15,7 @@ namespace tkdGenerator {
 
 // subset indices
 enum Subsets {
-	LIPID = 0, CORNEOCYTE, BROKEN
+	LIPID = 0, CORNEOCYTE
 };
 
 const static vector3 origin(0, 0, 0);

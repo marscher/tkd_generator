@@ -206,8 +206,8 @@ void TKDGeometryGenerator::initGeometricParams() {
 	///// Initialization of middle segments
 	mitteAussenHexahedron << v5 << v7 << v11 << v10 << v4 << v6 << v13 << v12;
 
-	mitteAussenP1 << v4 << v5 << v15 << v6 << v7 << v14;
-	mitteAussenP2 << v4 << v15 << v8 << v6 << v14 << v9;
+	mitteAussenP1 << v5 << v15 << v8 << v7 << v14 << v9;
+	mitteAussenP2 << v4 << v5 << v8 << v6 << v7 << v9;
 
 	/// this is tetrahedron of mitteAussenH2Pr right of mitteAussenHexahedron
 	mitteAussenH2Pr_tetrahedron << v5 << v15 << v17 << v8;
