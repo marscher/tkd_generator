@@ -186,16 +186,14 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				// p: intersection of of nc with plane z
 				vector3 a = aaPos[v], b, z, nc, nt, c, p;
 
-				// init support vectors b, z
-				VecAdd(b, a, nb);
-				VecAdd(z, a, nz);
-
-//				UG_LOG("na: " << na << "\tnb: "<< nb << "\tnz: "<< nz << endl);
-
 				// scale normals to length d_lipid/2
 				VecScale(na, na, d_lipid / 2);
 				VecScale(nb, nb, d_lipid / 2);
 				VecScale(na, na, d_lipid / 2);
+
+				// init support vectors b, z
+				VecAdd(b, a, nb);
+				VecAdd(z, a, nz);
 
 				// calculate vectors lying in planes na, nc
 				VecCross(nc, na, nb);
