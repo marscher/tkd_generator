@@ -178,15 +178,17 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				vector3 nz = *normalsIter;
 
 				// a: vertex position
-				// b: stützvektor von ebene nb?
-				// z: stützvektor von dritter ebene (nz)
+				// b: support vector of plane nb
+				// z: support vector of plane nz
 				// nc: lies in plane a
 				// nt: lies in plane b?
 				// c: intersection of nt with plane b
 				// p: intersection of of nc with plane z
 				vector3 a = aaPos[v], b, z, nc, nt, c, p;
 
-				// todo init b, z
+				// init support vectors b, z
+				VecAdd(b, a, nb);
+				VecAdd(z, a, nz);
 
 //				UG_LOG("na: " << na << "\tnb: "<< nb << "\tnz: "<< nz << endl);
 
@@ -204,7 +206,7 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				RayPlaneIntersection(p, tmp, c, nc, z, nz);
 
 				// store shift vector p to corresponding vertex v
-//				vertexShifts.push_back(make_pair(v, p));
+				vertexShifts.push_back(make_pair(v, p));
 				break;
 			}
 			default:
