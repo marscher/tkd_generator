@@ -79,9 +79,6 @@ vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
 		}
 	}
 
-	if (assign)
-		sh.assign_subset(selDist.begin<Volume>(), selDist.end<Volume>(),
-				BROKEN);
 	return distances;
 }
 
