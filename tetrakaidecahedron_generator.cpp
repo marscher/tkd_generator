@@ -13,7 +13,6 @@
 #include "registry/registry.h"
 
 #include <set>
-//#include <map>
 
 using namespace ug;
 using namespace std;
@@ -119,13 +118,16 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 			faces.push_back(*iter);
 	}
 
-	// auto select vertices which are beeing extruded
+	// select vertices which are beeing extruded
 	Selector sel(grid);
 	sel.enable_autoselection(true);
 
 	// extruding boundary faces
 	Extrude(grid, NULL, NULL, &faces, origin);
 
+	// assign all extruded geometric objects to LIPID subset
+	sh.assign_subset(sel.begin<Vertex>(), sel.end<Vertex>(), LIPID);
+	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), LIPID);
 	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), LIPID);
 
 	//	access vertex position data
@@ -138,15 +140,22 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 		VertexBase* v = *iter;
 		// for all boundary vertices
 		if (IsBoundaryVertex3D(grid, v)) {
-			CollectAssociated(faces, grid, v);
+			UG_LOG("--------------------" << endl);
+			CollectAssociated(faces, grid, v, true);
 			// collect normals only for this vertex
 			normals.clear();
-			// for all faces associated to v
+			// for all faces associated to v collect unique normal vectors
 			for (size_t i = 0; i < faces.size(); i++) {
 				if (IsBoundaryFace3D(grid, faces[i])) {
 					vector3 normal;
 					CalculateNormal(normal, faces[i], aaPos);
-					normals.insert(normal);
+					std::pair<set<vector3>::iterator, bool> wasInserted =
+							normals.insert(normal);
+
+					UG_LOG("n: " << normal << endl);
+					if(wasInserted.second) {
+						UG_LOG("normal inserted" << endl);
+					}
 				}
 			}
 
@@ -159,6 +168,8 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				vector3 n = *normalsIter;
 				// scale normal so it fits to half of lipid thickness
 				VecScale(n, n, d_lipid / 2);
+				UG_ASSERT(fabs(VecLength(n) - d_lipid/2) < 10E-6,
+						" wrong n len");
 				// make copy of vertex position attachment
 				vector3 a = aaPos[v];
 				// shift a by scaled normal of face
@@ -167,8 +178,7 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				vertexShifts.push_back(make_pair(v, a));
 				break;
 			}
-
-			// vertex lies on an edge between an hexagon and a quadrilateral
+				// vertex lies on an edge between an hexagon and a quadrilateral
 			case 3: {
 				sh.assign_subset(v, 2);
 
@@ -189,7 +199,7 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				// scale normals to length d_lipid/2
 				VecScale(na, na, d_lipid / 2);
 				VecScale(nb, nb, d_lipid / 2);
-				VecScale(na, na, d_lipid / 2);
+				VecScale(nz, nz, d_lipid / 2);
 
 				// init support vectors b, z
 				VecAdd(b, a, nb);
@@ -203,12 +213,14 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				RayPlaneIntersection(c, tmp, a, nt, b, nb);
 				RayPlaneIntersection(p, tmp, c, nc, z, nz);
 
+//				UG_LOG("c: " << c << "\tp: " << p << endl)
+
 				// store shift vector p to corresponding vertex v
-				vertexShifts.push_back(make_pair(v, p));
+//				vertexShifts.push_back(make_pair(v, p));
 				break;
 			}
 			default:
-				UG_ASSERT(true, "should never get here!");
+				UG_ASSERT(false, "should never get here!");
 			}
 		} // end of switch
 	} // end of calculate shifts for
@@ -225,9 +237,16 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 	return vertexShifts;
 }
 
+void logfkt(const number& d) {
+	UG_LOG("d: " << d << endl)
+}
+
 void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		number a_corneocyte, number w_corneocyte, number h_corneocyte,
 		number d_lipid, int rows, int cols, int high) {
+
+	UG_LOG(
+			"a: " << a_corneocyte << " w: " << w_corneocyte << " h: " << h_corneocyte << " d: " << d_lipid << endl);
 
 	//// set grid options
 	grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
@@ -253,11 +272,18 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	createGridFromArrays(grid, sh, generator.getPositions(),
 			generator.getIndices());
 
+	// rotate tkd by 60 degrees so side hexagons are orientated parallel to y axis
+	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
+	RotationMatrix R(60);
+	TransformVertices(grid.begin<Vertex>(), grid.end<Vertex>(), R, aaPos);
+
+	// generate lipid matrix
 	vector<pair<VertexBase*, vector3> > shifts =
 			generateLipidMatrixForSingleTKD(grid, sh, d_lipid);
 
-	// assigns wrong distanced faces to subset BROKEN
-//	meassureLipidThickness(grid, sh, d_lipid, true);
+	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid, false);
+	UG_LOG("dist size: " << dist.size() << endl)
+	for_each(dist.begin(), dist.end(), logfkt);
 
 	//// Copy extruded tkd in each dimension
 	uint count = rows * cols * high;
@@ -274,12 +300,11 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		bool deselectOld = false;
 
 		vector3 offset(0, 0, 0);
+		number h = (h_corneocyte + d_lipid);
+		number h23 = 2. / 3. * h;
+		number h3 = 1. / 3. * h;
 
-		number h_shift = 2 * (h_corneocyte + d_lipid) / 3;
-
-		// determine max and min x, y dimensions of extruded tkd
 		number maxX = 0, maxY = 0, minX = 0, minY = 0;
-
 		for (size_t i = 0; i < shifts.size(); i++) {
 			vector3& v = shifts[i].second;
 			if (v.x > maxX) {
@@ -296,33 +321,28 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		number shiftX = maxX + fabs(minX);
 		number shiftY = maxY + fabs(minY);
 
-		UG_LOG("min: " << minX << ", " << minY << "\tmax: " << maxX << ", " << maxY << endl);
+		UG_LOG(
+				"shiftX: " << shiftX << "\tshiftY: " << shiftY << endl << "h: " << h << endl);
 
-		for (int i = 0; i < rows; i++) {
-			offset.x += shiftX;
-			// reset y offset, as we are in a new row
-			offset.y = 0;
-			// every even row is shifted by 2/3 h_lipid
-			if (i % 2) {
-				offset.z += h_shift;
+		int hilf = 1;
+		for (int i = 0; i < rows; i++, hilf++) {
+			offset.x = 0;
+			offset.y += shiftY;
+			offset.z = -h;
+			switch (hilf) {
+			case 2:
+				offset.z += h3;
+				break;
+			case 3:
+				offset.z += h23;
+				hilf = 0;
+				break;
 			}
-			//TODO in every third row, shift z by 1/3 h
-			for (int j = 0; j < cols; j++) {
-				offset.y += shiftY;
-				// reset z offset, as we are in a new col
-				offset.z = 0;
-				// every even column is shifted by 2/3 h_lipid
-				if (j % 2) {
-					offset.z += h_shift;
-				}
+			offset.x += shiftX;
 
-				for (int k = 0; k < high; k++) {
-					offset.z += h_corneocyte + d_lipid;
-//					UG_LOG(
-//							"offset(" << i << ", " << j << ", " << k << "): " << offset << endl);
-					Duplicate(grid, sel, offset, aPosition, deselectOld,
-							selectNew);
-				}
+			for (int k = 0; k < high; k++) {
+				offset.z += h;
+				Duplicate(grid, sel, offset, aPosition, deselectOld, selectNew);
 			}
 		}
 
@@ -330,6 +350,33 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		grid.erase(sel.begin<Vertex>(), sel.end<Vertex>());
 		grid.erase(sel.begin<Edge>(), sel.end<Edge>());
 		grid.erase(sel.begin<Volume>(), sel.end<Volume>());
+
+		// remove double vertices for first row
+		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+				aPosition, 10E-5);
+
+		// select first generated row
+		sel.select(grid.begin<Volume>(), grid.end<Volume>());
+
+		// reset offset
+		offset.x = 0;
+
+		for (int c = 0; c < cols - 1; c++) {
+			// fixme x offset
+			offset.x += 2 * generator.getOverlap();
+			offset.y = 0;
+			offset.z = 0;
+
+			if ((c % 2) == 0) {
+				offset.z = h23; // correct
+				offset.y = shiftY / 2; // correct
+			}
+
+			UG_LOG("offset: " << offset << endl)
+
+			Duplicate(grid, sel, offset, aPosition, deselectOld, selectNew);
+			offset.z = 0;
+		}
 
 		// finally remove double vertices
 		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
