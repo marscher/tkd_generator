@@ -11,6 +11,7 @@
 #include "../tetrakaidecahedron_generator.h"
 #include "../generator.h"
 #include "lib_grid/lib_grid.h"
+#include <numeric>
 
 using namespace ug;
 
@@ -18,11 +19,10 @@ namespace tkdGenerator {
 
 number deltaLipidThickness(const vector<number>& distances,
 		const number d_lipid) {
-	number sum = 0;
-	for (size_t i = 0; i < distances.size(); i++) {
-		sum += distances[i];
-	}
-	return fabs(d_lipid / 2 - sum / distances.size());
+	number sum = std::accumulate(distances.begin(), distances.end(), 0);
+	if (sum > 10E-6)
+		return fabs(d_lipid / 2 - sum / distances.size());
+	return 0;
 }
 
 /**
@@ -36,14 +36,12 @@ vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
 	vector<Face*> faces;
 	vector<number> distances;
 	Selector sel(grid);
-	Selector selDist(grid);
 
 	//	access vertex position data
 	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
 	// select lipid boundary faces
-	SelectAreaBoundaryFaces(sel, sh.begin<Volume>(LIPID),
-			sh.end<Volume>(LIPID));
+	SelectAreaBoundary(sel, sh.begin<Volume>(LIPID), sh.end<Volume>(LIPID));
 
 	for (VolumeIterator iter = sh.begin<Volume>(LIPID);
 			iter != sh.end<Volume>(LIPID); iter++) {
@@ -72,10 +70,11 @@ vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
 		vector3 point;
 		ProjectPointToPlane(point, center1, center2, normal);
 		number dist = VecDistance(center1, point);
-		UG_LOG("distance : " << dist << endl);
 		distances.push_back(dist);
+		// mark pairs of wrong distanced faces
 		if (assign && fabs(dist - d_lipid / 2) > 0.1) {
-			selDist.select(v);
+			sh.assign_subset(selFaces[0], 3);
+			sh.assign_subset(selFaces[1], 3);
 		}
 	}
 
