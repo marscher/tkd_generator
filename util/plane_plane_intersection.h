@@ -24,7 +24,7 @@ bool PlanePlaneIntersection3D(vector3& pOut, vector3& nOut, const vector3& p1,
 
 	// check planes are not parallel
 	// which is the case iff | n1 * n2 | = 1
-	if (fabs(VecDot(n1, n2)) - 1) < SMALL)
+	if (fabs(VecDot(n1, n2)) - 1 < SMALL)
 		return false;
 
 	// intersection normal perpendicular to n1 and n2
