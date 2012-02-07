@@ -185,16 +185,17 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				// a: vertex position
 				// b: support vector of plane nb
 				// c: support vector of plane nc
-				vector3 a = aaPos[v], b, c;
+				vector3 a, b, c;
 
 				// scale normals to length d_lipid/2
 				VecScale(na, na, d_lipid / 2);
 				VecScale(nb, nb, d_lipid / 2);
 				VecScale(nc, nc, d_lipid / 2);
 
-				// init support vectors b, z
-				VecAdd(b, a, nb);
-				VecAdd(c, a, nc);
+				// init support vectors a, b, c
+			    VecAdd(a, aaPos[v], na);
+			    VecAdd(b, aaPos[v], nb);
+			    VecAdd(c, aaPos[v], nc);
 
 				vector3 p, d, pos;
 				number tmp;
