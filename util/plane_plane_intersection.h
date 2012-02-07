@@ -19,7 +19,7 @@
  * @param n2 normal vector of plane 1
  * @return true, if planes intersect; false if planes are parallel
  */
-bool PlanePlaneIntersection3D(vector3& pOut, vector3& dOut, const vector3& p1,
+bool PlanePlaneIntersection(vector3& pOut, vector3& dOut, const vector3& p1,
 		const vector3& n1, const vector3& p2, const vector3& n2) {
 
 	// check planes are not parallel
@@ -35,9 +35,13 @@ bool PlanePlaneIntersection3D(vector3& pOut, vector3& dOut, const vector3& p1,
 	// intersection normal perpendicular to n1 and n2
 	VecCross(dOut, n1, n2);
 
+	//	use this temporary direction to find pOut.
+	vector3 tdir;
+	VecCross(tdir, dOut, n1);
+
 	// dertermine point on intersection line
 	number tmp;
-	return RayPlaneIntersection(pOut, tmp, p1, dOut, p2, n2);
+	return RayPlaneIntersection(pOut, tmp, p1, tdir, p2, n2);
 }
 
 #endif /* PLANE_PLANE_INTERSECTION_H_ */
