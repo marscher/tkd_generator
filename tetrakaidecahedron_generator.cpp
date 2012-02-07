@@ -8,6 +8,7 @@
 #include "tetrakaidecahedron_generator.h"
 #include "generator.h"
 #include "test/testHelper.h"
+#include "util/plane_plane_intersection.h"
 
 #include "lib_grid/lib_grid.h"
 #include "registry/registry.h"
@@ -179,38 +180,34 @@ vector<pair<VertexBase*, vector3> > generateLipidMatrixForSingleTKD(Grid& grid,
 				// init normals of vertex v associated faces
 				vector3 na = *normalsIter++;
 				vector3 nb = *normalsIter++;
-				vector3 nz = *normalsIter;
+				vector3 nc = *normalsIter;
 
 				// a: vertex position
 				// b: support vector of plane nb
-				// z: support vector of plane nz
-				// nc: lies in plane a
-				// nt: lies in plane b?
-				// c: intersection of nt with plane b
-				// p: intersection of of nc with plane z
-				vector3 a = aaPos[v], b, z, nc, nt, c, p;
+				// c: support vector of plane nc
+				vector3 a = aaPos[v], b, c;
 
 				// scale normals to length d_lipid/2
 				VecScale(na, na, d_lipid / 2);
 				VecScale(nb, nb, d_lipid / 2);
-				VecScale(nz, nz, d_lipid / 2);
+				VecScale(nc, nc, d_lipid / 2);
 
 				// init support vectors b, z
 				VecAdd(b, a, nb);
-				VecAdd(z, a, nz);
+				VecAdd(c, a, nc);
 
-				// calculate vectors lying in planes na, nc
-				VecCross(nc, na, nb);
-				VecCross(nt, na, nc);
-
+				vector3 p, d, pos;
 				number tmp;
-				RayPlaneIntersection(c, tmp, a, nt, b, nb);
-				RayPlaneIntersection(p, tmp, c, nc, z, nz);
 
-//				UG_LOG("a: " << a << "\tp: " << p << endl);
+				// calculate plane intersection line g: p + t*d
+				if (PlanePlaneIntersection(p, d, a, na, b, nb)) {
+					// calculate intersection of g: with third plane
+					if (RayPlaneIntersection(pos, tmp, p, d, c, nc)) {
+						// store shift vector p to corresponding vertex v
+						vertexShifts.push_back(make_pair(v, pos));
+					}
+				}
 
-				// store shift vector p to corresponding vertex v
-				vertexShifts.push_back(make_pair(v, p));
 				break;
 			}
 			default:
@@ -360,7 +357,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		UG_LOG("3*s_cornoecyte: " << 3*shift_cols_x << endl);
 
 		// viel zu wenig
-		shift_cols_x = shiftX/2;
+		shift_cols_x = shiftX / 2;
 		UG_LOG("shiftX/2: " << shift_cols_x << endl);
 
 		// zu viel
@@ -368,15 +365,16 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		UG_LOG("shiftX: " << shift_cols_x << endl);
 
 		// zuviel
-		shift_cols_x = 1/sqrt(3)*(2*w_corneocyte -a_corneocyte);
+		shift_cols_x = 1 / sqrt(3) * (2 * w_corneocyte - a_corneocyte);
 		UG_LOG("b: " << shift_cols_x << endl);
 
 		// zu wenig
-		shift_cols_x  = (1.0 / sqrt(3) * (w_corneocyte - 2 * a_corneocyte))*2 + a_corneocyte/2;
+		shift_cols_x = (1.0 / sqrt(3) * (w_corneocyte - 2 * a_corneocyte)) * 2
+				+ a_corneocyte / 2;
 		UG_LOG("2*s_c + a: " << shift_cols_x << endl);
 
 		// zu viel
-		shift_cols_x  = shiftX * 1/sqrt(2);
+		shift_cols_x = shiftX * 1 / sqrt(2);
 		UG_LOG("sqrt(2)*shiftX: " << shift_cols_x << endl);
 
 		//fixme offset x lies between 1/sqrt(2)*s_c and 3*s_c
