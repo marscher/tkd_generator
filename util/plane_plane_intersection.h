@@ -29,7 +29,7 @@ bool PlanePlaneIntersection(vector3& pOut, vector3& dOut, const vector3& p1,
 	VecNormalize(tn1, n1);
 	VecNormalize(tn2, n2);
 
-	if (fabs(VecDot(tn1, tn2)) - 1 < SMALL)
+	if (fabs(VecDot(tn1, tn2) - 1) < SMALL)
 		return false;
 
 	// intersection normal perpendicular to n1 and n2
