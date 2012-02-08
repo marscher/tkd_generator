@@ -40,7 +40,7 @@ vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
 	//	access vertex position data
 	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
-	// select lipid boundary faces
+	// select lipid boundary volumes
 	SelectAreaBoundary(sel, sh.begin<Volume>(LIPID), sh.end<Volume>(LIPID));
 
 	for (VolumeIterator iter = sh.begin<Volume>(LIPID);
@@ -79,6 +79,48 @@ vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
 	}
 
 	return distances;
+}
+
+bool checkParallelBoundaryFaces(Grid& grid, SubsetHandler& sh) {
+	vector<Face*> faces;
+	vector<number> distances;
+
+	//	access vertex position data
+	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
+	Selector sel(grid);
+	SelectAreaBoundary(sel, sh.begin<Volume>(LIPID), sh.end<Volume>(LIPID));
+
+	for (VolumeIterator iter = sh.begin<Volume>(LIPID);
+			iter != sh.end<Volume>(LIPID); iter++) {
+		Volume* v = *iter;
+		CollectAssociated(faces, grid, v);
+		Face* selFaces[2] = { NULL, NULL };
+		for (size_t i_face = 0; i_face < faces.size(); ++i_face) {
+			Face* f = faces[i_face];
+			if (sel.is_selected(f)) {
+				if (selFaces[0]) {
+					selFaces[1] = f;
+				} else {
+					selFaces[0] = f;
+				}
+			}
+		}
+
+		UG_ASSERT(selFaces[0] && selFaces[1],
+				"There should be exactly 2 selected faces!");
+
+		vector3 normal1, normal2;
+		CalculateNormal(normal1, selFaces[1], aaPos);
+		CalculateNormal(normal2, selFaces[0], aaPos);
+
+		VecNormalize(normal1, normal1);
+		VecNormalize(normal2, normal2);
+
+		if (!(fabs(VecDot(normal1, normal2) - 1) < SMALL)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 } // end of namespace tkdGenerator
