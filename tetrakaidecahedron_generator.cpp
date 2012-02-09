@@ -8,17 +8,16 @@
 #include "tetrakaidecahedron_generator.h"
 #include "generator.h"
 #include "test/testHelper.h"
-#include "util/plane_plane_intersection.h"
-
+#include "util/vecComparator.h"
 #include "lib_grid/lib_grid.h"
 #include "registry/registry.h"
 
 #include <map>
 
+namespace tkdGenerator {
+
 using namespace ug;
 using namespace std;
-
-namespace tkdGenerator {
 
 /**
  * creates lib_grid objects in given grid reference according to given positions and indices
@@ -81,29 +80,6 @@ void createGridFromArrays(Grid& grid, SubsetHandler& sh,
 	sh.assign_subset(grid.begin<Volume>(), grid.end<Volume>(), CORNEOCYTE);
 }
 
-struct vecComperator {
-	// returns a < b
-	bool operator()(const vector3& a, const vector3& b) const {
-		number SMALL = 10E-6;
-		if (a.x < b.x - SMALL)
-			return true;
-		if (a.x > b.x + SMALL)
-			return false;
-
-		if (a.y < b.y - SMALL)
-			return true;
-		if (a.y > b.y + SMALL)
-			return false;
-
-		if (a.z < b.z - SMALL)
-			return true;
-		if (a.z > b.z + SMALL)
-			return false;
-
-		return false;
-	}
-};
-
 void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh,
 		number h_scale, Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 
@@ -138,8 +114,9 @@ void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh,
 }
 
 // should work for both extruded and non extruded single tkd centered around z axis.
-void calculateShiftVector(vector3& shiftOut, Grid& grid, SubsetHandler& sh,
-		Grid::VertexAttachmentAccessor<APosition>& aaPos, int subset = LIPID) {
+void calculateShiftVector(set<vector3, vecComperator>& shiftVectors, Grid& grid,
+SubsetHandler& sh, Grid::VertexAttachmentAccessor<APosition>& aaPos,
+int subset = LIPID) {
 	// collect faces associated to unique normal
 	map<vector3, std::vector<Face*>, vecComperator> facesByNormal;
 	map<vector3, vector<Face*>, vecComperator>::iterator fnIter;
@@ -155,7 +132,8 @@ void calculateShiftVector(vector3& shiftOut, Grid& grid, SubsetHandler& sh,
 		}
 	}
 
-	// find 2 parallel hexagons
+	// find 2 parallel hexagons and calculate vector through their centers,
+	// if the vector is unique it will be stored in shiftVectors
 	for (fnIter = facesByNormal.begin(); fnIter != facesByNormal.end();
 			fnIter++) {
 		vector<Face*>& faces = (*fnIter).second;
@@ -163,29 +141,30 @@ void calculateShiftVector(vector3& shiftOut, Grid& grid, SubsetHandler& sh,
 		// hexagon?
 		if (faces.size() == 6) {
 			vector3 normal = (*fnIter).first;
-			// omit normals (0, 0, 1) and (0, 0, -1), as they belong to top and bottom
-			if (!fabs((fabs(normal.z) - 1)) < SMALL) {
-				vector3 antiNormal = normal;
-				// switch orientation
-				VecScale(antiNormal, antiNormal, -1);
-				// get parallel faces
-				vector<Face*> parallelHexagon = facesByNormal[antiNormal];
-				// calculate their center
-				vector3 c1, c2;
-				c1 = CalculateCenter(faces.begin(), faces.end(), aaPos);
-				c2 = CalculateCenter(parallelHexagon.begin(),
-						parallelHexagon.end(), aaPos);
-				shiftOut.x = fabs(c1.x) + fabs(c2.x);
-				shiftOut.y = fabs(c1.y) + fabs(c2.y);
-				shiftOut.z = fabs(c1.z) + fabs(c2.z);
-				break;
-			}
+			vector3 inverseNormal = normal;
+			// switch orientation
+			VecScale(inverseNormal, inverseNormal, -1);
+			// get parallel faces
+			vector<Face*> parallelHexagon = facesByNormal[inverseNormal];
+			// calculate their center
+			vector3 c1, c2;
+			c1 = CalculateCenter(faces.begin(), faces.end(), aaPos);
+			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
+					aaPos);
+			// only store unique shifts
+			vector3 tmp(fabs(c1.x) + fabs(c2.x), fabs(c1.y) + fabs(c2.y),
+					fabs(c1.z) + fabs(c2.z));
+			shiftVectors.insert(tmp);
 		}
 	}
 }
 
 void logfkt(const number& d) {
 	UG_LOG("d: " << d << endl)
+}
+
+void logfkt_vec(const vector3& v) {
+	UG_LOG("v: " << v << endl)
 }
 
 void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
@@ -222,8 +201,8 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
 	// rotate tkd by 60 degrees so side hexagons are orientated parallel to y axis
-//	RotationMatrix R(60);
-	//TransformVertices(grid.begin<Vertex>(), grid.end<Vertex>(), R, aaPos);
+	RotationMatrix R(60);
+	TransformVertices(grid.begin<Vertex>(), grid.end<Vertex>(), R, aaPos);
 
 	number h_scale = (h_corneocyte + d_lipid) / h_corneocyte;
 
@@ -254,14 +233,38 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		number h23 = 2. / 3. * h;
 		number h3 = 1. / 3. * h;
 
-		vector3 shift;
-		calculateShiftVector(shift, grid, sh, aaPos);
+		set<vector3, vecComperator> shiftVecs;
+		set<vector3, vecComperator>::iterator shiftIter;
+
+		calculateShiftVector(shiftVecs, grid, sh, aaPos);
+		vector3 shiftHeight(0, 0, 0), shiftCols(0, 0, 0), shiftRows(0, 0, 0);
+
+		for (shiftIter = shiftVecs.begin(); shiftIter != shiftVecs.end();
+				shiftIter++) {
+			const vector3& v = *shiftIter;
+
+			if (fabs(v.x) < SMALL && fabs(v.y < SMALL))
+				shiftHeight = v;
+			else if (fabs(v.x) < SMALL)
+				shiftRows = v;
+			else
+				shiftCols = v;
+		}
+
+		UG_ASSERT(
+				VecLength(shiftHeight)> SMALL && VecLength(shiftCols)> SMALL && VecLength(shiftRows)> SMALL,
+				"shifts not set correctly");
+
+		for_each(shiftVecs.begin(), shiftVecs.end(), logfkt_vec);
+
+		UG_LOG(
+				"shiftHeight: " << shiftHeight << "\tshiftcols: " << shiftCols << "\tshiftrows: " << shiftRows << endl);
 
 		uint countRow = 1;
 		number z = 0;
 		vector3 offset_rows(0, 0, 0);
 
-		for (uint i = 0; i < rows; i++, countRow++) {
+		for (uint row = 0; row < rows; row++, countRow++) {
 			z = -h;
 
 			switch (countRow) {
@@ -276,12 +279,12 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 				break;
 			}
 
-			VecScale(offset_rows, shift, rows + 1);
+			VecScale(offset_rows, shiftRows, row + 1);
+
 			offset_rows.z = z;
 
 			for (uint k = 0; k < high; k++) {
 				offset_rows.z += h;
-				VecAdd(offset_rows, offset_rows, shift);
 				Duplicate(grid, sel, offset_rows, aPosition, deselectOld,
 						selectNew);
 			}
@@ -300,19 +303,17 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
 
 		vector3 offset_cols(0, 0, 0);
-		UG_LOG("shift: " << shift << endl)
-
-		// fixme cols are rows if rotation of initial tkd isnt performed any more
 		for (uint col = 0; col < cols - 1; col++) {
+
 			// every second col is shifted by 1/3 h and -1/2 shiftY
-//			if ((col % 2) == 0) {
-//				z = h3; // correct
-//			} else
-//				z = 0;
+			if ((col % 2) == 0) {
+				z = h3; // correct
+			} else {
+				z = 0;
+			}
 
-			VecScale(offset_cols, shift, col + 1);
-
-//			offset_cols.z = z;
+			VecScale(offset_cols, shiftCols, col+1);
+			offset_cols.z += z;
 
 			Duplicate(grid, sel, offset_cols, aPosition, deselectOld,
 					selectNew);
@@ -337,6 +338,8 @@ void TestTKDGenerator(const char *outfile, number height, number baseEdgeLength,
 			d_lipid, rows, cols, high);
 
 	SaveGridToFile(g, sh, outfile);
+
+	UG_LOG("vec comparisions: " << vecComperator::comps << endl)
 }
 
 /**
