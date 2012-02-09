@@ -11,12 +11,10 @@
 namespace tkdGenerator {
 
 struct vecComperator {
-	static uint comps;
 
 	// returns a < b
 	bool operator()(const vector3& a, const vector3& b) const {
 		number SMALL = 10E-6;
-		comps++;
 		if (a.x < b.x - SMALL)
 			return true;
 		if (a.x > b.x + SMALL)
@@ -36,7 +34,6 @@ struct vecComperator {
 	}
 };
 
-uint vecComperator::comps = 0;
 
 } /* namespace tkdGenerator */
 #endif /* VECCOMPARATOR_H_ */
