@@ -229,10 +229,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		bool selectNew = false;
 		bool deselectOld = false;
 
-		number h = (h_corneocyte + d_lipid);
-		number h23 = 2. / 3. * h;
-		number h3 = 1. / 3. * h;
-
+		//// calculate shift vectors for stapeling
 		set<vector3, vecComperator> shiftVecs;
 		set<vector3, vecComperator>::iterator shiftIter;
 
@@ -243,51 +240,37 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 				shiftIter++) {
 			const vector3& v = *shiftIter;
 
-			if (fabs(v.x) < SMALL && fabs(v.y < SMALL))
+			if (fabs(v.x) < SMALL && fabs(v.y) < SMALL) {
 				shiftHeight = v;
-			else if (fabs(v.x) < SMALL)
+				shiftHeight.x = 0;
+				shiftHeight.y = 0;
+			} else if (fabs(v.x) < SMALL) {
 				shiftRows = v;
-			else
+				shiftRows.x = 0;
+			} else
 				shiftCols = v;
 		}
+
+		EdgeBase* e = *grid.create<Edge>();
+		aaPos[e->vertex(1)] = origin;
+		aaPos[e->vertex(1)] = shiftCols;
+// this crashes on ug::GridWriterUGX::add_elements_to_node(rapidxml::xml_node<char>*, ug::Grid&) only if subset is assigned
+//		sh.assign_subset(e, 3);
 
 		UG_ASSERT(
 				VecLength(shiftHeight)> SMALL && VecLength(shiftCols)> SMALL && VecLength(shiftRows)> SMALL,
 				"shifts not set correctly");
 
-		for_each(shiftVecs.begin(), shiftVecs.end(), logfkt_vec);
-
 		UG_LOG(
 				"shiftHeight: " << shiftHeight << "\tshiftcols: " << shiftCols << "\tshiftrows: " << shiftRows << endl);
 
-		uint countRow = 1;
-		number z = 0;
-		vector3 offset_rows(0, 0, 0);
+		//// staple in height direction
+		vector3 offset_high(0, 0, 0);
 
-		for (uint row = 0; row < rows; row++, countRow++) {
-			z = -h;
-
-			switch (countRow) {
-			// every second row is shifted by 1/3 h
-			case 2:
-				z += h3;
-				break;
-				// very third row is shifted by 2/3 h
-			case 3:
-				z += h23;
-				countRow = 0;
-				break;
-			}
-
-			VecScale(offset_rows, shiftRows, row + 1);
-
-			offset_rows.z = z;
-
-			for (uint k = 0; k < high; k++) {
-				offset_rows.z += h;
-				Duplicate(grid, sel, offset_rows, aPosition, deselectOld,
-						selectNew);
-			}
+		for (uint k = 0; k < high; k++) {
+			VecAdd(offset_high, offset_high, shiftHeight);
+			Duplicate(grid, sel, offset_high, aPosition, deselectOld,
+					selectNew);
 		}
 
 		// delete first created tkd, because it is offset the others due to duplication
@@ -295,26 +278,51 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		grid.erase(sel.begin<Edge>(), sel.end<Edge>());
 		grid.erase(sel.begin<Volume>(), sel.end<Volume>());
 
+		//// staple in rows direction
+		// select all
+		sel.select(grid.begin<Volume>(), grid.end<Volume>());
+
+		vector3 offset_rows(0, 0, 0);
+
+		// every column is shifted by +shiftRows
+		// every 3rd column is shifted by -h
+		for (uint row = 0; row < rows; row++) {
+			VecAdd(offset_rows, offset_rows, shiftRows);
+			if ((row % 3) == 1) {
+				VecSubtract(offset_rows, offset_rows, shiftHeight);
+			}
+
+			Duplicate(grid, sel, offset_rows, aPosition, deselectOld,
+					selectNew);
+		}
+
 		// remove double vertices for first row
 		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
 				aPosition, 10E-5);
 
+		//// staple in column direction
 		// select first generated row
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
 
 		vector3 offset_cols(0, 0, 0);
+		vector3 oneThirdHeight, twoThirdHeight;
+		VecScale(oneThirdHeight, shiftHeight, 1 / 3.0);
+		VecScale(twoThirdHeight, shiftHeight, 2 / 3.0);
+		// loop only to cols - 1, because we already have one column,
+		// so first col has to be shifted by -shiftRows, +1/3 h and +shiftCols
+		// second by -1/3 h and ...
 		for (uint col = 0; col < cols - 1; col++) {
+			UG_LOG("col: " << col << endl);
+			VecAdd(offset_cols, offset_cols, shiftCols);
+			VecAdd(offset_cols, offset_cols, oneThirdHeight);
+			VecSubtract(offset_cols, offset_cols, shiftRows);
 
-			// every second col is shifted by 1/3 h and -1/2 shiftY
-			if ((col % 2) == 0) {
-				z = h3; // correct
-			} else {
-				z = 0;
+			// fixme shift every third col by -1/3h and -shiftrows.
+			if (col % 2) {
+				UG_LOG("sub 1/3h " << endl);
+				VecSubtract(offset_cols, offset_cols, oneThirdHeight);
+//				VecSubtract(offset_cols, offset_cols, shiftRows);
 			}
-
-			VecScale(offset_cols, shiftCols, col+1);
-			offset_cols.z += z;
-
 			Duplicate(grid, sel, offset_cols, aPosition, deselectOld,
 					selectNew);
 		}
@@ -338,8 +346,6 @@ void TestTKDGenerator(const char *outfile, number height, number baseEdgeLength,
 			d_lipid, rows, cols, high);
 
 	SaveGridToFile(g, sh, outfile);
-
-	UG_LOG("vec comparisions: " << vecComperator::comps << endl)
 }
 
 /**
