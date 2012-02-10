@@ -11,6 +11,7 @@
 
 using namespace ug;
 using std::vector;
+using namespace std;
 
 /**
  * common code for every volume testsuite testcase.

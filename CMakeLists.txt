@@ -11,6 +11,9 @@ cmake_minimum_required(VERSION 2.6)
 
 project(TKD_GENERATOR)
 
+option(TKDTestsuite "Build TKDTestsuite" OFF)
+message(STATUS "Info: TKDTestsuite:      "${TKDTestsuite}" (options are: ON, OFF)")
+
 # include the definitions and dependencies for ug-plugins.
 include("../../../ug_plugin_cmake_includes.txt")
 # needed for initialization of ug parallel env in boost testing framework
@@ -30,12 +33,18 @@ set(SOURCES_TEST test/testLipidDistance.cpp
 # create a shared library from the sources and link it against ug4.
 add_library(TKDGenerator SHARED ${SOURCES})
 # TODO: dont write exe to plugin out dir
-add_executable(TKDTestsuite ${SOURCES_TEST})
+if(TKDTestsuite)
+	add_executable(TKDTestsuite ${SOURCES_TEST})
+endif(TKDTestsuite)
 
 if(STATIC)
 	target_link_libraries (TKDGenerator ug4_s)
-	target_link_libraries (TKDTestsuite TKDGenerator ug4_s)
+	if(TKDTestsuite)
+		target_link_libraries (TKDTestsuite TKDGenerator ug4_s)
+	endif(TKDTestsuite)
 else(STATIC)
 	target_link_libraries (TKDGenerator ug4)
-	target_link_libraries (TKDTestsuite TKDGenerator ug4)
+	if(TKDTestsuite)
+		target_link_libraries (TKDTestsuite TKDGenerator ug4)
+	endif(TKDTestsuite)
 endif(STATIC)

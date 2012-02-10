@@ -9,14 +9,13 @@
  */
 
 #include "volume_calculation.h"
-#include "lib_grid/grid/geometric_base_objects.h"
-#include "lib_grid/grid/grid.h"
-#include "lib_algebra/common/operations_vec.h"
-#include "lib_grid/algorithms/algorithms.h"
+#include "lib_grid/lib_grid.h"
 
 #include <vector>
 #include <algorithm>
 #include <iterator>
+
+using namespace std;
 
 namespace ug {
 
@@ -58,7 +57,8 @@ number CalculateVolume(const Tetrahedron& tet,
 
 	vector3 cross;
 	VecCross(cross, bd, cd);
-	result = fabs(VecProd(cross, ad)) / 6;
+	//result = fabs(VecProd(cross, ad)) / 6;
+	result = fabs(VecDot(cross, ad)) / 6;
 	return result;
 }
 
