@@ -82,7 +82,7 @@ void createGridFromArrays(Grid& grid, SubsetHandler& sh,
 }
 
 void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh,
-		number h_scale, Grid::VertexAttachmentAccessor<APosition>& aaPos) {
+		matrix33& mScale, Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 
 	vector<Face*> faces;
 
@@ -110,7 +110,7 @@ void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh,
 			iter != sel.end<VertexBase>(); iter++) {
 		VertexBase* v = *iter;
 		vector3& pos = aaPos[v];
-		VecScale(pos, pos, h_scale);
+		MatVecMult(pos, mScale, pos);
 	}
 }
 
@@ -168,6 +168,43 @@ void logfkt_vec(const vector3& v) {
 	UG_LOG("v: " << v << endl)
 }
 
+void calculateScaleMatrix(matrix33& mScaleOut, const number d_lipid,
+		const set<vector3, vecComperator>& shiftVecs) {
+
+	set<vector3, vecComperator>::iterator iter = shiftVecs.begin();
+
+	const vector3& shift1 = *iter++;
+	const vector3& shift2 = *iter++;
+	const vector3& shift3 = *iter;
+
+	vector3 sh1_n, sh2_n, sh3_n;
+	matrix33 mScaleInv, basis, mScale;
+	number scale1, scale2, scale3;
+
+	scale1 = (d_lipid / 2 + VecLength(shift1)) / VecLength(shift1);
+	scale2 = (d_lipid / 2 + VecLength(shift2)) / VecLength(shift2);
+	scale3 = (d_lipid / 2 + VecLength(shift3)) / VecLength(shift3);
+
+	VecNormalize(sh1_n, shift1);
+	VecNormalize(sh2_n, shift2);
+	VecNormalize(sh3_n, shift3);
+
+	basis.assign(sh1_n, 0);
+	basis.assign(sh2_n, 1);
+	basis.assign(sh3_n, 2);
+
+	Inverse(mScaleInv, basis);
+
+	MatIdentity(mScale);
+	mScale(0, 0) = scale1;
+	mScale(1, 1) = scale2;
+	mScale(2, 2) = scale3;
+	// mscaleOut = basis*mScale*mInv
+	matrix33 tmp;
+	MatMultiply(tmp, basis, mScale);
+	MatMultiply(mScaleOut, tmp, mScaleInv);
+}
+
 void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		number a_corneocyte, number w_corneocyte, number h_corneocyte,
 		number d_lipid, uint rows, uint cols, uint high) {
@@ -205,16 +242,25 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	RotationMatrix R(60);
 	TransformVertices(grid.begin<Vertex>(), grid.end<Vertex>(), R, aaPos);
 
-	number h_scale = (h_corneocyte + d_lipid) / h_corneocyte;
+	//// calculate shift vectors for stapeling
+	set<vector3, vecComperator> shiftVecsCorneocyte;
+	set<vector3, vecComperator>::iterator shiftIter;
+
+	// calculate shift vectors for corneocyte
+	calculateShiftVector(shiftVecsCorneocyte, grid, sh, aaPos, CORNEOCYTE);
+	vector3 shift1(0, 0, 0), shift2(0, 0, 0), shift3(0, 0, 0);
+	matrix33 scaleMatrix;
+
+	calculateScaleMatrix(scaleMatrix, d_lipid, shiftVecsCorneocyte);
 
 	// generate lipid matrix
-	generateLipidMatrixForSingleTKD(grid, sh, h_scale, aaPos);
+	generateLipidMatrixForSingleTKD(grid, sh, scaleMatrix, aaPos);
 
-//	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid, false);
-//	for_each(dist.begin(), dist.end(), logfkt);
+	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid, false);
+	for_each(dist.begin(), dist.end(), logfkt);
 
-	UG_ASSERT(checkParallelBoundaryFaces(grid, sh),
-			"corresponding faces are not parallel!");
+//	UG_ASSERT(checkParallelBoundaryFaces(grid, sh),
+//			"corresponding faces are not parallel!");
 
 	//// Copy extruded tkd in each dimension
 	uint count = rows * cols * high;
