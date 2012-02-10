@@ -251,17 +251,6 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 			} else
 				shiftCols = v;
 		}
-/*
-// Das hier ist nicht gut. Warum erstellst du eine Kante?
-// Das führt natürlich zum Absturz, weil du eine Kante ohne vertices erstellst.
-// Dann weist du denen aber was zu... Auf Mac crashed das schon bei der zuweisung.
-// Lass das doch einfach raus.
-		EdgeBase* e = *grid.create<Edge>();
-		aaPos[e->vertex(1)] = origin;
-		aaPos[e->vertex(1)] = shiftCols;
-*/
-// this crashes on ug::GridWriterUGX::add_elements_to_node(rapidxml::xml_node<char>*, ug::Grid&) only if subset is assigned
-//		sh.assign_subset(e, 3);
 
 		UG_ASSERT(
 				VecLength(shiftHeight)> SMALL && VecLength(shiftCols)> SMALL && VecLength(shiftRows)> SMALL,
@@ -279,19 +268,13 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 					selectNew);
 		}
 
-//Delete is not necessary. Iterate from 0 to high - 1 instead!
-		// delete first created tkd, because it is offset the others due to duplication
-		//grid.erase(sel.begin<Vertex>(), sel.end<Vertex>());
-		//grid.erase(sel.begin<Edge>(), sel.end<Edge>());
-		//grid.erase(sel.begin<Volume>(), sel.end<Volume>());
-
 		//// staple in rows direction
 		// select all
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
 
 		vector3 offset_rows(0, 0, 0);
 
-//	Iterate from 0 to rows - 1 only!
+		//	Iterate from 0 to rows - 1 only!
 		// every column is shifted by +shiftRows
 		// every 3rd column is shifted by -h
 		for (uint row = 0; row < rows - 1; row++) {
@@ -313,24 +296,25 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
 
 		vector3 offset_cols(0, 0, 0);
-		vector3 oneThirdHeight, twoThirdHeight;
+		vector3 oneThirdHeight;
 		VecScale(oneThirdHeight, shiftHeight, 1 / 3.0);
-		VecScale(twoThirdHeight, shiftHeight, 2 / 3.0);
 		// loop only to cols - 1, because we already have one column,
-		// so first col has to be shifted by -shiftRows, +1/3 h and +shiftCols
-		// second by -1/3 h and ...
 		for (uint col = 0; col < cols - 1; col++) {
-			UG_LOG("col: " << col << endl);
 			VecAdd(offset_cols, offset_cols, shiftCols);
-			VecAdd(offset_cols, offset_cols, oneThirdHeight);
-			VecSubtract(offset_cols, offset_cols, shiftRows);
 
-			// fixme shift every third col by -1/3h and -shiftrows.
+			// shift every second col by -1/3h and -shiftrows.
 			if (col % 2) {
-				UG_LOG("sub 1/3h " << endl);
-				VecSubtract(offset_cols, offset_cols, oneThirdHeight);
-//				VecSubtract(offset_cols, offset_cols, shiftRows);
+				VecSubtract(offset_cols, offset_cols, shiftHeight);
+				VecAdd(offset_cols, offset_cols, shiftRows);
+			} else {
+				VecAdd(offset_cols, offset_cols, oneThirdHeight);
+				VecSubtract(offset_cols, offset_cols, shiftRows);
 			}
+			// in every third row, the y offset has to be reset
+			if ((col % 3) == 1) {
+				offset_cols.y = 0;
+			}
+
 			Duplicate(grid, sel, offset_cols, aPosition, deselectOld,
 					selectNew);
 		}
