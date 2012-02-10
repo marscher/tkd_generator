@@ -251,10 +251,15 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 			} else
 				shiftCols = v;
 		}
-
+/*
+// Das hier ist nicht gut. Warum erstellst du eine Kante?
+// Das führt natürlich zum Absturz, weil du eine Kante ohne vertices erstellst.
+// Dann weist du denen aber was zu... Auf Mac crashed das schon bei der zuweisung.
+// Lass das doch einfach raus.
 		EdgeBase* e = *grid.create<Edge>();
 		aaPos[e->vertex(1)] = origin;
 		aaPos[e->vertex(1)] = shiftCols;
+*/
 // this crashes on ug::GridWriterUGX::add_elements_to_node(rapidxml::xml_node<char>*, ug::Grid&) only if subset is assigned
 //		sh.assign_subset(e, 3);
 
@@ -268,16 +273,17 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		//// staple in height direction
 		vector3 offset_high(0, 0, 0);
 
-		for (uint k = 0; k < high; k++) {
+		for (uint k = 0; k < high - 1; k++) {
 			VecAdd(offset_high, offset_high, shiftHeight);
 			Duplicate(grid, sel, offset_high, aPosition, deselectOld,
 					selectNew);
 		}
 
+//Delete is not necessary. Iterate from 0 to high - 1 instead!
 		// delete first created tkd, because it is offset the others due to duplication
-		grid.erase(sel.begin<Vertex>(), sel.end<Vertex>());
-		grid.erase(sel.begin<Edge>(), sel.end<Edge>());
-		grid.erase(sel.begin<Volume>(), sel.end<Volume>());
+		//grid.erase(sel.begin<Vertex>(), sel.end<Vertex>());
+		//grid.erase(sel.begin<Edge>(), sel.end<Edge>());
+		//grid.erase(sel.begin<Volume>(), sel.end<Volume>());
 
 		//// staple in rows direction
 		// select all
@@ -285,9 +291,10 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 
 		vector3 offset_rows(0, 0, 0);
 
+//	Iterate from 0 to rows - 1 only!
 		// every column is shifted by +shiftRows
 		// every 3rd column is shifted by -h
-		for (uint row = 0; row < rows; row++) {
+		for (uint row = 0; row < rows - 1; row++) {
 			VecAdd(offset_rows, offset_rows, shiftRows);
 			if ((row % 3) == 1) {
 				VecSubtract(offset_rows, offset_rows, shiftHeight);
