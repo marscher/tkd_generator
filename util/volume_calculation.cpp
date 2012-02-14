@@ -57,21 +57,22 @@ number CalculateVolume(const Tetrahedron& tet,
 
 	vector3 cross;
 	VecCross(cross, bd, cd);
-	//result = fabs(VecProd(cross, ad)) / 6;
 	result = fabs(VecDot(cross, ad)) / 6;
 	return result;
 }
 
-// fixme horrible wrong!
 number CalculateVolume(const Prism& prism,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	// we need this grid instance, as we divide the prism in smaller geometries
 	Grid grid(VRTOPT_STORE_ASSOCIATED_FACES);
+	Grid::VertexAttachmentAccessor<APosition> aaPos2;
+	grid.attach_to_vertices(aPosition);
+
 	vector3 centerPos = CalculateCenter(&prism, aaPos);
 
 	VertexBase* center = *grid.create<Vertex>();
 
-	aaPos[center] = centerPos;
+	aaPos2[center] = centerPos;
 
 	VertexBase* v0 = prism.vertex(0);
 	VertexBase* v1 = prism.vertex(1);
@@ -97,7 +98,7 @@ number CalculateVolume(const Prism& prism,
 	grid.create<Tetrahedron>(t1);
 	grid.create<Tetrahedron>(t2);
 
-	return CalculateVolume(grid.begin<Volume>(), grid.end<Volume>(), aaPos);
+	return CalculateVolume(grid.begin<Volume>(), grid.end<Volume>(), aaPos2);
 }
 
 number CalculateVolume(const Pyramid& pyramid,
