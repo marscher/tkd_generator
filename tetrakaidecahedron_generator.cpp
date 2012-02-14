@@ -14,6 +14,7 @@
 
 #include <map>
 #include <set>
+#include <list>
 
 namespace tkdGenerator {
 
@@ -109,25 +110,36 @@ void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh,
 	for (VertexBaseIterator iter = sel.begin<VertexBase>();
 			iter != sel.end<VertexBase>(); iter++) {
 		VertexBase* v = *iter;
-		vector3& pos = aaPos[v];
-		MatVecMult(pos, mScale, pos);
+		// use copy of position, as MatVecMult will modify input vector
+		vector3 pos = aaPos[v];
+		MatVecMult(aaPos[v], mScale, pos);
 	}
 }
 
 // should work for both extruded and non extruded single tkd centered around z axis.
-void calculateShiftVector(set<vector3, vecComperator>& shiftVectors, Grid& grid,
-SubsetHandler& sh, Grid::VertexAttachmentAccessor<APosition>& aaPos,
-int subset = LIPID) {
-	// collect faces associated to unique normal
-	map<vector3, std::vector<Face*>, vecComperator> facesByNormal;
-	map<vector3, vector<Face*>, vecComperator>::iterator fnIter;
+void calculateShiftVector(vector<vector3>& shiftVectors,
+		vector<vector3>& parallelHexagonNormals, Grid& grid, SubsetHandler& sh,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos, int subset = LIPID) {
 
+	// collect faces (values) associated to unique normal (key)
+	map<vector3, std::vector<Face*>, vecComperator> facesByNormal;
+	// iterators
+	map<vector3, vector<Face*>, vecComperator>::iterator fnIter;
+	set<vector3, vecComperator> uniqueShifts;
+	// return type of set.insert(v), to check if v was inserted.
+	pair<set<vector3, vecComperator>::iterator, bool> ret;
+	// allocate space for three vectors
+	shiftVectors.resize(3);
+
+	vector3 normal;
+	vector3 c1, c2;
+
+	// store boundary faces by normal
 	for (FaceIterator iter = sh.begin<Face>(subset);
 			iter != sh.end<Face>(subset); iter++) {
 		Face* face = *iter;
 
 		if (IsBoundaryFace3D(grid, face)) {
-			vector3 normal;
 			CalculateNormal(normal, face, aaPos);
 			facesByNormal[normal].push_back(face);
 		}
@@ -146,18 +158,24 @@ int subset = LIPID) {
 			// switch orientation
 			VecScale(inverseNormal, inverseNormal, -1);
 			// get parallel faces
-			vector<Face*> parallelHexagon = facesByNormal[inverseNormal];
+			vector<Face*>& parallelHexagon = facesByNormal[inverseNormal];
 			// calculate their center
-			vector3 c1, c2;
 			c1 = CalculateCenter(faces.begin(), faces.end(), aaPos);
 			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
 					aaPos);
+
 			// only store unique shifts
 			vector3 tmp(fabs(c1.x) + fabs(c2.x), fabs(c1.y) + fabs(c2.y),
 					fabs(c1.z) + fabs(c2.z));
-			shiftVectors.insert(tmp);
+			ret = uniqueShifts.insert(tmp);
+			// if unique shift found, store one normal of parallel faces normal
+			if (ret.second) {
+				parallelHexagonNormals.push_back(normal);
+			}
 		}
 	}
+	// copy set to vector
+	std::copy(uniqueShifts.begin(), uniqueShifts.end(), shiftVectors.begin());
 }
 
 void logfkt(const number& d) {
@@ -168,14 +186,15 @@ void logfkt_vec(const vector3& v) {
 	UG_LOG("v: " << v << endl)
 }
 
+/**
+ * calculates matrix for a change of basis to scale vertices of extruded tkd with.
+ */
 void calculateScaleMatrix(matrix33& mScaleOut, const number d_lipid,
-		const set<vector3, vecComperator>& shiftVecs) {
+		const vector<vector3>& shiftVecs, const vector<vector3>& normals) {
 
-	set<vector3, vecComperator>::iterator iter = shiftVecs.begin();
-
-	const vector3& shift1 = *iter++;
-	const vector3& shift2 = *iter++;
-	const vector3& shift3 = *iter;
+	const vector3& shift1 = shiftVecs[0];
+	const vector3& shift2 = shiftVecs[1];
+	const vector3& shift3 = shiftVecs[2];
 
 	vector3 sh1_n, sh2_n, sh3_n;
 	matrix33 mScaleInv, basis, mScale;
@@ -243,21 +262,28 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	TransformVertices(grid.begin<Vertex>(), grid.end<Vertex>(), R, aaPos);
 
 	//// calculate shift vectors for stapeling
-	set<vector3, vecComperator> shiftVecsCorneocyte;
-	set<vector3, vecComperator>::iterator shiftIter;
+	vector<vector3> shiftVecsCorneocyte;
+
+	// normals of parallel hexagons
+	vector<vector3> parallelHexagonNormals;
 
 	// calculate shift vectors for corneocyte
-	calculateShiftVector(shiftVecsCorneocyte, grid, sh, aaPos, CORNEOCYTE);
+	calculateShiftVector(shiftVecsCorneocyte, parallelHexagonNormals, grid, sh,
+			aaPos, CORNEOCYTE);
 	vector3 shift1(0, 0, 0), shift2(0, 0, 0), shift3(0, 0, 0);
 	matrix33 scaleMatrix;
 
-	calculateScaleMatrix(scaleMatrix, d_lipid, shiftVecsCorneocyte);
+	for_each(parallelHexagonNormals.begin(), parallelHexagonNormals.end(),
+			logfkt_vec);
+
+	calculateScaleMatrix(scaleMatrix, d_lipid, shiftVecsCorneocyte,
+			parallelHexagonNormals);
 
 	// generate lipid matrix
 	generateLipidMatrixForSingleTKD(grid, sh, scaleMatrix, aaPos);
 
-	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid, false);
-	for_each(dist.begin(), dist.end(), logfkt);
+//	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid, false);
+//	for_each(dist.begin(), dist.end(), logfkt);
 
 //	UG_ASSERT(checkParallelBoundaryFaces(grid, sh),
 //			"corresponding faces are not parallel!");
@@ -277,15 +303,14 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		bool deselectOld = false;
 
 		//// calculate shift vectors for stapeling
-		set<vector3, vecComperator> shiftVecs;
-		set<vector3, vecComperator>::iterator shiftIter;
-
-		calculateShiftVector(shiftVecs, grid, sh, aaPos);
+		vector<vector3> shiftVecs;
+		// fixme parallel hexagon normals are not needed here
+		calculateShiftVector(shiftVecs, parallelHexagonNormals, grid, sh, aaPos,
+				LIPID);
 		vector3 shiftHeight(0, 0, 0), shiftCols(0, 0, 0), shiftRows(0, 0, 0);
 
-		for (shiftIter = shiftVecs.begin(); shiftIter != shiftVecs.end();
-				shiftIter++) {
-			const vector3& v = *shiftIter;
+		for (uint i = 0; i < 3; i++) {
+			const vector3& v = shiftVecs[i];
 
 			if (fabs(v.x) < SMALL && fabs(v.y) < SMALL) {
 				shiftHeight = v;
@@ -305,7 +330,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		UG_LOG(
 				"shiftHeight: " << shiftHeight << "\tshiftcols: " << shiftCols << "\tshiftrows: " << shiftRows << endl);
 
-		//// staple in height direction
+		//// stack in height direction
 		vector3 offset_high(0, 0, 0);
 
 		for (uint k = 0; k < high - 1; k++) {
@@ -314,7 +339,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 					selectNew);
 		}
 
-		//// staple in rows direction
+		//// stack in rows direction
 		// select all
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
 
@@ -337,7 +362,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
 				aPosition, 10E-5);
 
-		//// staple in column direction
+		//// stack in column direction
 		// select first generated row
 		sel.select(grid.begin<Volume>(), grid.end<Volume>());
 
@@ -348,7 +373,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		for (uint col = 0; col < cols - 1; col++) {
 			VecAdd(offset_cols, offset_cols, shiftCols);
 
-			// shift every second col by -1/3h and -shiftrows.
+			// shift every second col by -1/3h and -shiftRows.
 			if (col % 2) {
 				VecSubtract(offset_cols, offset_cols, shiftHeight);
 				VecAdd(offset_cols, offset_cols, shiftRows);
