@@ -71,15 +71,20 @@ number CalculateVolume(const Prism& prism,
 	vector3 centerPos = CalculateCenter(&prism, aaPos);
 
 	VertexBase* center = *grid.create<Vertex>();
-
 	aaPos2[center] = centerPos;
 
-	VertexBase* v0 = prism.vertex(0);
-	VertexBase* v1 = prism.vertex(1);
-	VertexBase* v2 = prism.vertex(2);
-	VertexBase* v3 = prism.vertex(3);
-	VertexBase* v4 = prism.vertex(4);
-	VertexBase* v5 = prism.vertex(5);
+	VertexBase* v0 = *grid.create<Vertex>();
+	aaPos2[v0] = aaPos[prism.vertex(0)];
+	VertexBase* v1 = *grid.create<Vertex>();
+	aaPos2[v1] = aaPos[prism.vertex(1)];
+	VertexBase* v2 = *grid.create<Vertex>();
+	aaPos2[v2] = aaPos[prism.vertex(2)];
+	VertexBase* v3 = *grid.create<Vertex>();
+	aaPos2[v3] = aaPos[prism.vertex(3)];
+	VertexBase* v4 = *grid.create<Vertex>();
+	aaPos2[v4] = aaPos[prism.vertex(4)];
+	VertexBase* v5 = *grid.create<Vertex>();
+	aaPos2[v5] = aaPos[prism.vertex(5)];
 
 	// top
 	TetrahedronDescriptor t1(v0, v1, v2, center);
