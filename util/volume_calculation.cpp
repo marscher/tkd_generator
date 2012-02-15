@@ -65,7 +65,7 @@ number CalculateVolume(const Prism& prism,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 	// we need this grid instance, as we divide the prism in smaller geometries
 	Grid grid(VRTOPT_STORE_ASSOCIATED_FACES);
-	Grid::VertexAttachmentAccessor<APosition> aaPos2;
+	Grid::VertexAttachmentAccessor<APosition> aaPos2(grid, aPosition);
 	grid.attach_to_vertices(aPosition);
 
 	vector3 centerPos = CalculateCenter(&prism, aaPos);
