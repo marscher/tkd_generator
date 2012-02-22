@@ -8,18 +8,13 @@
 #include "tetrakaidecahedron_generator.h"
 #include "generator.h"
 #include "test/testHelper.h"
-#include "util/vecComparator.h"
+
 #include "lib_grid/lib_grid.h"
 #include "registry/registry.h"
 
 #include <map>
-#include <set>
-#include <list>
 
 namespace tkdGenerator {
-
-using namespace ug;
-using namespace std;
 
 /**
  * creates lib_grid objects in given grid reference according to given positions and indices
@@ -49,9 +44,11 @@ void createGridFromArrays(Grid& grid, SubsetHandler& sh,
 
 	// the VolumeDescriptor will be used to create new volumes
 	VolumeDescriptor vd;
+	uint count = 1;
+	Volume* vol = NULL;
 
 	// create the elements from the given indices
-	for (size_t i = 0; i < indices.size();) {
+	for (size_t i = 0; i < indices.size(); count++) {
 		int num = indices[i++];
 		vd.set_num_vertices(num);
 		for (int j = 0; j < num; ++j)
@@ -59,86 +56,49 @@ void createGridFromArrays(Grid& grid, SubsetHandler& sh,
 
 		switch (num) {
 		case 4:
-			grid.create<ug::Tetrahedron>(vd);
+			vol = *grid.create<ug::Tetrahedron>(vd);
 			break;
 		case 5:
-			grid.create<ug::Pyramid>(vd);
+			vol = *grid.create<ug::Pyramid>(vd);
 			break;
 		case 6:
-			grid.create<ug::Prism>(vd);
+			vol = *grid.create<ug::Prism>(vd);
 			break;
 		case 8:
-			grid.create<ug::Hexahedron>(vd);
+			vol = *grid.create<ug::Hexahedron>(vd);
 			break;
+		}
+
+		// inner tkd = 63 elements, so lipid matrix volume index begins with 64
+		// this assumes that default subset index is set to CORNEOCYTE
+		if (count >= 64) {
+			sh.assign_subset(vol, LIPID);
+			for (uint k = 0; k < vol->num_faces(); k++) {
+				Face* f = grid.get_face(vol, k);
+				sh.assign_subset(f, LIPID);
+			}
 		}
 	}
 
 	// remove double vertices
 	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
 			aPosition, 10E-5);
-
-	sh.assign_subset(grid.begin<Vertex>(), grid.end<Vertex>(), CORNEOCYTE);
-	sh.assign_subset(grid.begin<Face>(), grid.end<Face>(), CORNEOCYTE);
-	sh.assign_subset(grid.begin<Volume>(), grid.end<Volume>(), CORNEOCYTE);
 }
 
-void generateLipidMatrixForSingleTKD(Grid& grid, SubsetHandler& sh,
-		matrix33& mScale, Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-
-	vector<Face*> faces;
-
-	// select boundaryFaces for extrusion
-	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-			++iter) {
-		if (IsVolumeBoundaryFace(grid, *iter))
-			faces.push_back(*iter);
-	}
-
-	// select vertices which are beeing extruded
-	Selector sel(grid);
-	sel.enable_autoselection(true);
-
-	// extruding boundary faces
-	Extrude(grid, NULL, NULL, &faces, origin);
-
-	// assign all extruded geometric objects to LIPID subset
-	sh.assign_subset(sel.begin<Vertex>(), sel.end<Vertex>(), LIPID);
-	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), LIPID);
-	sh.assign_subset(sel.begin<Volume>(), sel.end<Volume>(), LIPID);
-
-	// scale every extruded vertices with factor h_scale
-	for (VertexBaseIterator iter = sel.begin<VertexBase>();
-			iter != sel.end<VertexBase>(); iter++) {
-		VertexBase* v = *iter;
-		// use copy of position, as MatVecMult will modify input vector
-		vector3 pos = aaPos[v];
-		MatVecMult(aaPos[v], mScale, pos);
-	}
-}
-
-// should work for both extruded and non extruded single tkd centered around z axis.
-void calculateShiftVector(vector<vector3>& shiftVectors,
-		vector<vector3>& parallelHexagonNormals, Grid& grid, SubsetHandler& sh,
-		Grid::VertexAttachmentAccessor<APosition>& aaPos, int subset = LIPID) {
-
-	// collect faces (values) associated to unique normal (key)
-	map<vector3, std::vector<Face*>, vecComperator> facesByNormal;
-	// iterators
+/**
+ * calculates three vectors for stacking the tkds.
+ * Each vector points in the direction defined by the centers of two parallel hexagons.
+ */
+void calculateShiftVector(shiftSet& shiftVectors, Grid& grid, SubsetHandler& sh,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos, int subset) {
+	// collect faces associated to unique normal
+	map<vector3, vector<Face*>, vecComperator> facesByNormal;
 	map<vector3, vector<Face*>, vecComperator>::iterator fnIter;
-	set<vector3, vecComperator> uniqueShifts;
-	// return type of set.insert(v), to check if v was inserted.
-	pair<set<vector3, vecComperator>::iterator, bool> ret;
-	// allocate space for three vectors
-	shiftVectors.resize(3);
+	vector3 normal, c1, c2;
 
-	vector3 normal;
-	vector3 c1, c2;
-
-	// store boundary faces by normal
 	for (FaceIterator iter = sh.begin<Face>(subset);
 			iter != sh.end<Face>(subset); iter++) {
 		Face* face = *iter;
-
 		if (IsBoundaryFace3D(grid, face)) {
 			CalculateNormal(normal, face, aaPos);
 			facesByNormal[normal].push_back(face);
@@ -163,135 +123,65 @@ void calculateShiftVector(vector<vector3>& shiftVectors,
 			c1 = CalculateCenter(faces.begin(), faces.end(), aaPos);
 			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
 					aaPos);
-
 			// only store unique shifts
 			vector3 tmp(fabs(c1.x) + fabs(c2.x), fabs(c1.y) + fabs(c2.y),
 					fabs(c1.z) + fabs(c2.z));
-			ret = uniqueShifts.insert(tmp);
-			// if unique shift found, store one normal of parallel faces normal
-			if (ret.second) {
-				parallelHexagonNormals.push_back(normal);
-			}
+			shiftVectors.insert(tmp);
 		}
 	}
-	// copy set to vector
-	std::copy(uniqueShifts.begin(), uniqueShifts.end(), shiftVectors.begin());
-}
-
-void logfkt(const number& d) {
-	UG_LOG("d: " << d << endl)
-}
-
-void logfkt_vec(const vector3& v) {
-	UG_LOG("v: " << v << endl)
 }
 
 /**
- * calculates matrix for a change of basis to scale vertices of extruded tkd with.
+ * set Subset informations
+ * @param sh SubsetHandler reference to fill with given information
+ * @param corneocyte_name default "corneocytes"
+ * @param lipid_name default "lipid matrix"
+ * @param corneocyte_color default blue
+ * @param lipid_color default green
  */
-void calculateScaleMatrix(matrix33& mScaleOut, const number d_lipid,
-		const vector<vector3>& shiftVecs, const vector<vector3>& normals) {
+void setSubsetHandlerInfo(SubsetHandler& sh, const char* corneocyte_name,
+		const char* lipid_name, const vector4& corneocyte_color,
+		const vector4& lipid_color) {
 
-	const vector3& shift1 = shiftVecs[0];
-	const vector3& shift2 = shiftVecs[1];
-	const vector3& shift3 = shiftVecs[2];
+	// Subset 1 for corneocytes (same as in Feuchters tkdmodeller)
+	sh.set_default_subset_index(CORNEOCYTE);
+	// fixme crashs subsethandler
+	sh.subset_info(CORNEOCYTE).name = corneocyte_name;
+	sh.subset_info(LIPID).name = lipid_name;
 
-	vector3 sh1_n, sh2_n, sh3_n;
-	matrix33 mScaleInv, basis, mScale;
-	number scale1, scale2, scale3;
-
-	scale1 = (d_lipid / 2 + VecLength(shift1)) / VecLength(shift1);
-	scale2 = (d_lipid / 2 + VecLength(shift2)) / VecLength(shift2);
-	scale3 = (d_lipid / 2 + VecLength(shift3)) / VecLength(shift3);
-
-	VecNormalize(sh1_n, shift1);
-	VecNormalize(sh2_n, shift2);
-	VecNormalize(sh3_n, shift3);
-
-	basis.assign(sh1_n, 0);
-	basis.assign(sh2_n, 1);
-	basis.assign(sh3_n, 2);
-
-	Inverse(mScaleInv, basis);
-
-	MatIdentity(mScale);
-	mScale(0, 0) = scale1;
-	mScale(1, 1) = scale2;
-	mScale(2, 2) = scale3;
-	// mscaleOut = basis*mScale*mInv
-	matrix33 tmp;
-	MatMultiply(tmp, basis, mScale);
-	MatMultiply(mScaleOut, tmp, mScaleInv);
+	sh.subset_info(LIPID).color = lipid_color;
+	sh.subset_info(CORNEOCYTE).color = corneocyte_color;
 }
 
-void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
-		number a_corneocyte, number w_corneocyte, number h_corneocyte,
-		number d_lipid, uint rows, uint cols, uint high) {
+/**
+ * creates one tkd with lipid matrix in given grid reference
+ * and stacks it according to given parameters (rows, cols, layers)
+ */
+void createTKDDomain(Grid& grid, SubsetHandler& sh, number baseEdgeLength,
+		number diameter, number height, number d_lipid, int rows,
+		int cols, int layers) {
 
 	UG_LOG(
-			"a: " << a_corneocyte << " w: " << w_corneocyte << " h: " << h_corneocyte << " d: " << d_lipid << endl);
+			"a: " << baseEdgeLength << " w: " << diameter << " h: " << height << " d: " << d_lipid << endl);
 
 	//// set grid options
 	grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
 	grid.attach_to_vertices(aPosition);
 
-	//// Subset informations
-	sh.assign_grid(grid);
-	// Subset 1 for corneocytes (same as in Feuchters tkdmodeller)
-	sh.set_default_subset_index(CORNEOCYTE);
-	sh.subset_info(CORNEOCYTE).name = "corneocytes";
-	sh.subset_info(LIPID).name = "lipid matrix";
-	//// Colors
-	// argb: green
-	sh.subset_info(LIPID).color = vector4(0, 1, 0, 0);
-	// argb: blue
-	sh.subset_info(CORNEOCYTE).color = vector4(0, 0, 1, 0);
-
 	//// create coordinates and vertex indices for 1 tetrakaidecahedron
-	TKDGeometryGenerator generator(h_corneocyte, a_corneocyte, w_corneocyte,
+	TKDGeometryGenerator generator(height, baseEdgeLength, diameter,
 			d_lipid);
 	generator.createDomain();
 	//// fill the grid object
 	createGridFromArrays(grid, sh, generator.getPositions(),
 			generator.getIndices());
 
-	Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
-
-	// rotate tkd by 60 degrees so side hexagons are orientated parallel to y axis
-	RotationMatrix R(60);
-	TransformVertices(grid.begin<Vertex>(), grid.end<Vertex>(), R, aaPos);
-
-	//// calculate shift vectors for stapeling
-	vector<vector3> shiftVecsCorneocyte;
-
-	// normals of parallel hexagons
-	vector<vector3> parallelHexagonNormals;
-
-	// calculate shift vectors for corneocyte
-	calculateShiftVector(shiftVecsCorneocyte, parallelHexagonNormals, grid, sh,
-			aaPos, CORNEOCYTE);
-	vector3 shift1(0, 0, 0), shift2(0, 0, 0), shift3(0, 0, 0);
-	matrix33 scaleMatrix;
-
-	for_each(parallelHexagonNormals.begin(), parallelHexagonNormals.end(),
-			logfkt_vec);
-
-	calculateScaleMatrix(scaleMatrix, d_lipid, shiftVecsCorneocyte,
-			parallelHexagonNormals);
-
-	// generate lipid matrix
-	generateLipidMatrixForSingleTKD(grid, sh, scaleMatrix, aaPos);
-
-//	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid, false);
-//	for_each(dist.begin(), dist.end(), logfkt);
-
-//	UG_ASSERT(checkParallelBoundaryFaces(grid, sh),
-//			"corresponding faces are not parallel!");
-
-	//// Copy extruded tkd in each dimension
-	uint count = rows * cols * high;
+	//// perform stacking
+	uint count = rows * cols * layers;
 	if (count > 1) {
 		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
+
+		Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
 		Selector sel(grid);
 		sel.enable_autoselection(false);
@@ -303,14 +193,15 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		bool deselectOld = false;
 
 		//// calculate shift vectors for stapeling
-		vector<vector3> shiftVecs;
-		// fixme parallel hexagon normals are not needed here
-		calculateShiftVector(shiftVecs, parallelHexagonNormals, grid, sh, aaPos,
-				LIPID);
+		shiftSet shiftVecs;
+		shiftSet::iterator shiftIter;
+
+		calculateShiftVector(shiftVecs, grid, sh, aaPos);
 		vector3 shiftHeight(0, 0, 0), shiftCols(0, 0, 0), shiftRows(0, 0, 0);
 
-		for (uint i = 0; i < 3; i++) {
-			const vector3& v = shiftVecs[i];
+		for (shiftIter = shiftVecs.begin(); shiftIter != shiftVecs.end();
+				shiftIter++) {
+			const vector3& v = *shiftIter;
 
 			if (fabs(v.x) < SMALL && fabs(v.y) < SMALL) {
 				shiftHeight = v;
@@ -323,17 +214,17 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 				shiftCols = v;
 		}
 
+		UG_LOG(
+				"shiftHeight: " << shiftHeight << "\tshiftcols: " << shiftCols << "\tshiftrows: " << shiftRows << endl);
+
 		UG_ASSERT(
 				VecLength(shiftHeight)> SMALL && VecLength(shiftCols)> SMALL && VecLength(shiftRows)> SMALL,
 				"shifts not set correctly");
 
-		UG_LOG(
-				"shiftHeight: " << shiftHeight << "\tshiftcols: " << shiftCols << "\tshiftrows: " << shiftRows << endl);
-
-		//// stack in height direction
+		//// staple in height direction
 		vector3 offset_high(0, 0, 0);
 
-		for (uint k = 0; k < high - 1; k++) {
+		for (int k = 0; k < layers - 1; k++) {
 			VecAdd(offset_high, offset_high, shiftHeight);
 			Duplicate(grid, sel, offset_high, aPosition, deselectOld,
 					selectNew);
@@ -348,7 +239,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		//	Iterate from 0 to rows - 1 only!
 		// every column is shifted by +shiftRows
 		// every 3rd column is shifted by -h
-		for (uint row = 0; row < rows - 1; row++) {
+		for (int row = 0; row < rows - 1; row++) {
 			VecAdd(offset_rows, offset_rows, shiftRows);
 			if ((row % 3) == 1) {
 				VecSubtract(offset_rows, offset_rows, shiftHeight);
@@ -370,7 +261,7 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 		vector3 oneThirdHeight;
 		VecScale(oneThirdHeight, shiftHeight, 1 / 3.0);
 		// loop only to cols - 1, because we already have one column,
-		for (uint col = 0; col < cols - 1; col++) {
+		for (int col = 0; col < cols - 1; col++) {
 			VecAdd(offset_cols, offset_cols, shiftCols);
 
 			// shift every second col by -1/3h and -shiftRows.
@@ -396,40 +287,46 @@ void GenerateCorneocyteWithLipid(Grid& grid, SubsetHandler& sh,
 	}
 }
 
-////////////////////////////////////////////////////////////////////////
-///	test tetrakaidekahedron generator
-// fixme upstream bug in registry, recursive template instantiation if rows etc. is given as uint!
-void TestTKDGenerator(const char *outfile, number height, number baseEdgeLength,
-		number diameter, number d_lipid, int rows, int cols, int high) {
-
-	Grid g;
-	SubsetHandler sh;
-
-	GenerateCorneocyteWithLipid(g, sh, baseEdgeLength, diameter, height,
-			d_lipid, rows, cols, high);
-
-	SaveGridToFile(g, sh, outfile);
-}
-
 /**
- * to call from lua...
+ * fills given grid reference with tkd domain with given parameters.
+ * Provides a SubsetHandler with default parameters.
  */
-void createTKDDomain(Grid& grid, number height, number baseEdgeLength,
-		number diameter, number d_lipid, int rows, int cols, int high) {
+SubsetHandler createTKDDomainDefaultSubsetInfo(Grid& grid, number height,
+		number baseEdgeLength, number diameter, number d_lipid, int rows,
+		int cols, int layers) {
 
-	SubsetHandler sh;
-	GenerateCorneocyteWithLipid(grid, sh, baseEdgeLength, diameter, height,
-			d_lipid, rows, cols, high);
+	SubsetHandler sh(grid);
+
+	const char* corneocyte_name = "corneocytes";
+	const char* lipid_name = "lipid matrix";
+	const vector4 corneocyte_color = vector4(0, 1, 0, 0);
+	const vector4 lipid_color = vector4(0, 0, 1, 0);
+
+	setSubsetHandlerInfo(sh, corneocyte_name, lipid_name, corneocyte_color,
+			lipid_color);
+
+	createTKDDomain(grid, sh, baseEdgeLength, diameter, height, d_lipid, rows,
+			cols, layers);
+
+	return sh;
 }
 
+// register tkd generator functions for usage in ug_script
 extern "C" void InitUGPlugin(ug::bridge::Registry* reg,
 		std::string parentGroup) {
 	std::string grp(parentGroup);
 	grp.append("tkd_generator/");
 
 	//	add TKD-Generator method
-	reg->add_function("TestTKDGenerator", &TestTKDGenerator, grp);
-	reg->add_function("createTKDDomain", &createTKDDomain, grp);
+	reg->add_function(
+			"CreateTKDDomain",
+			&createTKDDomainDefaultSubsetInfo,
+			grp /*,
+			"returns a SubsetHandler and a Grid with stacked Tetrakaidecahedrons." */);
+
+	reg->add_function("CreateTKDDomain_", &createTKDDomain, grp/*, "Grid with stacked Tetrakaidecahedrons."*/);
+
+	reg->add_function("InitSubsetHandler", &setSubsetHandlerInfo, grp);
 }
 
 } // end of namespace tkdGenerator

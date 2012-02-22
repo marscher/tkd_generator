@@ -6,6 +6,7 @@
  */
 #include "generator.h"
 #include "geometric_helper.h"
+#include "coordinates.h"
 #include <stdexcept>
 #include <algorithm>
 
@@ -14,10 +15,10 @@ using namespace std;
 
 TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 		number diameter, number d_lipid) :
-		h_corneocyte(height / 3), a_corneocyte(baseEdgeLength), w_corneocyte(
-				diameter), d_lipid(d_lipid), R(0), index(0) {
-	indsOut.reserve(405);
-	posOut.reserve(342);
+		h_corneocyte(height / 3), a_corneocyte(baseEdgeLength),
+				w_corneocyte(diameter), d_lipid(d_lipid), R(0), index(0) {
+	indsOut.reserve(702);
+	posOut.reserve(819);
 
 	number w2a = w_corneocyte - 2 * a_corneocyte;
 	s_corneocyte = 1 / sqrt(3) * w2a;
@@ -31,7 +32,6 @@ TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 	number m1 = (d_lipid / 2) / tan(beta / 2);
 	number m2 = (d_lipid / 2) / tan(gamma / 2);
 
-	// TODO is calculation correct? stolen from old tkdmodeler
 	a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
 	// height of lipid is full height of inner tkd + d_lipid
 	h_lipid = (height + d_lipid) / 3;
@@ -42,6 +42,7 @@ TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 	s_lipid = 1 / sqrt(3) * (w_lipid - 2 * a_lipid);
 
 	initGeometricParams();
+	count = 0;
 }
 
 /**
@@ -51,25 +52,20 @@ TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
  */
 void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
 		const number rotationOffset, bool bottom) {
-	myTransform t(R, offset);
 
 	// if we are creating the bottom part, flip orientation of all volumes
 	if (bottom) {
-		swap(obenInnen[0], obenInnen[3]);
-		swap(obenInnen[1], obenInnen[4]);
-		swap(obenInnen[2], obenInnen[5]);
+		flipOrientationPrism(obenInnen);
+		flipOrientationPrism(obenAussenPrism);
+		flipOrientationPrism(obenAussenPr2T_prism);
 
-		swap(obenAussenPrism[0], obenAussenPrism[3]);
-		swap(obenAussenPrism[1], obenAussenPrism[4]);
-		swap(obenAussenPrism[2], obenAussenPrism[5]);
-
-		swap(obenAussenPr2T_prism[0], obenAussenPr2T_prism[3]);
-		swap(obenAussenPr2T_prism[1], obenAussenPr2T_prism[4]);
-		swap(obenAussenPr2T_prism[2], obenAussenPr2T_prism[5]);
-
-		swap(obenAussenPr_leftTetrahedron[0], obenAussenPr_leftTetrahedron[2]);
-		swap(obenAussenPr_rightTetrahedron[0], obenAussenPr_rightTetrahedron[2]);
+		flipOrientationTetrahedron(obenAussenPr_leftTetrahedron);
+		flipOrientationTetrahedron(obenAussenPr_rightTetrahedron);
+		// mirror at z axis
+		R.setMirrorZAxis(true);
 	}
+	// transform all geometric objects with R and offset.
+	myTransform t(R, offset);
 
 	// create G(Ki -> ObenInnen) = 6 prism with equilateral sites
 	// step angle 60°
@@ -101,6 +97,11 @@ void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
 		/* tetrahedron right of prism ObenAussenPr2T which shares
 		 3 points with prism obenAussenPr2T_prism */
 		createGeometricObject(t.perform(obenAussenPr_rightTetrahedron));
+	}
+
+	// reset mirror status
+	if (bottom) {
+		R.setMirrorZAxis(false);
 	}
 }
 
@@ -138,6 +139,14 @@ void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
 void TKDGeometryGenerator::createDomain() {
 	vector3 offset(0, 0, h_corneocyte / 2);
 	createCorneocyte(offset);
+
+	RotationMatrix R(60);
+	for (uint i = 0; i < posOut.size(); i++) {
+		posOut[i] = R * posOut[i];
+	}
+
+	createLipidMatrix(origin);
+	createLipidMatrix(origin, 60, true);
 }
 
 /**
@@ -151,11 +160,47 @@ void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
 	createCorneocyteMiddle(offset_h);
 
 	// offset is same like middle because bottom is mirrored around z axis
-	R.setMirrorZAxis(true);
 	// in fact this is the bottom part, rotated with 60° relative to top
 	createCorneocyteTop(offset_h, 60, true);
-	// reset mirror status
-	R.setMirrorZAxis(false);
+}
+
+void TKDGeometryGenerator::createLipidMatrix(const vector3& offset,
+		const number rotationOffset, bool bottom) {
+
+	if (bottom) {
+		flipOrientationPrism(obenInnenPrismL);
+		flipOrientationPrism(obenAussen_leftPrismL);
+		flipOrientationPrism(obenAussen_rightPrismL);
+		flipOrientationHexahedron(upperHexahedronL);
+		flipOrientationPrism(bottomLeftPrismL);
+		flipOrientationHexahedron(bottomOuterHexahedronL);
+		flipOrientationPrism(bottomRightPrismL);
+		flipOrientationHexahedron(sideQuad);
+
+		R.setMirrorZAxis(true);
+	}
+
+	myTransform t(R, offset);
+
+	for (int r = rotationOffset; r < 360 + rotationOffset; r += 60) {
+		R.setAngle(r);
+		createGeometricObject(t.perform(obenInnenPrismL));
+	}
+
+	for (int r = rotationOffset; r < 360 + rotationOffset; r += 120) {
+		R.setAngle(r);
+		createGeometricObject(t.perform(sideQuad));
+		createGeometricObject(t.perform(obenAussen_leftPrismL));
+		createGeometricObject(t.perform(upperHexahedronL));
+		createGeometricObject(t.perform(obenAussen_rightPrismL));
+		createGeometricObject(t.perform(bottomLeftPrismL));
+		createGeometricObject(t.perform(bottomOuterHexahedronL));
+		createGeometricObject(t.perform(bottomRightPrismL));
+	}
+
+	if (bottom) {
+		R.setMirrorZAxis(false);
+	}
 }
 
 /**
@@ -192,6 +237,12 @@ void TKDGeometryGenerator::initGeometricParams() {
 	const vector3 v17(v16.x, v12.y, h_corneocyte);
 	const vector3 v18(v16.x, v8.y, h_corneocyte);
 
+	///// lipid vertices
+	// top/bottom prism
+	const vector3 v20(a_lipid, 0, d_lipid / 2 + h_corneocyte);
+	const vector3 v21(a_lipid / 2.0, a_lipid * sqrt(3) / 2, v20.z);
+	const vector3 v22(0, 0, v20.z);
+
 	///// Initialization of top/bottom segments
 	obenInnen << origin << v1 << v4 << v2 << v3 << v5;
 	obenAussenPrism << v4 << v5 << v8 << v6 << v7 << v9;
@@ -200,8 +251,8 @@ void TKDGeometryGenerator::initGeometricParams() {
 
 	// mirror right tetrahedron at x-axis to obtain left tetrahedron
 	obenAussenPr_leftTetrahedron = mirror(obenAussenPr_rightTetrahedron, xAxis);
-	// swap first and third vertex to fix orientation after mirroring
-	swap(obenAussenPr_leftTetrahedron[0], obenAussenPr_leftTetrahedron[2]);
+	// flip orientation after mirroring
+	flipOrientationTetrahedron(obenAussenPr_leftTetrahedron);
 
 	///// Initialization of middle segments
 	mitteAussenHexahedron << v5 << v7 << v11 << v10 << v4 << v6 << v13 << v12;
@@ -212,14 +263,40 @@ void TKDGeometryGenerator::initGeometricParams() {
 	/// this is tetrahedron of mitteAussenH2Pr right of mitteAussenHexahedron
 	mitteAussenH2Pr_tetrahedron << v5 << v15 << v17 << v8;
 	mitteAussen2PrH_tetrahedron = mirror(mitteAussenH2Pr_tetrahedron, xAxis);
-	// swap first and third vertex to fix orientation after mirroring
-	swap(mitteAussen2PrH_tetrahedron[0], mitteAussen2PrH_tetrahedron[2]);
-
+	// flip orientation after mirroring
+	flipOrientationTetrahedron(mitteAussen2PrH_tetrahedron);
 	mitteAussenH2Pr_pyramid << v10 << v5 << v4 << v12 << v16;
 	mitteAussen2PrH_pyramid = mirror(mitteAussenH2Pr_pyramid, xAxis);
 	// fix orientation
-	swap(mitteAussen2PrH_pyramid[0], mitteAussen2PrH_pyramid[3]);
-	swap(mitteAussen2PrH_pyramid[1], mitteAussen2PrH_pyramid[2]);
+	flipOrientationPyramid(mitteAussen2PrH_pyramid);
+
+	///// lipid matrix
+	// fixme substitute inner points with v_i
+	CoordsArray c = CalculateLipidCoords(a_corneocyte, h_corneocyte * 3,
+			w_corneocyte, d_lipid, vector3(0, 0, 3 * h_corneocyte / 2));
+
+	// inner point 7, 8, 13
+	obenInnenPrismL << c[13] << c[7] << c[8] << c[6] << c[0] << c[1];
+	// inner point 26, 27, 7, 8
+	sideQuad << c[26] << c[27] << c[8] << c[7] << c[14] << c[15] << c[1]
+			<< c[0];
+
+	// inner points 32, 10, 31
+	obenAussen_leftPrismL << c[32] << c[10] << c[31] << c[20] << c[3] << c[19];
+	obenAussen_rightPrismL = mirror(obenAussen_leftPrismL, xAxis);
+	flipOrientationPrism(obenAussen_rightPrismL);
+
+	// inner points 32, 31, 45
+	bottomLeftPrismL << c[32] << c[31] << c[45] << c[20] << c[19] << c[57];
+	bottomRightPrismL = mirror(bottomLeftPrismL, xAxis);
+	flipOrientationPrism(bottomRightPrismL);
+
+	// inner points 27, 26, 39, 40
+	bottomOuterHexahedronL << c[27] << c[26] << c[39] << c[40] << c[15] << c[14]
+			<< c[51] << c[52];
+	// inner points 10, 11, 32, 33
+	upperHexahedronL << c[11] << c[10] << c[32] << c[33] << c[4] << c[3]
+			<< c[20] << c[21];
 }
 
 number TKDGeometryGenerator::getVolume() const {
@@ -257,6 +334,7 @@ number TKDGeometryGenerator::getOverlap() const {
 }
 
 void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
+	count++;
 	uint numCoords = posIn.size();
 	UG_ASSERT(
 			numCoords == Tetrahedron || numCoords == Pyramid || numCoords == Prism || numCoords == Hexahedron,
@@ -271,6 +349,33 @@ void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
 	for (size_t current = index; index < current + numCoords; index++) {
 		indsOut.push_back(index);
 	}
+}
+
+void TKDGeometryGenerator::flipOrientationPrism(CoordsArray& prismPos) {
+	UG_ASSERT(prismPos.size() == Prism, "no prism given.");
+	swap(prismPos[0], prismPos[3]);
+	swap(prismPos[1], prismPos[4]);
+	swap(prismPos[2], prismPos[5]);
+}
+
+void TKDGeometryGenerator::flipOrientationTetrahedron(
+		CoordsArray& tetrahedronPos) {
+	UG_ASSERT(tetrahedronPos.size() == Tetrahedron, "no tetrahedron given.");
+	swap(tetrahedronPos[0], tetrahedronPos[2]);
+}
+
+void TKDGeometryGenerator::flipOrientationPyramid(CoordsArray& pyramidPos) {
+	UG_ASSERT(pyramidPos.size() == Pyramid, "no pyramid given.");
+	swap(pyramidPos[0], pyramidPos[3]);
+	swap(pyramidPos[1], pyramidPos[2]);
+}
+
+void TKDGeometryGenerator::flipOrientationHexahedron(CoordsArray& hexaPos) {
+	UG_ASSERT(hexaPos.size() == Hexahedron, "no hexahedron given.");
+	swap(hexaPos[0], hexaPos[4]);
+	swap(hexaPos[1], hexaPos[5]);
+	swap(hexaPos[2], hexaPos[6]);
+	swap(hexaPos[3], hexaPos[7]);
 }
 
 } // end of namespace tkdGenerator

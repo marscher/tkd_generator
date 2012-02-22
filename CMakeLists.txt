@@ -32,8 +32,8 @@ set(SOURCES_TEST test/testLipidDistance.cpp
 
 # create a shared library from the sources and link it against ug4.
 add_library(TKDGenerator SHARED ${SOURCES})
-# TODO: dont write exe to plugin out dir
 if(TKDTestsuite)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UG_ROOT_PATH}/bin/)
 	add_executable(TKDTestsuite ${SOURCES_TEST})
 endif(TKDTestsuite)
 
