@@ -42,7 +42,6 @@ TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
 	s_lipid = 1 / sqrt(3) * (w_lipid - 2 * a_lipid);
 
 	initGeometricParams();
-	count = 0;
 }
 
 /**
@@ -272,8 +271,9 @@ void TKDGeometryGenerator::initGeometricParams() {
 
 	///// lipid matrix
 	// fixme substitute inner points with v_i
-	CoordsArray c = CalculateLipidCoords(a_corneocyte, h_corneocyte * 3,
-			w_corneocyte, d_lipid, vector3(0, 0, 3 * h_corneocyte / 2));
+	CoordsArray c(76);
+	CalculateLipidCoords(c, a_corneocyte, h_corneocyte * 3, w_corneocyte,
+			d_lipid, vector3(0, 0, 3 * h_corneocyte / 2));
 
 	// inner point 7, 8, 13
 	obenInnenPrismL << c[13] << c[7] << c[8] << c[6] << c[0] << c[1];
@@ -334,7 +334,6 @@ number TKDGeometryGenerator::getOverlap() const {
 }
 
 void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
-	count++;
 	uint numCoords = posIn.size();
 	UG_ASSERT(
 			numCoords == Tetrahedron || numCoords == Pyramid || numCoords == Prism || numCoords == Hexahedron,

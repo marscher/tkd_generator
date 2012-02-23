@@ -152,7 +152,6 @@ protected:
 
 	// lipid side quad
 	CoordsArray sideQuad;
-	int count;
 };
 
 } //end of namespace

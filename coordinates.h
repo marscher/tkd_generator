@@ -4,18 +4,14 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <vector>
-
 namespace tkdGenerator {
 using std::vector;
 
-inline vector<vector3> CalculateLipidCoords(number a_corneo, number high,
+void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		number width, number d_lipid, const vector3& offset) {
 	number b = sqrt(3);
-
-	// lipid coords
-	vector<vector3> l(38);
-	// corneocyte coords
-	vector<vector3> c(76);
+	// corneocyte outer points
+	CoordsArray c(38);
 
 	unsigned int i;
 
@@ -38,16 +34,11 @@ inline vector<vector3> CalculateLipidCoords(number a_corneo, number high,
 	number a2 = 1. / 3. * high_l / sin(M_PI - gamma);
 
 	number bc = a1 * cos(alpha);
-
-	// x offset von mitte, welches element???
 	number bc1 = a2 * cos(alpha);
-
 	number ab = a1 * cos(alpha) * 2.0 / b;
 	number ab1 = a2 * cos(alpha) * 2.0 / b;
-
 	number ac = a1 * cos(alpha) / b;
 	number ac1 = a2 * cos(alpha) / b;
-
 	number ec = ac * b / 2.0;
 	number ec1 = ac1 * b / 2.0;
 	number af = ac * 0.5;
@@ -165,8 +156,6 @@ inline vector<vector3> CalculateLipidCoords(number a_corneo, number high,
 		l[i].y += offset.y;
 		l[i].z += offset.z;
 	}
-
-	return l;
 }
 }	// end of namespace tkdGenerator
 #endif

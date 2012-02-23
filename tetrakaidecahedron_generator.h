@@ -40,10 +40,6 @@ void createTKDDomain(Grid& grid, SubsetHandler& sh, number baseEdgeLength,
 		number diameter, number height, number d_lipid, int rows, int cols,
 		int layers);
 
-SubsetHandler createTKDDomainDefaultSubsetInfo(Grid& grid, number height,
-		number baseEdgeLength, number diameter, number d_lipid, int rows,
-		int cols, int layers);
-
 } // end of namespace tkdGenerator
 
 #endif /* TETRAKAIDEKAEDER_GENERATOR_H_ */

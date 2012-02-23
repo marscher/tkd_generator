@@ -134,10 +134,10 @@ void calculateShiftVector(shiftSet& shiftVectors, Grid& grid, SubsetHandler& sh,
 /**
  * set Subset informations
  * @param sh SubsetHandler reference to fill with given information
- * @param corneocyte_name default "corneocytes"
- * @param lipid_name default "lipid matrix"
- * @param corneocyte_color default blue
- * @param lipid_color default green
+ * @param corneocyte_name
+ * @param lipid_name default
+ * @param corneocyte_color
+ * @param lipid_color
  */
 void setSubsetHandlerInfo(SubsetHandler& sh, const char* corneocyte_name,
 		const char* lipid_name, const vector4& corneocyte_color,
@@ -145,7 +145,6 @@ void setSubsetHandlerInfo(SubsetHandler& sh, const char* corneocyte_name,
 
 	// Subset 1 for corneocytes (same as in Feuchters tkdmodeller)
 	sh.set_default_subset_index(CORNEOCYTE);
-	// fixme crashs subsethandler
 	sh.subset_info(CORNEOCYTE).name = corneocyte_name;
 	sh.subset_info(LIPID).name = lipid_name;
 
@@ -158,19 +157,24 @@ void setSubsetHandlerInfo(SubsetHandler& sh, const char* corneocyte_name,
  * and stacks it according to given parameters (rows, cols, layers)
  */
 void createTKDDomain(Grid& grid, SubsetHandler& sh, number baseEdgeLength,
-		number diameter, number height, number d_lipid, int rows,
-		int cols, int layers) {
+		number diameter, number height, number d_lipid, int rows, int cols,
+		int layers) {
 
 	UG_LOG(
-			"a: " << baseEdgeLength << " w: " << diameter << " h: " << height << " d: " << d_lipid << endl);
+			"a: " << baseEdgeLength << " w: " << diameter << " h: " << height << " dl: " << d_lipid << endl);
+
+	UG_ASSERT(diameter > 2*baseEdgeLength,
+			"w > 2a geometric constraint not met!");
+
+	setSubsetHandlerInfo(sh, "corneocytes", "lipid matrix", vector4(0, 1, 0, 0),
+			vector4(0, 0, 1, 0));
 
 	//// set grid options
 	grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
 	grid.attach_to_vertices(aPosition);
 
 	//// create coordinates and vertex indices for 1 tetrakaidecahedron
-	TKDGeometryGenerator generator(height, baseEdgeLength, diameter,
-			d_lipid);
+	TKDGeometryGenerator generator(height, baseEdgeLength, diameter, d_lipid);
 	generator.createDomain();
 	//// fill the grid object
 	createGridFromArrays(grid, sh, generator.getPositions(),
@@ -213,9 +217,6 @@ void createTKDDomain(Grid& grid, SubsetHandler& sh, number baseEdgeLength,
 			} else
 				shiftCols = v;
 		}
-
-		UG_LOG(
-				"shiftHeight: " << shiftHeight << "\tshiftcols: " << shiftCols << "\tshiftrows: " << shiftRows << endl);
 
 		UG_ASSERT(
 				VecLength(shiftHeight)> SMALL && VecLength(shiftCols)> SMALL && VecLength(shiftRows)> SMALL,
@@ -287,30 +288,6 @@ void createTKDDomain(Grid& grid, SubsetHandler& sh, number baseEdgeLength,
 	}
 }
 
-/**
- * fills given grid reference with tkd domain with given parameters.
- * Provides a SubsetHandler with default parameters.
- */
-SubsetHandler createTKDDomainDefaultSubsetInfo(Grid& grid, number height,
-		number baseEdgeLength, number diameter, number d_lipid, int rows,
-		int cols, int layers) {
-
-	SubsetHandler sh(grid);
-
-	const char* corneocyte_name = "corneocytes";
-	const char* lipid_name = "lipid matrix";
-	const vector4 corneocyte_color = vector4(0, 1, 0, 0);
-	const vector4 lipid_color = vector4(0, 0, 1, 0);
-
-	setSubsetHandlerInfo(sh, corneocyte_name, lipid_name, corneocyte_color,
-			lipid_color);
-
-	createTKDDomain(grid, sh, baseEdgeLength, diameter, height, d_lipid, rows,
-			cols, layers);
-
-	return sh;
-}
-
 // register tkd generator functions for usage in ug_script
 extern "C" void InitUGPlugin(ug::bridge::Registry* reg,
 		std::string parentGroup) {
@@ -318,15 +295,9 @@ extern "C" void InitUGPlugin(ug::bridge::Registry* reg,
 	grp.append("tkd_generator/");
 
 	//	add TKD-Generator method
-	reg->add_function(
-			"CreateTKDDomain",
-			&createTKDDomainDefaultSubsetInfo,
-			grp /*,
-			"returns a SubsetHandler and a Grid with stacked Tetrakaidecahedrons." */);
-
-	reg->add_function("CreateTKDDomain_", &createTKDDomain, grp/*, "Grid with stacked Tetrakaidecahedrons."*/);
-
-	reg->add_function("InitSubsetHandler", &setSubsetHandlerInfo, grp);
+	reg->add_function("CreateTKDDomain", &createTKDDomain, grp,
+			"Grid with stacked Tetrakaidecahedrons.");
+	reg->add_function("SetTKDSubsetInfos", &setSubsetHandlerInfo, grp);
 }
 
 } // end of namespace tkdGenerator
