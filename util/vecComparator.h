@@ -14,7 +14,7 @@ struct vecComperator {
 
 	// returns a < b
 	bool operator()(const vector3& a, const vector3& b) const {
-		static const number SMALL = 10E-6;
+		
 		if (a.x < b.x - SMALL)
 			return true;
 		if (a.x > b.x + SMALL)
@@ -32,7 +32,10 @@ struct vecComperator {
 
 		return false;
 	}
+	
+	static const number SMALL = 10E-6;
 };
+
 
 } /* namespace tkdGenerator */
 #endif /* VECCOMPARATOR_H_ */
