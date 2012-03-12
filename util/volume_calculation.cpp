@@ -21,209 +21,257 @@ namespace ug {
 
 number CalculateVolume(const Volume& vol,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	number result = NAN;
 	switch (vol.reference_object_id()) {
 	case ROID_TETRAHEDRON:
-		result = CalculateVolume(static_cast<Tetrahedron>(vol), aaPos);
-		break;
+		return CalculateVolume(static_cast<Tetrahedron>(vol), aaPos);
 	case ROID_PRISM:
-		result = CalculateVolume(static_cast<Prism>(vol), aaPos);
-		break;
+		return CalculateVolume(static_cast<Prism>(vol), aaPos);
 	case ROID_PYRAMID:
-		result = CalculateVolume(static_cast<Pyramid>(vol), aaPos);
-		break;
+		return CalculateVolume(static_cast<Pyramid>(vol), aaPos);
 	case ROID_HEXAHEDRON:
-		result = CalculateVolume(static_cast<Hexahedron>(vol), aaPos);
-		break;
+		return CalculateVolume(static_cast<Hexahedron>(vol), aaPos);
 	default:
-		break;
+		UG_ASSERT(false, "dont know how to calculate given volume.");
 	}
 
-	return result;
+	return NAN;
 }
 
 number CalculateVolume(const Tetrahedron& tet,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	number result;
 	vector3& a = aaPos[tet.vertex(0)];
 	vector3& b = aaPos[tet.vertex(1)];
 	vector3& c = aaPos[tet.vertex(2)];
 	vector3& d = aaPos[tet.vertex(3)];
-	vector3 ad, bd, cd;
 
-	VecSubtract(ad, a, d);
-	VecSubtract(bd, b, d);
-	VecSubtract(cd, c, d);
+	return CalculateTetrahedronVolume(a, b, c, d);
+}
 
-	vector3 cross;
-	VecCross(cross, bd, cd);
-	result = fabs(VecDot(cross, ad)) / 6;
-	return result;
+// prism
+// fixme
+number CalculateVolumePrism(const vector3& a, const vector3& b,
+		const vector3& c, const vector3& d, const vector3& e,
+		const vector3& f) {
+	number result = 0;
+	vector3 center;
+	vector3 arr[] = { a, b, c, d, e, f };
+	CalculateCenter(center, arr, 6);
+	UG_LOG("center prism: " << center << endl)
+
+	result += CalculateTetrahedronVolume(a, b, c, center);
+	UG_LOG("t1: " << result << endl)
+	result += CalculateTetrahedronVolume(d, e, f, center);
+	UG_LOG("t1+t2: " << result << endl)
+
+	number p1, p2, p3;
+	p1 = CalculateVolumePyramid(a, b, e, d, center);
+	p2 = CalculateVolumePyramid(b, c, f, e, center);
+	p3 = CalculateVolumePyramid(c, a, d, f, center);
+//	UG_LOG("p1: " << p1 << "\tp2: " << p2 << "\tp3: " << p3 << endl)
+
+	return result + p1 + p2 + p3;
 }
 
 number CalculateVolume(const Prism& prism,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	// we need this grid instance, as we divide the prism in smaller geometries
-	Grid grid(VRTOPT_STORE_ASSOCIATED_FACES);
-	Grid::VertexAttachmentAccessor<APosition> aaPos2(grid, aPosition);
-	grid.attach_to_vertices(aPosition);
+	vector3& a = aaPos[prism.vertex(0)];
+	vector3& b = aaPos[prism.vertex(1)];
+	vector3& c = aaPos[prism.vertex(2)];
+	vector3& d = aaPos[prism.vertex(3)];
+	vector3& e = aaPos[prism.vertex(4)];
+	vector3& f = aaPos[prism.vertex(5)];
 
-	vector3 centerPos = CalculateCenter(&prism, aaPos);
+	return CalculateVolumePrism(a, b, c, d, e, f);
+}
 
-	VertexBase* center = *grid.create<Vertex>();
-	aaPos2[center] = centerPos;
+// pyramid
+number CalculateVolumePyramid(const vector3& a, const vector3& b,
+		const vector3& c, const vector3& d, const vector3& e) {
+	number result = 0;
+//	UG_LOG("a: " << a << " b: " << b << " c: " << c << " d: " << d << " e: " << e << endl)
+	//fixme check for a set of volumes that this condition is met!
+	// check a,b,c,d are in same plane
+	// fixme why does this check only work in x,y plane?!
+//	vector3 r, n, x;
+//	VecCross(n, a, b);
+//	VecNormalize(n, n);
+//
+//	VecSubtract(r, a, b);
+//	VecSubtract(x, c, r);
+//	number dot = VecDot(x, n);
+//
+//	UG_LOG("dot pyra: " << dot<< endl)
+//	UG_ASSERT(dot < SMALL,
+//			"pyramid volume calculation needs all base are points in one plane!");
 
-	VertexBase* v0 = *grid.create<Vertex>();
-	aaPos2[v0] = aaPos[prism.vertex(0)];
-	VertexBase* v1 = *grid.create<Vertex>();
-	aaPos2[v1] = aaPos[prism.vertex(1)];
-	VertexBase* v2 = *grid.create<Vertex>();
-	aaPos2[v2] = aaPos[prism.vertex(2)];
-	VertexBase* v3 = *grid.create<Vertex>();
-	aaPos2[v3] = aaPos[prism.vertex(3)];
-	VertexBase* v4 = *grid.create<Vertex>();
-	aaPos2[v4] = aaPos[prism.vertex(4)];
-	VertexBase* v5 = *grid.create<Vertex>();
-	aaPos2[v5] = aaPos[prism.vertex(5)];
+	vector3 center, h_, h, c1, c2, da, ba, cb, cd;
+	VecSubtract(da, d, a);
+	VecSubtract(ba, b, a);
+	VecSubtract(cb, c, b);
+	VecSubtract(cd, c, d);
+	VecCross(c1, da, ba);
+	VecCross(c2, cb, cd);
+	number A = 0.5 * VecLength(c1) + 0.5 * VecLength(c2);
+	UG_LOG("A pyra: " << A <<endl)
 
-	// top
-	TetrahedronDescriptor t1(v0, v1, v2, center);
+	vector3 arr[] = { a, b, c, d };
+	CalculateCenter(center, arr, 4);
+//	VecSubtract(h_, e, center);
+//	VecAdd(h, h_, center);
+	VecSubtract(h, e, center);
+	number height = VecLength(h);
+	UG_LOG("pyra h: " << height << endl)
 
-	PyramidDescriptor p1(v0, v1, v4, v3, center);
-	PyramidDescriptor p2(v1, v2, v5, v4, center);
-	PyramidDescriptor p3(v0, v3, v5, v2, center);
+	result = 1.0 / 3.0 * A * height;
+	UG_LOG("pyra vol: " << result << endl)
 
-	// bottom
-	TetrahedronDescriptor t2(v3, v4, v5, center);
-
-	grid.create<Pyramid>(p1);
-	grid.create<Pyramid>(p2);
-	grid.create<Pyramid>(p3);
-
-	grid.create<Tetrahedron>(t1);
-	grid.create<Tetrahedron>(t2);
-
-	return CalculateVolume(grid.begin<Volume>(), grid.end<Volume>(), aaPos2);
+	return result;
 }
 
 number CalculateVolume(const Pyramid& pyramid,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	number result;
 	vector3& a = aaPos[pyramid.vertex(0)];
 	vector3& b = aaPos[pyramid.vertex(1)];
 	vector3& c = aaPos[pyramid.vertex(2)];
 	vector3& d = aaPos[pyramid.vertex(3)];
 	vector3& top = aaPos[pyramid.vertex(4)];
 
-	//TODO is face[0] base area?
-	FaceDescriptor base = pyramid.face(0);
-	vector3 center = CalculateCenter(&base, aaPos);
-	number h = VecLength(top -= center);
-	vector3 cross1, cross2;
-	VecCross(cross1, a, b);
-	VecCross(cross2, c, d);
-	number A = VecLength(cross1) - VecLength(cross2);
-	result = 1.0 / 3 * A * h;
-
-	return result;
+	return CalculateVolumePyramid(a, b, c, d, top);
 }
 
 /**
  * Algorithm (14) from J.Grandy "Efficient Computation of Volume of Hexahedral Cells"
+ * which allows volume calculation of irregular hexahedrons
  */
-number CalculateVolume(const Hexahedron& hexa,
+number CalculateVolume(const Hexahedron& hexahedron,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	number result = 0;
-	// bottom quad
-	vector3& a = aaPos[hexa.vertex(0)];
-	vector3& b = aaPos[hexa.vertex(1)];
-	vector3& c = aaPos[hexa.vertex(2)];
-	vector3& d = aaPos[hexa.vertex(3)];
-	// top quad
-	vector3& e = aaPos[hexa.vertex(4)];
-	vector3& f = aaPos[hexa.vertex(5)];
-	vector3& g = aaPos[hexa.vertex(6)];
-	vector3& h = aaPos[hexa.vertex(7)];
-
-	// determine long diagonal
-	vector<number> diagonalLength;
-	vector<number>::iterator iter;
-
-	// diagonals
-	vector3 ag, bh, ce, df;
-	// longest diagonal
-	vector3* LD = NULL;
-	VecSubtract(ag, a, g);
-	VecSubtract(bh, b, h);
-	VecSubtract(ce, c, e);
-	VecSubtract(df, d, f);
-
-	diagonalLength.push_back(VecLength(ag));
-	diagonalLength.push_back(VecLength(bh));
-	diagonalLength.push_back(VecLength(ce));
-	diagonalLength.push_back(VecLength(df));
-	// determine longest diagonal
-	iter = max_element(diagonalLength.begin(), diagonalLength.end());
-	uint pos = distance(diagonalLength.begin(), iter);
-	switch (pos) {
-	case 0:
-		LD = &ag;
-		break;
-	case 1:
-		LD = &bh;
-		break;
-	case 2:
-		LD = &ce;
-		break;
-	case 3:
-		LD = &df;
-	}
-
-	// matrices to calculate determinant
-	matrix33 d1, d2, d3;
-	vector3 LDa, ba, ea, fg, ca, gd;
-
-	VecSubtract(LDa, *LD, a);
-	VecSubtract(ba, b, a);
-	VecSubtract(ea, e, a);
-	VecSubtract(fg, f, g);
-	VecSubtract(ca, c, a);
-	VecSubtract(gd, g, d);
-
-	d1.assign(LDa, 0);
-	d1.assign(ba, 1);
-	d1.assign(df, 2);
-
-	d2.assign(LDa, 0);
-	d2.assign(ea, 1);
-	d2.assign(fg, 2);
-
-	d3.assign(LDa, 0);
-	d3.assign(ca, 1);
-	d3.assign(gd, 2);
-
-	return result = Determinant(d1) + Determinant(d2) + Determinant(d3);
+	vector3& a = aaPos[hexahedron.vertex(0)];
+	vector3& b = aaPos[hexahedron.vertex(1)];
+	vector3& c = aaPos[hexahedron.vertex(2)];
+	vector3& d = aaPos[hexahedron.vertex(3)];
+	vector3& e = aaPos[hexahedron.vertex(4)];
+	vector3& f = aaPos[hexahedron.vertex(5)];
+	vector3& g = aaPos[hexahedron.vertex(6)];
+	vector3& h = aaPos[hexahedron.vertex(7)];
+	return CalculateVolumeHexahedron(a, b, c, d, e, f, g, h);
+//	number result = 0;
+//
+//	vector3 v[] =
+//			{ aaPos[hexa.vertex(0)], aaPos[hexa.vertex(1)],
+//					aaPos[hexa.vertex(2)], aaPos[hexa.vertex(3)],
+//					aaPos[hexa.vertex(4)], aaPos[hexa.vertex(5)],
+//					aaPos[hexa.vertex(6)], aaPos[hexa.vertex(7)] };
+//
+//	// matrices to calculate determinant
+//	matrix33 m1, m2, m3;
+//
+//	// determine long diagonal
+//	vector<number> diagonalLength;
+//	vector<number>::iterator iter;
+//
+//	// diagonals
+//	vector3 v6v0, v7v1, v4v2, v3v5;
+//	// longest diagonal
+//	vector3* ld = NULL;
+//	pair<int, int> LD;
+//	// triangulation vectors
+//	pair<int, int> T1, T2, T3;
+//	// edge
+//	pair<int, int> E;
+//
+//	VecSubtract(v6v0, v[6], v[0]);
+//	VecSubtract(v7v1, v[7], v[1]);
+//	VecSubtract(v4v2, v[4], v[2]);
+//	VecSubtract(v3v5, v[3], v[5]);
+//
+//	diagonalLength.push_back(VecLength(v6v0));
+//	diagonalLength.push_back(VecLength(v7v1));
+//	diagonalLength.push_back(VecLength(v4v2));
+//	diagonalLength.push_back(VecLength(v3v5));
+//	// determine longest diagonal
+//	iter = max_element(diagonalLength.begin(), diagonalLength.end());
+//	uint pos = distance(diagonalLength.begin(), iter);
+//	switch (pos) {
+//	case 0: {
+//		LD = make_pair(6, 0);
+//		ld = &v6v0;
+//		T1 = make_pair(2, 5);
+//		T2 = make_pair(7, 5);
+//		T3 = make_pair(2, 7);
+//		E = make_pair(1, 0);
+//		break;
+//	}
+//	case 1: {
+//		LD = make_pair(7, 1);
+//		ld = &v7v1;
+//		T1 = make_pair(4, 3);
+////		T2 = make_pair();
+//		E = make_pair(1, 0);
+//		break;
+//	}
+//	case 2: {
+//		LD = make_pair(4, 2);
+//		ld = &v4v2;
+//		T1 = make_pair(5, 0);
+//		E = make_pair(2, 1);
+//		break;
+//	}
+//	case 3: {
+//		LD = make_pair(3, 5);
+//		ld = &v3v5;
+//		T1 = make_pair(4, 1);
+//		E = make_pair(3, 0);
+//	}
+//	}
+//
+//	// fill determinants
+//	m1.assign(*ld, 0);
+//	m2.assign(*ld, 0);
+//	m3.assign(*ld, 0);
+//
+//	// shuffle t and e
+////	vector3 t, e;
+////	VecSubtract(t, v[T1.first], v[T1.second]);
+////	m1.assign(t, 1);
+////	m1.assign(e, 2);
+//
+//	result = 1. / 6 * (Determinant(m1) + Determinant(m2) + Determinant(m3));
+//	return result;
 }
 
-/**
- * util to sum up volumes (in parallel) via for_each
- */
-struct adder: public unary_function<Volume, void> {
-	adder(Grid::VertexAttachmentAccessor<APosition>& aaPos) :
-			sum(0), m_aaPos(aaPos) {}
-	number sum;
-	Grid::VertexAttachmentAccessor<APosition>& m_aaPos;
-	void operator()(Volume* x) {
-		sum += CalculateVolume(*x, m_aaPos);
-	}
-};
+number CalculateVolumeHexahedron(const vector3& a, const vector3& b,
+		const vector3& c, const vector3& d, const vector3& e, const vector3& f,
+		const vector3& g, const vector3& h) {
+	number result = 0;
+	vector3 arr[] = { a, b, c, d, e, f, g, h };
+	vector3 center;
+	CalculateCenter(center, arr, 8);
+
+	// top and bottom
+	result += CalculateVolumePyramid(a, b, c, d, center);
+	result += CalculateVolumePyramid(e, f, g, h, center);
+
+	// sides
+	result += CalculateVolumePyramid(a, b, f, e, center);
+	result += CalculateVolumePyramid(b, c, g, f, center);
+
+	result += CalculateVolumePyramid(c, d, g, h, center);
+	result += CalculateVolumePyramid(a, d, h, e, center);
+
+	return result;
+}
 
 number CalculateVolume(geometry_traits<Volume>::iterator begin,
 		geometry_traits<Volume>::iterator end,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	adder result(aaPos);
-	for_each(begin, end, adder(aaPos));
-	return result.sum;
+	number result = 0;
+	geometry_traits<Volume>::iterator iter = begin;
+	while (iter != end) {
+		Volume* vol = *iter;
+		result += CalculateVolume(*vol, aaPos);
+		iter++;
+	}
+	return result;
 }
 
 } // end of namespace ug
