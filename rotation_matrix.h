@@ -10,7 +10,7 @@
 
 #include "common_typedefs.h"
 
-namespace tkdGenerator {
+namespace tkd {
 
 /**
  * class to perform transformation of rotation around z axis with following matrix

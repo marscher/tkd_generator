@@ -5,13 +5,18 @@
  *      Author: marscher
  */
 
-#ifndef GENERATOR_H_
-#define GENERATOR_H_
+#ifndef GEOM_GENERATOR_H_
+#define GEOM_GENERATOR_H_
+
+namespace tkd {
+class TKDDomainGenerator;
+}
 
 #include "common_typedefs.h"
 #include "rotation_matrix.h"
+#include "domain_generator.h"
 
-namespace tkdGenerator {
+namespace tkd {
 
 const static vector3 origin(0, 0, 0);
 
@@ -23,7 +28,7 @@ const static vector3 origin(0, 0, 0);
 class TKDGeometryGenerator {
 
 public:
-	void createDomain();
+	void createGeometry();
 
 	/**
 	 * @param height
@@ -31,12 +36,12 @@ public:
 	 * @param diameter
 	 * @param d_lipid
 	 */
-	TKDGeometryGenerator(number height, number baseEdgeLength, number diameter,
+	TKDGeometryGenerator(number a, number w, number height,
 			number d_lipid);
 
-	number getVolume() const;
+	number getVolume(const int subset = LIPID) const;
 	number getVolume(number a, number s, number h) const;
-	number getSurface() const;
+	number getSurface(const int subset = LIPID) const;
 	number getSurface(number a, number s, number h) const;
 	const IndexArray& getIndices() const;
 	const CoordsArray& getPositions() const;
@@ -63,9 +68,10 @@ protected:
 	// base edge length of lipid matrix
 	number a_lipid;
 	// height of 1/3 of lipid matrix
-	number h_lipid;
+	number h_lipid3;
 	// quantity s, overlap of two aligned tkds with lipid matrix
 	number s_lipid;
+	number w_lipid;
 
 	/**
 	 * stores coordinates of points
@@ -155,4 +161,4 @@ protected:
 };
 
 } //end of namespace
-#endif /* GENERATOR_H_ */
+#endif /* GEOM_GENERATOR_H_ */

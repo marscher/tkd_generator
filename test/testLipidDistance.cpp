@@ -16,10 +16,13 @@
 
 #include "fixtures/UGScriptingEnvFixture.h"
 #include "testHelper.h"
-#include "../generator.h"
+#include "../domain_generator.h"
+
+#include <utility>
+#include <cmath>
 
 using namespace boost::unit_test;
-using namespace tkdGenerator;
+using namespace tkd;
 
 BOOST_GLOBAL_FIXTURE(UGScriptingEnvFixture)
 
@@ -29,70 +32,52 @@ BOOST_AUTO_TEST_SUITE(lipid)
  * performs checks if lipid thickness (= distance all boundary faces to inner faces) is correct
  */
 void checkThickness(number a, number h, number w, number d_lipid) {
-//	number a = 10;
-//	number h = sqrt(6)*a;
-//	number w = 3*a;
-//	number d_lipid = 8;
+	// init libgrid objects
+	Grid grid(GRIDOPT_STANDARD_INTERCONNECTION);
+	grid.attach_to_vertices(aPosition);
+	SubsetHandler sh(grid);
 
-// init libgrid objects
-	Grid gridNew(GRIDOPT_STANDARD_INTERCONNECTION);
-	gridNew.attach_to_vertices(aPosition);
-	SubsetHandler shnew(gridNew);
-	vector<number> distnew = meassureLipidThickness(gridNew, shnew, d_lipid);
+	// create grid with new tkd generator
+	TKDDomainGenerator gen(grid, sh);
+	gen.createTKDDomain(a,w,h,d_lipid);
 
-// create grid with new tkd generator
-	TKDGeometryGenerator gen(h, a, w, d_lipid);
-	gen.createDomain();
-	gridNew.attach_to_vertices(aPosition);
-	createGridFromArrays(gridNew, shnew, gen.getPositions(), gen.getIndices());
+//	TKDGeometryGenerator gen(h, a, w, d_lipid);
+//	gen.createGeometry();
+//	grid.attach_to_vertices(aPosition);
+//	createGridFromArrays(grid, sh, gen.getPositions(), gen.getIndices());
+
+	// calculate distances
+	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid);
+	number delta = deltaLipidThickness(dist, d_lipid);
 
 //	BOOST_MESSAGE(
-//			"max dist: " << *std::max_element(distnew.begin(), distnew.end())
-//			<< " min dist: " << *std::min_element(distnew.begin(), distnew.end()) << "\n");
+//			"max dist: " << *std::max_element(dist.begin(), dist.end())
+//			<< " min dist: " << *std::min_element(dist.begin(), dist.end()) << "\n");
 //
 //	BOOST_MESSAGE(
-//			"abweichung dlipid new: " << deltaLipidThickness(distnew, d_lipid) << "\n");
-
-// check if average abbreviation of lipid thickness is below given threshold
-	BOOST_CHECK_SMALL(deltaLipidThickness(distnew, d_lipid), 10E-6);
+//			"abweichung dlipid new: " << delta << "\n");
+//
+//	// check if average abbreviation of lipid thickness is below given threshold
+//	BOOST_MESSAGE("testing if deltaLipidThickness(a=" << a << ", h="
+//			<< h << ", w=" << w << ", d=" << d_lipid << ") is small.");
+	BOOST_CHECK_SMALL(delta, 10E-6);
 }
 
-void foo(int a, int b) {
-	BOOST_CHECK( a + b < 20);
-}
-
-struct sub_test_suite : public test_suite {
-
-	sub_test_suite() : test_suite("foo") {
-		parameters_list.push_back( 1 );
-		parameters_list.push_back( 5 );
-		parameters_list.push_back( 6 );
-		parameters_list.push_back( 7 );
-		parameters_list.push_back( 140 );
-		number a = 10;
-		number h = sqrt(6)*a;
-		number w = 3*a;
-		number d_lipid = 8;
-
-//		add(
-//				BOOST_PARAM_TEST_CASE(
-//						boost::callback3<number, number, number>( boost::bind(&foo, _1, h, w, a)),
-//						parameters_list.begin(), parameters_list.end()));
-//		boost::function2<number,number,number>(boost::bind( &checkThickness(), _1, h, w, d_lipid));
-//		add( BOOST_PARAM_TEST_CASE( f,
-//						parameters_list.begin(), parameters_list.end() ));
-		framework::master_test_suite().add(this);
-	}
-
-	std::list<number> parameters_list;
-	std::list<number> rangeA;
-	std::list<number> rangeH;
-};
+//BOOST_AUTO_TEST_CASE(d_lipid_height_variable) {
+//	long count = 0;
+//	number a = 10, w = 30;
+//	for(number d_lipid = 0.001; d_lipid < 10; d_lipid += std::log(count)*0.1) {
+//		for(number h = 0.05; h < 20; h += std::log(count)*0.1) {
+//			checkThickness(a, h, w, d_lipid);
+//			count++;
+//		}
+//	}
+//}
 
 BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	number a = 10;
-	number h = sqrt(6)*a;
-	number w = 3*a;
+	number h = sqrt(6) * a;
+	number w = 3 * a;
 	number d_lipid = 8;
 
 	// init libgrid objects
@@ -102,19 +87,21 @@ BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	SubsetHandler shnew(gridNew);
 
 	// create grid with new tkd generator
-	TKDGeometryGenerator gen(h, a, w, d_lipid);
-	gen.createDomain();
 	gridNew.attach_to_vertices(aPosition);
 	gridOld.attach_to_vertices(aPosition);
-	createGridFromArrays(gridNew, shnew, gen.getPositions(), gen.getIndices());
+//	createGridFromArrays(gridNew, shnew, gen.getPositions(), gen.getIndices());
+
+	TKDDomainGenerator gen(gridNew,shnew);
+	gen.createTKDDomain(a,w,h,d_lipid);
 
 	// grid created with same params with old tkdmodeller
-	string oldfile = PathProvider::get_path(ROOT_PATH)
+	string oldfile =
+	PathProvider::get_path(ROOT_PATH)
 	+ "/../plugins/experimental/tkd_generator/test/nucleus3d_10-24.495-30-8.000_1x1x1.ugx";
 
 	bool gridLoaded = LoadGridFromFile(gridOld, shold, oldfile.c_str());
-	BOOST_REQUIRE_MESSAGE(gridLoaded, "old grid file "
-			<< oldfile << " could not be loaded.");
+	BOOST_REQUIRE_MESSAGE(gridLoaded,
+			"old grid file " << oldfile << " could not be loaded.");
 
 	BOOST_MESSAGE("old tkdmodeler: ________________________________");
 	vector<number> distold = meassureLipidThickness(gridOld, shold, d_lipid);
@@ -122,20 +109,17 @@ BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	vector<number> distnew = meassureLipidThickness(gridNew, shnew, d_lipid);
 	BOOST_MESSAGE("old tkdmodeler: ________________________________");
 	BOOST_MESSAGE(
-			"max dist: " << *std::max_element(distold.begin(), distold.end())
-			<< " min dist: " << *std::min_element(distold.begin(), distold.end()) << "\n" );
+			"max dist: " << *std::max_element(distold.begin(), distold.end()) << " min dist: " << *std::min_element(distold.begin(), distold.end()) << "\n");
 	BOOST_MESSAGE("tkdgeometrygenerator: ________________________________");
 	BOOST_MESSAGE(
-			"max dist: " << *std::max_element(distnew.begin(), distnew.end())
-			<< " min dist: " << *std::min_element(distnew.begin(), distnew.end()) << "\n");
+			"max dist: " << *std::max_element(distnew.begin(), distnew.end()) << " min dist: " << *std::min_element(distnew.begin(), distnew.end()) << "\n");
 
 	BOOST_MESSAGE(
 			"abweichung dlipid new: " << deltaLipidThickness(distnew, d_lipid) << "\n");
 	BOOST_MESSAGE(
 			"abweichung dlipid oldgrid: " << deltaLipidThickness(distold, d_lipid) << "\n");
 
-// check if average abbreviation of lipid thickness is below given threshold
-	BOOST_CHECK_SMALL(deltaLipidThickness(distold, d_lipid), 10E-6 );
+	// check if average abbreviation of lipid thickness is below given threshold
+	BOOST_CHECK_SMALL(deltaLipidThickness(distold, d_lipid), 10E-6);
 }
-
 BOOST_AUTO_TEST_SUITE_END()

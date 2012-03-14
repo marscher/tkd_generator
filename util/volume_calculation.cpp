@@ -48,7 +48,6 @@ number CalculateVolume(const Tetrahedron& tet,
 }
 
 // prism
-// fixme
 number CalculateVolumePrism(const vector3& a, const vector3& b,
 		const vector3& c, const vector3& d, const vector3& e,
 		const vector3& f) {
@@ -56,20 +55,18 @@ number CalculateVolumePrism(const vector3& a, const vector3& b,
 	vector3 center;
 	vector3 arr[] = { a, b, c, d, e, f };
 	CalculateCenter(center, arr, 6);
-	UG_LOG("center prism: " << center << endl)
+//	UG_LOG("center prism: " << center << endl)
 
 	result += CalculateTetrahedronVolume(a, b, c, center);
-	UG_LOG("t1: " << result << endl)
+//	UG_LOG("t1: " << result << endl)
 	result += CalculateTetrahedronVolume(d, e, f, center);
-	UG_LOG("t1+t2: " << result << endl)
+//	UG_LOG("t1+t2: " << result << endl)
 
-	number p1, p2, p3;
-	p1 = CalculateVolumePyramid(a, b, e, d, center);
-	p2 = CalculateVolumePyramid(b, c, f, e, center);
-	p3 = CalculateVolumePyramid(c, a, d, f, center);
-//	UG_LOG("p1: " << p1 << "\tp2: " << p2 << "\tp3: " << p3 << endl)
+	result +=CalculateVolumePyramid(a, b, e, d, center);
+	result +=CalculateVolumePyramid(b, c, f, e, center);
+	result +=CalculateVolumePyramid(c, a, d, f, center);
 
-	return result + p1 + p2 + p3;
+	return result;
 }
 
 number CalculateVolume(const Prism& prism,
@@ -112,18 +109,21 @@ number CalculateVolumePyramid(const vector3& a, const vector3& b,
 	VecCross(c1, da, ba);
 	VecCross(c2, cb, cd);
 	number A = 0.5 * VecLength(c1) + 0.5 * VecLength(c2);
-	UG_LOG("A pyra: " << A <<endl)
+//	UG_LOG("A pyra: " << A <<endl)
 
 	vector3 arr[] = { a, b, c, d };
 	CalculateCenter(center, arr, 4);
+
+	number height = DistancePointToPlane(e, center, c1);
+
 //	VecSubtract(h_, e, center);
 //	VecAdd(h, h_, center);
-	VecSubtract(h, e, center);
-	number height = VecLength(h);
-	UG_LOG("pyra h: " << height << endl)
+//	VecSubtract(h, e, center);
+//	 VecLength(h);
+//	UG_LOG("pyra h: " << height << endl)
 
 	result = 1.0 / 3.0 * A * height;
-	UG_LOG("pyra vol: " << result << endl)
+//	UG_LOG("pyra vol: " << result << endl)
 
 	return result;
 }

@@ -23,4 +23,9 @@ using std::vector;
 typedef vector<vector3> CoordsArray;
 typedef vector<int> IndexArray;
 
+// subset indices
+enum Subset {
+	LIPID = 0, CORNEOCYTE
+};
+
 #endif /* COMMON_TYPEDEFS_H_ */

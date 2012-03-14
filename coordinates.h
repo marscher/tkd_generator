@@ -4,12 +4,12 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <vector>
-namespace tkdGenerator {
+namespace tkd {
 using std::vector;
 
 void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		number width, number d_lipid, const vector3& offset) {
-	number b = sqrt(3);
+	const number b = sqrt(3);
 	// corneocyte outer points
 	CoordsArray c(38);
 

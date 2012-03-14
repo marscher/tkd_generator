@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(volTetrahedron) {
 BOOST_AUTO_TEST_CASE(volPrism) {
 	//	create vertices
 	for(uint i = 0; i < 6; i++)
-	vertices.push_back(*grid.create<Vertex>());
+		vertices.push_back(*grid.create<Vertex>());
 
 	//	assign coordinates
 	aaPos[vertices[0]] = vector3(0, 0, 0);
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(volPrism) {
 
 	vd.set_num_vertices(vertices.size());
 	for (uint i = 0; i < vertices.size(); ++i)
-	vd.set_vertex(i, vertices[i]);
+		vd.set_vertex(i, vertices[i]);
 
 	//	create the prism
 	Prism* p = *grid.create<Prism>(vd);

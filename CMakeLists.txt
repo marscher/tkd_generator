@@ -20,15 +20,17 @@ include("../../../ug_plugin_cmake_includes.txt")
 include_directories("${UG_ROOT_PATH}/unit_tests/src")
 
 # sources plugin
-set(SOURCES	tetrakaidecahedron_generator.cpp
+set(SOURCES	plugin_main.cpp
+            domain_generator.cpp
+            geometry_generator.cpp
 			rotation_matrix.cpp
 			geometric_helper.cpp
-			generator.cpp
 			util/volume_calculation.cpp)
 
 # sources test
 set(SOURCES_TEST test/testLipidDistance.cpp
-				 test/testVolume.cpp)
+				 test/testVolume.cpp
+				 test/validateSwellResults.cpp)
 
 # create a shared library from the sources and link it against ug4.
 add_library(TKDGenerator SHARED ${SOURCES})

@@ -8,7 +8,7 @@
 #include "common/log.h"
 #include "common/math/math_vector_matrix/math_matrix.h"
 #include "common/math/math_vector_matrix/math_matrix_vector_functions.h"
-namespace tkdGenerator {
+namespace tkd {
 
 /**
  * This method first rotates vector v with rotation matrix R and then translates

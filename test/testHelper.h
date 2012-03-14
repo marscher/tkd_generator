@@ -8,14 +8,13 @@
 #ifndef TESTHELPER_H_
 #define TESTHELPER_H_
 
-#include "../tetrakaidecahedron_generator.h"
-#include "../generator.h"
+#include "../domain_generator.h"
 #include "lib_grid/lib_grid.h"
 #include <numeric>
 
 using namespace ug;
 
-namespace tkdGenerator {
+namespace tkd {
 
 number deltaLipidThickness(const vector<number>& distances,
 		const number d_lipid) {

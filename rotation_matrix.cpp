@@ -11,7 +11,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-namespace tkdGenerator {
+namespace tkd {
 
 /**
  * sets rotation angle around z axis in degree

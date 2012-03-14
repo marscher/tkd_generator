@@ -4,42 +4,55 @@
  *  Created on: 08.12.2011
  *      Author: marscher
  */
-#include "generator.h"
+#include "geometry_generator.h"
 #include "geometric_helper.h"
 #include "coordinates.h"
-#include <stdexcept>
 #include <algorithm>
 
-namespace tkdGenerator {
+namespace tkd {
 using namespace std;
 
-TKDGeometryGenerator::TKDGeometryGenerator(number height, number baseEdgeLength,
-		number diameter, number d_lipid) :
-		h_corneocyte(height / 3), a_corneocyte(baseEdgeLength),
-				w_corneocyte(diameter), d_lipid(d_lipid), R(0), index(0) {
+TKDGeometryGenerator::TKDGeometryGenerator(number a,
+		number w, number h, number d_lipid) :
+		h_corneocyte(h / 3), a_corneocyte(a),
+				w_corneocyte(w), d_lipid(d_lipid), R(0), index(0) {
 	indsOut.reserve(702);
 	posOut.reserve(819);
 
 	number w2a = w_corneocyte - 2 * a_corneocyte;
-	s_corneocyte = 1 / sqrt(3) * w2a;
+	s_corneocyte = sqrt(3) / 3.0 * w2a;
 
-	number a1 = sqrt(1 / 9. * height * height + 1 / 3. * w2a * w2a);
+	// 1/9 h^2 + s^2
+	number a1 = sqrt(1 / 9. * h * h + s_corneocyte * s_corneocyte);
 
 	number alpha = acos(w2a / (2 * a1));
-	number beta = 90 / 180. * M_PI + acos(1 / 3. * height / (a1 * sin(alpha)));
-	number gamma = acos(1 / 3. * height / a1) + 90 / 180. * M_PI;
+	number beta = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1 * sin(alpha)));
+	number gamma = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1));
+	UG_DLOG("geom", 0,  "alpha: " << alpha << " beta: " << beta << " gamma: " << gamma << endl)
+	number m1 = d_lipid / (2.0 * tan(beta / 2.0));
+	number m2 = d_lipid / (2.0 * tan(gamma / 2.0));
 
-	number m1 = (d_lipid / 2) / tan(beta / 2);
-	number m2 = (d_lipid / 2) / tan(gamma / 2);
-
-	a_lipid = (sqrt(3) + a_corneocyte + m1 + m2) / sqrt(3);
+	a_lipid = sqrt(3) / 3.0 * (sqrt(3) * a_corneocyte + m1 + m2);
+	UG_LOG("a_l: " << a_lipid << endl);
+	number h_lipid = h + d_lipid;
 	// height of lipid is full height of inner tkd + d_lipid
-	h_lipid = (height + d_lipid) / 3;
+	h_lipid3 = h_lipid / 3;
 
-	//TODO is this correct?
-	number w_lipid = w_corneocyte + d_lipid;
+	// fixme something is wrong in here...
+//	 Sqrt[1/3 ( (h^2 + 3 (w - 2 a)^2)/h^2 - 1)  ]* hl + 2 al
+	w_lipid =
+			2.0 * a_lipid
+					+ h_lipid
+							* sqrt(
+									1. / 3.
+											* ((h_corneocyte * h_corneocyte
+													+ 3.0 * w2a * w2a)
+													/ (h_corneocyte
+															* h_corneocyte) - 1));
 
-	s_lipid = 1 / sqrt(3) * (w_lipid - 2 * a_lipid);
+	UG_LOG("wc: " << w_corneocyte << "\twl: " << w_lipid << endl)
+
+	s_lipid = (sqrt(3.0) / 3.0) * (w_lipid - 2 * a_lipid);
 
 	initGeometricParams();
 }
@@ -135,7 +148,7 @@ void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
  * creates one tkd starting construction in (0, 0, h/2),
  * so that center of geometry of tkd is (0, 0, 0)
  */
-void TKDGeometryGenerator::createDomain() {
+void TKDGeometryGenerator::createGeometry() {
 	vector3 offset(0, 0, h_corneocyte / 2);
 	createCorneocyte(offset);
 
@@ -242,6 +255,20 @@ void TKDGeometryGenerator::initGeometricParams() {
 	const vector3 v21(a_lipid / 2.0, a_lipid * sqrt(3) / 2, v20.z);
 	const vector3 v22(0, 0, v20.z);
 
+//	l[0] = vector3(-a_lipid / 2.0, -a_lipid * b / 2.0, dis);
+//	l[1] = vector3(-l[0].x, l[0].y, l[0].z);
+//	c[3] = vector3(c[1].x, -c[1].y, c[0].z);
+//	l[6] = vector3(0, 0, l[0].z);
+//	c[10] = vector3(c[2].x + ec, c[2].y - af, c[9].z);
+//	c[12] = vector3(c[3].x + bc, c[3].y + ac, c[11].z);
+//	c[13] = vector3(c[3].x, c[12].y, c[12].z);
+//	l[14] = vector3(l[0].x, l[0].y - ab1, l[0].z - 1.0 / 3.0 * high_l);
+//	l[15] = vector3(l[1].x, l[14].y, l[14].z);
+//	l[19] = vector3(l[3].x + bc1, l[3].y + ac1, l[14].z);
+//	l[20] = vector3(l[3].x, l[19].y, l[14].z);
+//
+//	l[57] = vector3(l[72].x, l[72].y + ab1, l[50].z);
+
 	///// Initialization of top/bottom segments
 	obenInnen << origin << v1 << v4 << v2 << v3 << v5;
 	obenAussenPrism << v4 << v5 << v8 << v6 << v7 << v9;
@@ -299,22 +326,40 @@ void TKDGeometryGenerator::initGeometricParams() {
 			<< c[20] << c[21];
 }
 
-number TKDGeometryGenerator::getVolume() const {
-	return getVolume(a_corneocyte, s_corneocyte, h_corneocyte);
+number TKDGeometryGenerator::getVolume(const int subset) const {
+	number vol = 0;
+	if (subset == CORNEOCYTE)
+		vol = getVolume(a_corneocyte, s_corneocyte, 3.0 * h_corneocyte);
+	else if (subset == LIPID) {
+		number volLipid = getVolume(a_lipid, s_lipid, 3.0 * h_lipid3);
+		number volCorneo = getVolume(a_corneocyte, s_corneocyte,
+				3.0 * h_corneocyte);
+		vol = volLipid - volCorneo;
+	} else
+		throw invalid_argument("no valid subset given.");
+	return vol;
 }
 
-number TKDGeometryGenerator::getSurface() const {
-	return getSurface(a_corneocyte, s_corneocyte, h_corneocyte);
+number TKDGeometryGenerator::getSurface(const int subset) const {
+	number surface = 0;
+	if (subset == CORNEOCYTE)
+		surface = getSurface(a_corneocyte, s_corneocyte, 3 * h_corneocyte);
+	else if (subset == LIPID)
+		surface = getSurface(a_lipid, s_lipid, 3 * h_lipid3);
+	else
+		UG_THROW("no valid subset given.");
+	return surface;
 }
 
 number TKDGeometryGenerator::getVolume(number a, number s, number h) const {
-	return 3 * sqrt(3) / 2 * a * a * h + 3 * a * h * s
-			+ 3 * sqrt(3) / 4 * s * s * h;
+	return (3.0 / 2.0) * sqrt(3.0) * a * a * h + 3.0 * a * h * s
+			+ (1.0 / 2.0) * sqrt(3.0) * s * s * h;
 }
 
 number TKDGeometryGenerator::getSurface(number a, number s, number h) const {
-	return 3 * a * a * sqrt(3) + 6 * a * sqrt(1. / 9 * h * h + s * s)
-			+ 6 * sqrt(1. / 9 * h * h + s * s / 4) * (2 * a + s * sqrt(3));
+	return 3.0 * sqrt(3.0) * a * a + 6.0 * a * sqrt(1.0 / 9.0 * h * h + s * s)
+			+ 6.0 * (2.0 * a + sqrt(3.0) * s)
+					* sqrt(1.0 / 9.0 * h * h + 1.0 / 4.0 * s * s);
 }
 
 const IndexArray& TKDGeometryGenerator::getIndices() const {
@@ -326,7 +371,7 @@ const CoordsArray& TKDGeometryGenerator::getPositions() const {
 }
 
 number TKDGeometryGenerator::getHeight() const {
-	return h_lipid * 3;
+	return h_lipid3 * 3;
 }
 
 number TKDGeometryGenerator::getOverlap() const {

@@ -11,7 +11,7 @@
 #include "common_typedefs.h"
 #include "rotation_matrix.h"
 
-namespace tkdGenerator {
+namespace tkd {
 
 enum axis {
 	xAxis = 0, yAxis, zAxis

@@ -8,7 +8,7 @@
 #ifndef VECCOMPARATOR_H_
 #define VECCOMPARATOR_H_
 
-namespace tkdGenerator {
+namespace tkd {
 
 struct vecComperator {
 

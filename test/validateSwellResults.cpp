@@ -9,7 +9,8 @@
 // parser
 #include <boost/spirit/include/classic.hpp>
 
-#include "../tetrakaidecahedron_generator.h"
+#include "../domain_generator.h"
+#include "../geometry_generator.h"
 #include "../util/volume_calculation.h"
 
 #include <vector>
@@ -64,11 +65,10 @@ bool parse_numbers(char const* str, vector<double>& v) {
 }
 
 BOOST_AUTO_TEST_CASE(validateSwellResults) {
-	// todo load csv file and parse it
 	vector<double> v;
 	vector<double>::iterator iter;
 
-	ifstream ifs("/home/marscher/workspace/ug4/data/tkdswell.csv");
+	ifstream ifs("/home/marscher/workspace/ug4/data/sols_a10_w30_h1_.csv");
 	char buff[255];
 	while (ifs.good()) {
 		ifs.getline(buff, 255);
@@ -77,33 +77,30 @@ BOOST_AUTO_TEST_CASE(validateSwellResults) {
 	ifs.close();
 	number dev_percentage = 3;
 
-	// todo generate tkds with given parameter
+	// load swell data from csv and generate geometries
 	for (iter = v.begin(); iter != v.end();) {
 		double alpha = *iter++;
 		double a = *iter++;
 		double h = *iter++;
 		double w = *iter++;
-		double vol = *(iter + 3);
-		double area = *(iter + 4);
-		bool w2a = (bool) *(iter + 5);
+		double d = 0.1;
 
-		iter += 6;
-		if (!w2a)
+		if (a < 0 || w < 0 || w < 2 * a || h < 0)
 			continue;
 
-		if (a < 0)
-			continue;
+//		alpha: 10 a: 1 h: 30 w: 10.0025a: 1 w: 10.0025 h: 30 dl: 0.1
+		//fixme führt zu a = 0 im tkd generator ...
 
-		a=10;
-		w=30;
-		h=24;
+		UG_LOG(
+				"alpha: " << alpha << " a: " << a << " h: " << h << " w: " << w);
 
-		BOOST_MESSAGE(
-				"alpha: " << alpha << " a: " << a << " h: " << h << " w: " << w << " vol: " << vol << " area: " << area);
 		Grid grid;
 		SubsetHandler sh(grid);
-		number d = 0.1;
-		tkdGenerator::createTKDDomain(grid, sh, a, w, h, d, 1, 1, 1);
+		tkd::TKDDomainGenerator gen(grid, sh);
+		gen.createTKDDomain(a,w,h,d);
+
+		number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
+
 		Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
 		// calc volume over all corneocyte volumes
@@ -137,18 +134,17 @@ BOOST_AUTO_TEST_CASE(validateSwellResults) {
 //				"lip index: " << lipidSubset << " name: "<< sh.get_subset_name(lipidSubset) << endl);
 //		UG_LOG("name_c: " << sh.get_subset_name(lipidSubset+1) << endl);
 
-		// subset index of corneocyte = lipid subset + 1
+// subset index of corneocyte = lipid subset + 1
 		number volTet = CalculateVolume(sh.begin<Volume>(lipidSubset + 1),
 				sh.end<Volume>(lipidSubset + 1), aaPos);
 		BOOST_CHECK_CLOSE(volTet, vol, dev_percentage);
 
-
 		// check that tetrahedron volume is close to volume calculated on orignal elements.
 		BOOST_CHECK_CLOSE(volTet, volCalcOnOrignal, dev_percentage);
 
-		stringstream s;
-		s << "/tmp/tkd/tkd_" << alpha << ".ugx";
-		SaveGridToFile(grid, sh, s.str().c_str());
-		break;
+//		stringstream s;
+//		s << "/tmp/tkd/tkd_" << alpha << ".ugx";
+//		SaveGridToFile(grid, sh, s.str().c_str());
+//		break;
 	}
 }
