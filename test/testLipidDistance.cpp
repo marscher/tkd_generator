@@ -4,17 +4,12 @@
  *  Created on: 10.01.2012
  *      Author: marscher
  */
-#define BOOST_AUTO_TEST_MAIN
-#define BOOST_TEST_MODULE testLipid
-
-// as this is the main, use included header to avoid linking
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 #include <boost/test/parameterized_test.hpp>
 
 #include "common/util/path_provider.h"
 #include "common/os_dependent/file_util.h"
 
-#include "fixtures/UGScriptingEnvFixture.h"
 #include "testHelper.h"
 #include "../domain_generator.h"
 
@@ -23,8 +18,6 @@
 
 using namespace boost::unit_test;
 using namespace tkd;
-
-BOOST_GLOBAL_FIXTURE(UGScriptingEnvFixture)
 
 BOOST_AUTO_TEST_SUITE(lipid)
 
@@ -40,11 +33,6 @@ void checkThickness(number a, number h, number w, number d_lipid) {
 	// create grid with new tkd generator
 	TKDDomainGenerator gen(grid, sh);
 	gen.createTKDDomain(a,w,h,d_lipid);
-
-//	TKDGeometryGenerator gen(h, a, w, d_lipid);
-//	gen.createGeometry();
-//	grid.attach_to_vertices(aPosition);
-//	createGridFromArrays(grid, sh, gen.getPositions(), gen.getIndices());
 
 	// calculate distances
 	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid);
@@ -63,17 +51,6 @@ void checkThickness(number a, number h, number w, number d_lipid) {
 	BOOST_CHECK_SMALL(delta, 10E-6);
 }
 
-//BOOST_AUTO_TEST_CASE(d_lipid_height_variable) {
-//	long count = 0;
-//	number a = 10, w = 30;
-//	for(number d_lipid = 0.001; d_lipid < 10; d_lipid += std::log(count)*0.1) {
-//		for(number h = 0.05; h < 20; h += std::log(count)*0.1) {
-//			checkThickness(a, h, w, d_lipid);
-//			count++;
-//		}
-//	}
-//}
-
 BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	number a = 10;
 	number h = sqrt(6) * a;
@@ -89,7 +66,6 @@ BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	// create grid with new tkd generator
 	gridNew.attach_to_vertices(aPosition);
 	gridOld.attach_to_vertices(aPosition);
-//	createGridFromArrays(gridNew, shnew, gen.getPositions(), gen.getIndices());
 
 	TKDDomainGenerator gen(gridNew,shnew);
 	gen.createTKDDomain(a,w,h,d_lipid);

@@ -4,25 +4,82 @@
  *  Created on: Mar 8, 2012
  *      Author: marscher
  */
+#include "validateSwellResults.h"
 
 #include <boost/test/unit_test.hpp>
 // parser
 #include <boost/spirit/include/classic.hpp>
+
+#include "../util/VTKOutputGrid.h"
 
 #include "../domain_generator.h"
 #include "../geometry_generator.h"
 #include "../util/volume_calculation.h"
 
 #include <vector>
-#include <string>
 #include <fstream>
+#include <string>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
-//using namespace boost;
 using namespace boost::spirit::classic;
 using namespace std;
 using namespace ug;
+
+struct gridFixture {
+	gridFixture() :
+			grid(VRTOPT_STORE_ASSOCIATED_FACES), sh(grid), gen(grid, sh) {
+		grid.attach_to_vertices(aPosition);
+		aaPos = Grid::VertexAttachmentAccessor<APosition>(grid, aPosition);
+	}
+
+	Grid grid;
+	SubsetHandler sh;
+	Grid::VertexAttachmentAccessor<APosition> aaPos;
+	tkd::TKDDomainGenerator gen;
+};
+
+number quadArea(const vector3& a, const vector3& b, const vector3& c,
+		const vector3&d) {
+	vector3 ab, ac, cross;
+	VecSubtract(ab, b, a);
+	VecSubtract(ac, c, a);
+	VecCross(cross, ab, ac);
+	return VecLength(cross);
+}
+
+/**
+ * calculates surface area of lipid = sum of triangles + sum of quads
+ * uses function quadArea.
+ */
+number calculateSurfaceArea(Grid& grid, SubsetHandler& sh,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
+	BOOST_CHECKPOINT("begin calc surface");
+	Selector sel(grid);
+
+	SelectBoundaryElements(sel, grid.begin<Face>(), grid.end<Face>());
+
+	number sum = 0;
+
+	for (FaceIterator iter = sel.begin<Face>(); iter != sel.end<Face>();
+			iter++) {
+		Face* f = *iter;
+
+		vector3 a, b, c;
+		a = aaPos[f->vertex(0)];
+		b = aaPos[f->vertex(1)];
+		c = aaPos[f->vertex(2)];
+		if (f->num_vertices() == 3) {
+			sum += TriangleArea(a, b, c);
+		} else if (f->num_vertices() == 4) {
+			vector3 d;
+			d = aaPos[f->vertex(3)];
+			sum += quadArea(a, b, c, d);
+		}
+	}
+	return sum;
+}
 
 /**
  * delete all volumes and keep surface areas of the 2 nested tkds,
@@ -64,87 +121,112 @@ bool parse_numbers(char const* str, vector<double>& v) {
 			space_p).full;
 }
 
-BOOST_AUTO_TEST_CASE(validateSwellResults) {
+void checkResults(int step, number a, number h, number w) {
+	gridFixture fix;
+	Grid& grid = fix.grid;
+	SubsetHandler& sh = fix.sh;
+	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
+	tkd::TKDDomainGenerator& gen = fix.gen;
+	gen.createTKDDomain(a, w, h, 0.1);
+
+	int dev_percentage = 1;
+
+	stringstream stream;
+//	stream << "/tmp/tkd/tkd_" << alpha << ".vtk";
+//	SaveGridToFile(grid, sh, stream.str().c_str());
+//	print_subset(&grid, sh, "/tmp/test.vtk", 0,1,0,true);
+	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/testvtk", aaPos, step));
+
+	number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
+	number area = gen.getGeometryGenerator().getSurface(LIPID);
+
+	number area_calc = calculateSurfaceArea(grid, sh, aaPos);
+
+	BOOST_CHECK_CLOSE(area_calc, area, dev_percentage);
+
+// calc volume over all corneocyte volumes
+	number volCalcOnOrignal = CalculateVolume(sh.begin<Volume>(CORNEOCYTE),
+			sh.end<Volume>(CORNEOCYTE), aaPos);
+//		UG_LOG("volume of corneocyte (org): " << volCalcOnOrignal << endl)
+
+	BOOST_CHECK_CLOSE(volCalcOnOrignal, vol, dev_percentage);
+
+// now tetrahedralize domain and meassure all tetrahedron volumes
+	eraseVolumes(grid, sh);
+// disable default subset assigning of generated tetrahedrons
+	sh.set_default_subset_index(-1);
+	BOOST_REQUIRE_MESSAGE( Tetrahedralize(grid, sh, 0, false, false, aPosition),
+			"tetrahedralize went wrong");
+// separate lipid and corneocyte subsets again
+	SeparateSubsetsByLowerDimSubsets<Volume>(grid, sh);
+
+	int lipidSubset = -1, corneocyteSubset = -1;
+	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
+			++iter) {
+		Face* f = *iter;
+		if (LiesOnBoundary(grid, f)) {
+			lipidSubset = sh.get_subset_index(f);
+//				UG_LOG("found boundary face" << endl);
+			sh.assign_subset(f, 2);
+			break;
+		}
+	}
+
+	if (lipidSubset == 0)
+		corneocyteSubset = lipidSubset + 1;
+	else if (lipidSubset == 1)
+		corneocyteSubset = lipidSubset - 1;
+
+	number volTet_c = CalculateVolume(sh.begin<Volume>(corneocyteSubset),
+			sh.end<Volume>(corneocyteSubset), aaPos);
+
+	number volTet_l = CalculateVolume(sh.begin<Volume>(lipidSubset),
+			sh.end<Volume>(lipidSubset), aaPos);
+
+	if (volTet_c < volTet_l) {
+		UG_LOG(
+				"swapping lipid and corneo volume of tetrahedralisation!" << endl)
+		swap(volTet_c, volTet_l);
+	}
+
+//		UG_LOG("volume of corneocyte(tet): " << volTet_c << endl)
+	BOOST_CHECK_CLOSE(volTet_c, vol, 1);
+
+// check that tetrahedron volume is close to volume calculated on orignal elements.
+	BOOST_CHECK_CLOSE(volTet_c, volCalcOnOrignal, dev_percentage);
+}
+
+boost::unit_test::test_suite* validateResultsTS(const char* file) {
+	boost::unit_test::test_suite* ts = BOOST_TEST_SUITE("validateResults");
+
+	ifstream ifs(file);
+	if (!ifs.good()) {
+		BOOST_MESSAGE("file not readable.");
+	}
+
 	vector<double> v;
 	vector<double>::iterator iter;
-
-	ifstream ifs("/home/marscher/workspace/ug4/data/sols_a10_w30_h1_.csv");
 	char buff[255];
+
 	while (ifs.good()) {
 		ifs.getline(buff, 255);
 		parse_numbers(buff, v);
 	}
 	ifs.close();
-	number dev_percentage = 3;
-
-	// load swell data from csv and generate geometries
-	for (iter = v.begin(); iter != v.end();) {
+	int step = 0;
+// load swell data from csv and generate geometries
+	for (iter = v.begin(); iter != v.end();step++) {
 		double alpha = *iter++;
 		double a = *iter++;
 		double h = *iter++;
-		double w = *iter++;
-		double d = 0.1;
+		double t = *iter++;
+		double asl = *iter++;
 
-		if (a < 0 || w < 0 || w < 2 * a || h < 0)
+		number s = h / 3 * t;
+		number w = (2 * sqrt(3) * a + 3 * s) / sqrt(3);
+		if (a < 0 || s < 0 || w < 0)
 			continue;
-
-//		alpha: 10 a: 1 h: 30 w: 10.0025a: 1 w: 10.0025 h: 30 dl: 0.1
-		//fixme führt zu a = 0 im tkd generator ...
-
-		UG_LOG(
-				"alpha: " << alpha << " a: " << a << " h: " << h << " w: " << w);
-
-		Grid grid;
-		SubsetHandler sh(grid);
-		tkd::TKDDomainGenerator gen(grid, sh);
-		gen.createTKDDomain(a,w,h,d);
-
-		number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
-
-		Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
-
-		// calc volume over all corneocyte volumes
-		number volCalcOnOrignal = CalculateVolume(sh.begin<Volume>(CORNEOCYTE),
-				sh.end<Volume>(CORNEOCYTE), aaPos);
-		// allow 1% deviance
-		BOOST_CHECK_CLOSE(volCalcOnOrignal, vol, dev_percentage);
-
-		// now tetrahedralize domain and meassure all tetrahedron volumes
-		eraseVolumes(grid, sh);
-		// disable default subset assigning of generated tetrahedrons
-		sh.set_default_subset_index(-1);
-		BOOST_REQUIRE_MESSAGE(
-				Tetrahedralize(grid, sh, 0, false, false, aPosition),
-				"tetrahedralize went wrong");
-		// separate lipid and corneocyte subsets again
-		SeparateSubsetsByLowerDimSubsets<Volume>(grid, sh);
-
-		// determine which subset index is lipid
-		int lipidSubset = -1;
-		for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-				++iter) {
-			Face* f = *iter;
-			if (LiesOnBoundary(grid, f)) {
-				lipidSubset = sh.get_subset_index(f);
-				break;
-			}
-		}
-
-//		UG_LOG(
-//				"lip index: " << lipidSubset << " name: "<< sh.get_subset_name(lipidSubset) << endl);
-//		UG_LOG("name_c: " << sh.get_subset_name(lipidSubset+1) << endl);
-
-// subset index of corneocyte = lipid subset + 1
-		number volTet = CalculateVolume(sh.begin<Volume>(lipidSubset + 1),
-				sh.end<Volume>(lipidSubset + 1), aaPos);
-		BOOST_CHECK_CLOSE(volTet, vol, dev_percentage);
-
-		// check that tetrahedron volume is close to volume calculated on orignal elements.
-		BOOST_CHECK_CLOSE(volTet, volCalcOnOrignal, dev_percentage);
-
-//		stringstream s;
-//		s << "/tmp/tkd/tkd_" << alpha << ".ugx";
-//		SaveGridToFile(grid, sh, s.str().c_str());
-//		break;
+		ts->add(BOOST_TEST_CASE(boost::bind(checkResults, step, a, h, w)));
 	}
+	return ts;
 }
