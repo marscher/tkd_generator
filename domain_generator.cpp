@@ -122,7 +122,6 @@ void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
 			shiftVectors.insert(tmp);
 		}
 	}
-
 }
 
 /**
@@ -173,10 +172,12 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 	//// fill the grid object with coordinates and indices
 	createGridFromArrays(geomGenerator->getPositions(),
 			geomGenerator->getIndices());
-	UG_LOG(
-			"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl << "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl);
+	UG_LOG(	"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
+			<< "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl
+			<< "Area of lipid: " << geomGenerator->getSurface(LIPID) << endl);
 	//// perform stacking
 	uint count = rows * cols * layers;
+
 	if (count > 1) {
 		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
 

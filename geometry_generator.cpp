@@ -12,10 +12,10 @@
 namespace tkd {
 using namespace std;
 
-TKDGeometryGenerator::TKDGeometryGenerator(number a,
-		number w, number h, number d_lipid) :
-		h_corneocyte(h / 3), a_corneocyte(a),
-				w_corneocyte(w), d_lipid(d_lipid), R(0), index(0) {
+TKDGeometryGenerator::TKDGeometryGenerator(number a, number w, number h,
+		number d_lipid) :
+		h_corneocyte(h / 3), a_corneocyte(a), w_corneocyte(w), d_lipid(d_lipid),
+				R(0), index(0) {
 	indsOut.reserve(702);
 	posOut.reserve(819);
 
@@ -28,7 +28,8 @@ TKDGeometryGenerator::TKDGeometryGenerator(number a,
 	number alpha = acos(w2a / (2 * a1));
 	number beta = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1 * sin(alpha)));
 	number gamma = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1));
-	UG_DLOG("geom", 0,  "alpha: " << alpha << " beta: " << beta << " gamma: " << gamma << endl)
+	UG_DLOG("geom", 0,
+			"alpha: " << alpha << " beta: " << beta << " gamma: " << gamma << endl)
 	number m1 = d_lipid / (2.0 * tan(beta / 2.0));
 	number m2 = d_lipid / (2.0 * tan(gamma / 2.0));
 
@@ -38,19 +39,7 @@ TKDGeometryGenerator::TKDGeometryGenerator(number a,
 	// height of lipid is full height of inner tkd + d_lipid
 	h_lipid3 = h_lipid / 3;
 
-	// fixme something is wrong in here...
-//	 Sqrt[1/3 ( (h^2 + 3 (w - 2 a)^2)/h^2 - 1)  ]* hl + 2 al
-	w_lipid =
-			2.0 * a_lipid
-					+ h_lipid
-							* sqrt(
-									1. / 3.
-											* ((h_corneocyte * h_corneocyte
-													+ 3.0 * w2a * w2a)
-													/ (h_corneocyte
-															* h_corneocyte) - 1));
-
-	UG_LOG("wc: " << w_corneocyte << "\twl: " << w_lipid << endl)
+	w_lipid = h_lipid * w2a / h + 2 * a_lipid;
 
 	s_lipid = (sqrt(3.0) / 3.0) * (w_lipid - 2 * a_lipid);
 
@@ -352,8 +341,11 @@ number TKDGeometryGenerator::getSurface(const int subset) const {
 }
 
 number TKDGeometryGenerator::getVolume(number a, number s, number h) const {
-	return (3.0 / 2.0) * sqrt(3.0) * a * a * h + 3.0 * a * h * s
-			+ (1.0 / 2.0) * sqrt(3.0) * s * s * h;
+	// validated.
+//	return (3.0 / 2.0) * sqrt(3.0) * a * a * h + 3.0 * a * h * s
+//			+ (1.0 / 2.0) * sqrt(3.0) * s * s * h;
+	number sq = sqrt(3) * a + s;
+	return 0.5 * sqrt(3) * h * sq * sq;
 }
 
 number TKDGeometryGenerator::getSurface(number a, number s, number h) const {

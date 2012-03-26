@@ -39,12 +39,12 @@ public:
 	void createTKDDomain(number a, number w, number h, number d_lipid,
 			int rows = 1, int cols = 1, int layers = 1);
 
-	TKDGeometryGenerator& getGeometryGenerator() const {
-		return *geomGenerator;
+	VertexAttachmentAccessor3d getVertexAttachmentAccessor() const {
+		return aaPos;
 	}
 
-	const VertexAttachmentAccessor3d& getVertexAttachmentAccessor() const {
-		return aaPos;
+	TKDGeometryGenerator& getGeometryGenerator() const {
+		return *geomGenerator;
 	}
 
 private:

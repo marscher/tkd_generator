@@ -28,9 +28,11 @@ set(SOURCES	plugin_main.cpp
 			util/volume_calculation.cpp)
 
 # sources test
-set(SOURCES_TEST test/testLipidDistance.cpp
+set(SOURCES_TEST test/testSuite.cpp
+                 test/testLipidDistance.cpp
 				 test/testVolume.cpp
-				 test/validateSwellResults.cpp)
+				 test/validateSwellResults.cpp
+				 util/VTKOutputGrid.cpp)
 
 # create a shared library from the sources and link it against ug4.
 add_library(TKDGenerator SHARED ${SOURCES})
