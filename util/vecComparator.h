@@ -7,35 +7,16 @@
 
 #ifndef VECCOMPARATOR_H_
 #define VECCOMPARATOR_H_
-
+#include "common/math/ugmath_types.h"
 namespace tkd {
 
-struct vecComperator {
+struct vecComparator {
 
 	// returns a < b
-	bool operator()(const vector3& a, const vector3& b) const {
-		
-		if (a.x < b.x - SMALL)
-			return true;
-		if (a.x > b.x + SMALL)
-			return false;
-
-		if (a.y < b.y - SMALL)
-			return true;
-		if (a.y > b.y + SMALL)
-			return false;
-
-		if (a.z < b.z - SMALL)
-			return true;
-		if (a.z > b.z + SMALL)
-			return false;
-
-		return false;
-	}
+	bool operator()(const ug::vector3& a, const ug::vector3& b) const;
 	
-	static const number SMALL = 10E-6;
+	static const number SMALL;
 };
-
 
 } /* namespace tkdGenerator */
 #endif /* VECCOMPARATOR_H_ */

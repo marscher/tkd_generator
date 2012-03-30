@@ -10,6 +10,7 @@
 // parser
 #include <boost/spirit/include/classic.hpp>
 
+#include <lib_grid/lib_grid.h>
 #include "../util/VTKOutputGrid.h"
 
 #include "../domain_generator.h"
@@ -18,18 +19,18 @@
 
 #include <vector>
 #include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
 #include <algorithm>
 
 using namespace boost::spirit::classic;
 using namespace std;
 using namespace ug;
 
+// percental allowed deviance of results with calculated values
+#define dev_percentage 0.5
+
 struct gridFixture {
 	gridFixture() :
-			grid(VRTOPT_STORE_ASSOCIATED_FACES), sh(grid), gen(grid, sh) {
+			grid(VRTOPT_STORE_ASSOCIATED_FACES), sh(grid)/*,gen(grid, sh)*/ {
 		grid.attach_to_vertices(aPosition);
 		aaPos = Grid::VertexAttachmentAccessor<APosition>(grid, aPosition);
 	}
@@ -37,8 +38,30 @@ struct gridFixture {
 	Grid grid;
 	SubsetHandler sh;
 	Grid::VertexAttachmentAccessor<APosition> aaPos;
-	tkd::TKDDomainGenerator gen;
-};
+//	tkd::TKDDomainGenerator gen;
+} domInstance;
+
+// fixme this does not work because of flipped fa
+void SelectCorneocyteBoundaryFaces(Selector& sel, SubsetHandler&sh) {
+
+	Grid& grid = *sel.grid();
+	vector<Face*> assocFaces;
+
+	// for all lipid volumes
+	for(VolumeIterator iter = sh.begin<Volume>(LIPID); iter!=sel.end<Volume>(LIPID);iter++) {
+		Volume* v = *iter;
+		// associated faces of v
+		CollectAssociated(assocFaces, grid, v);
+		for(uint i = 0; i < assocFaces.size(); i++) {
+			if(sh.get_subset_index(assocFaces[i]) == CORNEOCYTE)
+				sel.select(assocFaces[i]);
+		}
+	}
+
+
+	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), 2);
+	SaveGridToFile(grid,sh, "/tmp/test_Faces.ugx");
+}
 
 number quadArea(const vector3& a, const vector3& b, const vector3& c,
 		const vector3&d) {
@@ -53,12 +76,20 @@ number quadArea(const vector3& a, const vector3& b, const vector3& c,
  * calculates surface area of lipid = sum of triangles + sum of quads
  * uses function quadArea.
  */
-number calculateSurfaceArea(Grid& grid, SubsetHandler& sh,
+number calculateSurfaceArea(Grid& grid, SubsetHandler& sh, int subset,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
-	BOOST_CHECKPOINT("begin calc surface");
-	Selector sel(grid);
 
-	SelectBoundaryElements(sel, grid.begin<Face>(), grid.end<Face>());
+	Selector sel(grid);
+	if (subset == LIPID)
+		SelectBoundaryElements(sel, sh.begin<Face>(subset),
+				sh.end<Face>(subset));
+	else if (subset == CORNEOCYTE) {
+		//fixme select outer faces of inner tkd!
+//		SelectCorneocyteBoundaryFaces(sel, sh);
+		SelectInterfaceElements(sel, sh, sh.begin<Face>(LIPID), sh.end<Face>(LIPID));
+		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), 2);
+		SaveGridToFile(grid,sh, "/tmp/test_Faces.ugx");
+	}
 
 	number sum = 0;
 
@@ -73,8 +104,7 @@ number calculateSurfaceArea(Grid& grid, SubsetHandler& sh,
 		if (f->num_vertices() == 3) {
 			sum += TriangleArea(a, b, c);
 		} else if (f->num_vertices() == 4) {
-			vector3 d;
-			d = aaPos[f->vertex(3)];
+			vector3 d = aaPos[f->vertex(3)];
 			sum += quadArea(a, b, c, d);
 		}
 	}
@@ -121,43 +151,49 @@ bool parse_numbers(char const* str, vector<double>& v) {
 			space_p).full;
 }
 
-void checkResults(int step, number a, number h, number w) {
-	gridFixture fix;
-	Grid& grid = fix.grid;
-	SubsetHandler& sh = fix.sh;
-	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
-	tkd::TKDDomainGenerator& gen = fix.gen;
+//void saveToVTK(int step, number a, number h, number w) {
+//	gridFixture fix;
+//	Grid& grid = fix.grid;
+//	SubsetHandler& sh = fix.sh;
+//	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
+//	tkd::TKDDomainGenerator& gen = fix.gen;
+//	gen.createTKDDomain(a, w, h, 0.1, 2, 3, 1);
+//}
+
+void checkVolumeAndSurface(int step, number alpha, number first_vol,
+		number first_surface, number a, number h, number w) {
+	// now check volume and surface calculated with numerically determined results (1 tkd)
+	gridFixture gridInstance;
+	Grid& grid = gridInstance.grid;
+	SubsetHandler& sh = gridInstance.sh;
+	Grid::VertexAttachmentAccessor<APosition>& aaPos = gridInstance.aaPos;
+	tkd::TKDDomainGenerator gen(grid, sh);
 	gen.createTKDDomain(a, w, h, 0.1);
-
-	int dev_percentage = 1;
-
-	stringstream stream;
-//	stream << "/tmp/tkd/tkd_" << alpha << ".vtk";
-//	SaveGridToFile(grid, sh, stream.str().c_str());
-//	print_subset(&grid, sh, "/tmp/test.vtk", 0,1,0,true);
-	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/testvtk", aaPos, step));
+	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step));
+	stringstream ss ;
+	ss <<"/tmp/test" << alpha <<".ugx";
+	SaveGridToFile(grid,sh, ss.str().c_str());
 
 	number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
-	number area = gen.getGeometryGenerator().getSurface(LIPID);
+	number area = gen.getGeometryGenerator().getSurface(CORNEOCYTE);
 
-	number area_calc = calculateSurfaceArea(grid, sh, aaPos);
+	number area_calc = calculateSurfaceArea(grid, sh, CORNEOCYTE, aaPos);
 
 	BOOST_CHECK_CLOSE(area_calc, area, dev_percentage);
 
-// calc volume over all corneocyte volumes
+	// calc volume over all corneocyte volumes
 	number volCalcOnOrignal = CalculateVolume(sh.begin<Volume>(CORNEOCYTE),
 			sh.end<Volume>(CORNEOCYTE), aaPos);
-//		UG_LOG("volume of corneocyte (org): " << volCalcOnOrignal << endl)
 
 	BOOST_CHECK_CLOSE(volCalcOnOrignal, vol, dev_percentage);
 
-// now tetrahedralize domain and meassure all tetrahedron volumes
+	// now tetrahedralize domain and measure all tetrahedron volumes
 	eraseVolumes(grid, sh);
-// disable default subset assigning of generated tetrahedrons
+	// disable default subset assigning of generated tetrahedrons
 	sh.set_default_subset_index(-1);
-	BOOST_REQUIRE_MESSAGE( Tetrahedralize(grid, sh, 0, false, false, aPosition),
+	BOOST_REQUIRE_MESSAGE(Tetrahedralize(grid, sh, 0, false, false, aPosition),
 			"tetrahedralize went wrong");
-// separate lipid and corneocyte subsets again
+	// separate lipid and corneocyte subsets again
 	SeparateSubsetsByLowerDimSubsets<Volume>(grid, sh);
 
 	int lipidSubset = -1, corneocyteSubset = -1;
@@ -166,8 +202,7 @@ void checkResults(int step, number a, number h, number w) {
 		Face* f = *iter;
 		if (LiesOnBoundary(grid, f)) {
 			lipidSubset = sh.get_subset_index(f);
-//				UG_LOG("found boundary face" << endl);
-			sh.assign_subset(f, 2);
+//			sh.assign_subset(f, 2);
 			break;
 		}
 	}
@@ -189,19 +224,42 @@ void checkResults(int step, number a, number h, number w) {
 		swap(volTet_c, volTet_l);
 	}
 
-//		UG_LOG("volume of corneocyte(tet): " << volTet_c << endl)
 	BOOST_CHECK_CLOSE(volTet_c, vol, 1);
 
-// check that tetrahedron volume is close to volume calculated on orignal elements.
+	// check that tetrahedron volume is close to volume calculated on orignal elements.
 	BOOST_CHECK_CLOSE(volTet_c, volCalcOnOrignal, dev_percentage);
+
+	// check that volume / alpha stays constant.
+	BOOST_CHECK_CLOSE(volTet_c / alpha, first_vol, dev_percentage);
+
+	BOOST_CHECK_CLOSE(area_calc, first_surface, dev_percentage);
 }
 
-boost::unit_test::test_suite* validateResultsTS(const char* file) {
+void checkResults(int step, number alpha, number a, number h, number w) {
+	// first save results to vtk (2*3*1 tkds)
+//	saveToVTK(step, a, h, w);
+	static number alpha_1_volume = -1;
+	static number alpha_1_surface = -1;
+	static bool first_run = true;
+
+	if (first_run) {
+		tkd::TKDGeometryGenerator gen(a, w, h, 0.1);
+		alpha_1_volume = gen.getVolume(CORNEOCYTE);
+		alpha_1_surface = gen.getSurface(LIPID);
+		first_run = false;
+	}
+
+	checkVolumeAndSurface(step, alpha, alpha_1_volume, alpha_1_surface, a, h,
+			w);
+}
+
+boost::unit_test::test_suite* initValidateResultsTS(const char* file) {
 	boost::unit_test::test_suite* ts = BOOST_TEST_SUITE("validateResults");
 
 	ifstream ifs(file);
 	if (!ifs.good()) {
 		BOOST_MESSAGE("file not readable.");
+		return ts;
 	}
 
 	vector<double> v;
@@ -214,19 +272,28 @@ boost::unit_test::test_suite* validateResultsTS(const char* file) {
 	}
 	ifs.close();
 	int step = 0;
-// load swell data from csv and generate geometries
-	for (iter = v.begin(); iter != v.end();step++) {
+	// load swell data from csv and generate geometries
+	for (iter = v.begin(); iter != v.end(); step++) {
 		double alpha = *iter++;
 		double a = *iter++;
 		double h = *iter++;
 		double t = *iter++;
-		double asl = *iter++;
+//		double asl = *iter++;
+		iter++;
 
 		number s = h / 3 * t;
 		number w = (2 * sqrt(3) * a + 3 * s) / sqrt(3);
 		if (a < 0 || s < 0 || w < 0)
 			continue;
-		ts->add(BOOST_TEST_CASE(boost::bind(checkResults, step, a, h, w)));
+
+		boost::unit_test::test_case* tc =
+				BOOST_TEST_CASE(boost::bind(checkResults, step, alpha, a, h, w));
+
+		stringstream ss;
+		ss << "alpha=" << alpha << " a=" << a << " h=" << h << " w=" << w;
+		tc->p_name.set(ss.str());
+
+		ts->add(tc);
 	}
 	return ts;
 }

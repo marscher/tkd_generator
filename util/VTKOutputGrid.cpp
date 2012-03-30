@@ -4,13 +4,6 @@
  *  Created on: 23.03.2012
  *      Author: marscher
  */
-
-/*
- * VTKOutputGridGrid.h
- *
- *  Created on: 21.03.2012
- *      Author: marscher
- */
 #include "VTKOutputGrid.h"
 using namespace ug;
 

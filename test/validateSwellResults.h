@@ -9,6 +9,6 @@
 #define VALIDATESWELLRESULTS_H_
 #include <boost/test/unit_test.hpp>
 
-boost::unit_test::test_suite* validateResultsTS(const char* datafile);
+boost::unit_test::test_suite* initValidateResultsTS(const char* datafile);
 
 #endif /* VALIDATESWELLRESULTS_H_ */

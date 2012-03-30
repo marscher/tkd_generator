@@ -11,8 +11,6 @@
 #include "fixtures/UGScriptingEnvFixture.h"
 
 #include "validateSwellResults.h"
-//#include <iostream>
-//using namespace std;
 
 using namespace boost::unit_test;
 
@@ -25,7 +23,7 @@ init_unit_test_suite(int argc, char* argv[]) {
 	int i = ug::GetParamIndex("--datafile", argc, argv);
 	if (i > 0) {
 		const char* datafile = argv[i + 1];
-		framework::master_test_suite().add(validateResultsTS(datafile));
+		framework::master_test_suite().add(initValidateResultsTS(datafile));
 	}
 	return 0;
 }

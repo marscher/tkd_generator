@@ -23,9 +23,10 @@ include_directories("${UG_ROOT_PATH}/unit_tests/src")
 set(SOURCES	plugin_main.cpp
             domain_generator.cpp
             geometry_generator.cpp
-			rotation_matrix.cpp
-			geometric_helper.cpp
-			util/volume_calculation.cpp)
+			util/rotation_matrix.cpp
+			util/geometric_helper.cpp
+			util/volume_calculation.cpp
+			util/vecComparator.cpp)
 
 # sources test
 set(SOURCES_TEST test/testSuite.cpp

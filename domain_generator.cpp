@@ -9,11 +9,12 @@
 #include "test/testHelper.h"
 
 #include "lib_grid/lib_grid.h"
-#include "registry/registry.h"
 
 #include <map>
 
 namespace tkd {
+
+const number TKDDomainGenerator::removeDoublesThreshold = 10E-5;
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh) :
 		grid(grid), sh(sh) {
@@ -22,6 +23,21 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh) :
 				"ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 	grid.attach_to_vertices(aPosition);
+	aaPos.access(grid, aPosition);
+
+	// fixme is it possible to avoid deletion of faces of corneocyte during RemoveDoubles?
+	grid.set_options(GRIDOPT_FULL_INTERCONNECTION | GRIDOPT_AUTOGENERATE_SIDES);
+}
+
+void TKDDomainGenerator::setGridObject(Grid& grid, SubsetHandler& sh) {
+	if (&grid != sh.grid()) {
+		UG_THROW(
+				"ERROR: given SubsetHandler not assigned to given Grid instance.");
+	}
+
+	this->grid = grid;
+	this->sh = sh;
+	this->grid.attach_to_vertices(aPosition);
 	aaPos.access(grid, aPosition);
 }
 
@@ -87,8 +103,8 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
 		int subset) {
 	// collect faces associated to unique normal
-	map<vector3, vector<Face*>, vecComperator> facesByNormal;
-	map<vector3, vector<Face*>, vecComperator>::iterator fnIter;
+	map<vector3, vector<Face*>, vecComparator> facesByNormal;
+	map<vector3, vector<Face*>, vecComparator>::iterator fnIter;
 	vector3 normal, c1, c2;
 	for (FaceIterator iter = sh.begin<Face>(subset);
 			iter != sh.end<Face>(subset); iter++) {
@@ -155,8 +171,7 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
  */
 void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 		number d_lipid, int rows, int cols, int layers) {
-	UG_LOG(
-			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
+	UG_DLOG(APP, 1, "a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
 	if (w - 2 * a < 0)
 		UG_THROW("w > 2a geometric constraint not met!");
@@ -167,19 +182,19 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 	grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
 	grid.attach_to_vertices(aPosition);
 	//// create coordinates and vertex indices for 1 tetrakaidecahedron
-	setTKDGeometryGenerator(new TKDGeometryGenerator(a, w, h, d_lipid));
+	setTKDGeometryGenerator(a, w, h, d_lipid);
 	geomGenerator->createGeometry();
 	//// fill the grid object with coordinates and indices
 	createGridFromArrays(geomGenerator->getPositions(),
 			geomGenerator->getIndices());
-	UG_LOG(	"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
+	UG_DLOG(LogAssistant::APP, 1,	"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
 			<< "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl
 			<< "Area of lipid: " << geomGenerator->getSurface(LIPID) << endl);
 	//// perform stacking
 	uint count = rows * cols * layers;
 
 	if (count > 1) {
-		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
+		UG_DLOG(LogAssistant::APP, 1,"creating " << count << " cells with lipid matrix." << endl);
 
 		Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
@@ -218,8 +233,9 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 				VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL && VecLength(shiftRows) > SMALL,
 				"shifts not set correctly");
 
-		UG_LOG(
-				"shift vectors:\n" << "height: " << shiftHeight << "\tcols: " << shiftCols << "\trows: " << shiftRows << endl)
+		UG_DLOG(LogAssistant::APP, 1,
+				"shift vectors:\n" << "height: " << shiftHeight << "\tcols: " <<
+				shiftCols << "\trows: " << shiftRows << endl)
 
 		//// staple in height direction
 		vector3 offset_high(0, 0, 0);

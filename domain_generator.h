@@ -7,16 +7,12 @@
 #ifndef TETRAKAIDEKAEDER_GENERATOR_H_
 #define TETRAKAIDEKAEDER_GENERATOR_H_
 
-namespace tkd {
-class TKDDomainGenerator;
-class TKDGeometryGenerator;
-}
-
 #include "lib_grid/lib_grid.h"
 
 #include "common_typedefs.h"
 #include "util/vecComparator.h"
 #include "geometry_generator.h"
+
 #include <set>
 
 namespace tkd {
@@ -25,12 +21,16 @@ using namespace ug;
 using namespace std;
 
 class TKDDomainGenerator {
+
 	// unique vector set
-	typedef std::set<vector3, vecComperator> shiftSet;
+	typedef std::set<vector3, vecComparator> shiftSet;
 	// access 3d attachment of vertices
 	typedef Grid::VertexAttachmentAccessor<APosition> VertexAttachmentAccessor3d;
+
 public:
 	TKDDomainGenerator(Grid&, SubsetHandler&);
+
+	void setGridObject(Grid&, SubsetHandler&);
 
 	void setSubsetHandlerInfo(const char* corneocyte_name,
 			const char* lipid_name, const vector4& corneocyte_color,
@@ -43,7 +43,9 @@ public:
 		return aaPos;
 	}
 
-	TKDGeometryGenerator& getGeometryGenerator() const {
+	tkd::TKDGeometryGenerator& getGeometryGenerator() {
+		if(geomGenerator.get() == NULL)
+			geomGenerator.reset(new TKDGeometryGenerator());
 		return *geomGenerator;
 	}
 
@@ -52,18 +54,22 @@ private:
 	SubsetHandler& sh;
 	VertexAttachmentAccessor3d aaPos;
 	std::auto_ptr<TKDGeometryGenerator> geomGenerator;
-	static const number removeDoublesThreshold = 10E-5;
+	static const number removeDoublesThreshold;
 
 	void calculateShiftVector(shiftSet& shiftVectors, int subset = LIPID);
 
 	void createGridFromArrays(const CoordsArray& positions,
 			const IndexArray& indices);
 
-	void setTKDGeometryGenerator(TKDGeometryGenerator* gen) {
-		geomGenerator.reset(gen);
+	void setTKDGeometryGenerator(number a, number w, number h, number d_lipid) {
+		if (geomGenerator.get() == NULL)
+			geomGenerator.reset(new TKDGeometryGenerator(a, w, h, d_lipid));
+		else {
+			geomGenerator->setGeometricParams(a,w,h,d_lipid);
+		}
 	}
 }; // end of class
 
-} // end of namespace tkdGenerator
+}// end of namespace tkdGenerator
 
 #endif /* TETRAKAIDEKAEDER_GENERATOR_H_ */

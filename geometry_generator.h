@@ -8,13 +8,8 @@
 #ifndef GEOM_GENERATOR_H_
 #define GEOM_GENERATOR_H_
 
-namespace tkd {
-class TKDDomainGenerator;
-}
-
 #include "common_typedefs.h"
-#include "rotation_matrix.h"
-#include "domain_generator.h"
+#include "util/rotation_matrix.h"
 
 namespace tkd {
 
@@ -29,6 +24,12 @@ class TKDGeometryGenerator {
 
 public:
 	void createGeometry();
+
+	/**
+	 * creates an empty geometry generator. WARNING: this is not yet usable!
+	 * use setBaseEdgeLength(), setDiameter(), setHeight() and setLipidThickness()
+	 */
+	TKDGeometryGenerator();
 
 	/**
 	 * @param height
@@ -47,6 +48,13 @@ public:
 	const CoordsArray& getPositions() const;
 	number getHeight() const;
 	number getOverlap() const;
+
+	// setter
+	void setHeight(number height);
+	void setBaseEdgeLength(number a);
+	void setDiameter(number w);
+	void setLipidThickness(number d);
+	void setGeometricParams(number a, number w, number h, number d_lipid);
 
 protected:
 	/**
@@ -68,7 +76,7 @@ protected:
 	// base edge length of lipid matrix
 	number a_lipid;
 	// height of 1/3 of lipid matrix
-	number h_lipid3;
+	number h_lipid;
 	// quantity s, overlap of two aligned tkds with lipid matrix
 	number s_lipid;
 	number w_lipid;
@@ -93,6 +101,13 @@ protected:
 	 * inits base geometric parameters
 	 */
 	void initGeometricParams();
+
+	void updateOverlap(int subset);
+
+	void setLipidBaseEdgeLength();
+	void setLipidHeight();
+	void setLipidDiameter();
+	void setLipidParameters();
 
 	void createCorneocyte(const vector3&);
 	void createLipidMatrix(const vector3&, const number rotationOffset = 0,

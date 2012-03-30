@@ -10,18 +10,14 @@
 #include "lib_grid/lib_grid.h"
 #include "common/types.h"
 
-namespace tkd {
-class TKDDomainGenerator;
-class TKDGeometryGenerator;
-}
-
-#include "geometry_generator.h"
 #include "domain_generator.h"
+#include "geometry_generator.h"
 
 using namespace ug;
 
 // register tkd generator functions for usage in ug_script
 extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
+	UG_SET_DEBUG_LEVEL(LogAssistant::APP, 0);
 
 	std::string grp(parentGroup);
 	grp.append("tkd_generator/");
@@ -52,7 +48,7 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 			"corneocyte_name#lipid_name#corneocyte_color#lipid_color");
 
 	// register TKDGeometryGenerator& getGeometryGenerator() const
-	domgenC.add_method<geomGen& (domGen::*)(void) const>("GetGeometryGenerator",
+	domgenC.add_method<geomGen& (domGen::*)(void)>("GetGeometryGenerator",
 			&domGen::getGeometryGenerator,
 			"geometry generator used to build coordinate informations. \
 			 Also calcs volume and surface of single tkd");
