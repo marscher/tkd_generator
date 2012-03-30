@@ -8,7 +8,7 @@
 #ifndef _ROTATION_MATRIX_
 #define _ROTATION_MATRIX_
 
-#include "common_typedefs.h"
+#include "../common_typedefs.h"
 
 namespace tkd {
 
@@ -26,7 +26,7 @@ public:
 	void setMirrorZAxis(const bool);
 	void setAngle(const number& theta);
 	RotationMatrix(const number& theta = 0, const bool mirror = false);
-	vector3 operator*(const vector3& vector) const;
+	vector3 operator*(const vector3& v) const;
 };
 
 } // end of namespace

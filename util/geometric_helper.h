@@ -8,7 +8,7 @@
 #ifndef GEOMETRIC_HELPER_H_
 #define GEOMETRIC_HELPER_H_
 
-#include "common_typedefs.h"
+#include "../common_typedefs.h"
 #include "rotation_matrix.h"
 
 namespace tkd {
@@ -17,7 +17,13 @@ enum axis {
 	xAxis = 0, yAxis, zAxis
 };
 
+enum {
+	CLEAR=0
+};
+
 CoordsArray& operator<<(CoordsArray& array, const vector3& vector);
+CoordsArray& operator<<(CoordsArray& array, const int clear);
+
 std::ostream& operator<<(std::ostream& out, const CoordsArray& arr);
 
 vector3 mirror(const vector3& vec, const int axis);
@@ -32,7 +38,7 @@ class myTransform {
 public:
 	myTransform(RotationMatrix& R, const vector3& origin) :
 		m_R(R), m_origin(origin) {};
-	const vector3 perform(const vector3&);
+	const vector3 perform(const vector3&) const;
 	CoordsArray perform(const CoordsArray&);
 protected:
 	RotationMatrix& m_R;

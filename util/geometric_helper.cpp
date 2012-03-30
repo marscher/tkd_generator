@@ -17,7 +17,7 @@ namespace tkd {
  * note: v' is a copy. The transformation creates a new instance
  * @param v vector to transform
  */
-const vector3 myTransform::perform(const vector3& v) {
+const vector3 myTransform::perform(const vector3& v) const {
 	return (m_R * v) += m_origin;
 }
 
@@ -34,6 +34,14 @@ CoordsArray myTransform::perform(const CoordsArray& coords) {
  */
 CoordsArray& operator<<(CoordsArray& array, const vector3& vector) {
 	array.push_back(vector);
+	return array;
+}
+
+/**
+ * clears the vector in operator << style
+ */
+CoordsArray& operator<<(CoordsArray& array, const int clear) {
+	array.clear();
 	return array;
 }
 
