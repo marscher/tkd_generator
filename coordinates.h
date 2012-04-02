@@ -5,10 +5,13 @@
 #include <cmath>
 #include <vector>
 namespace tkd {
-using std::vector;
+
 
 void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
-		number width, number d_lipid, const vector3& offset) {
+		number width, number d_lipid, const ug::vector3& offset) {
+	using ug::vector3;
+	using std::vector;
+
 	const number b = sqrt(3);
 	// corneocyte outer points
 	CoordsArray c(38);

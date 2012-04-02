@@ -49,6 +49,23 @@ public:
 		return *geomGenerator;
 	}
 
+	/// helper functions for registry to get subset indices
+	static int getLipidIndex() {
+		return LIPID;
+	}
+
+	static int getCorneocyteIndex() {
+		return CORNEOCYTE;
+	}
+
+	static int getCorneocyteBoundaryIndex() {
+		return BOUNDARY_CORN;
+	}
+
+	static int getLipidBoundaryIndex() {
+		return BOUNDARY_LIPID;
+	}
+
 private:
 	Grid& grid;
 	SubsetHandler& sh;
@@ -56,7 +73,7 @@ private:
 	std::auto_ptr<TKDGeometryGenerator> geomGenerator;
 	static const number removeDoublesThreshold;
 
-	void calculateShiftVector(shiftSet& shiftVectors, int subset = LIPID);
+	void calculateShiftVector(shiftSet& shiftVectors);
 
 	void createGridFromArrays(const CoordsArray& positions,
 			const IndexArray& indices);

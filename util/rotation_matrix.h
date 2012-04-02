@@ -21,12 +21,12 @@ namespace tkd {
  |                   |
  +  0        0      1+
  */
-class RotationMatrix : public matrix33 {
+class RotationMatrix : public ug::matrix33 {
 public:
 	void setMirrorZAxis(const bool);
 	void setAngle(const number& theta);
 	RotationMatrix(const number& theta = 0, const bool mirror = false);
-	vector3 operator*(const vector3& v) const;
+	ug::vector3 operator*(const ug::vector3& v) const;
 };
 
 } // end of namespace

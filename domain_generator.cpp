@@ -94,25 +94,37 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 	// remove double vertices
 	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
 			aPosition, removeDoublesThreshold);
+
+	sh.assign_subset(grid.begin<VertexBase>(), grid.end<VertexBase>(), -1);
+	sh.assign_subset(grid.begin<EdgeBase>(), grid.end<EdgeBase>(), -1);
+	sh.assign_subset(grid.begin<Face>(), grid.end<Face>(), -1);
+
+	// todo parameterize selector
+	Selector sel(grid);
+	SelectInterfaceElements(sel, sh, grid.begin<Face>(), grid.end<Face>());
+	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_CORN);
+
+	sel.clear();
+	SelectBoundaryElements(sel, sh.begin<Face>(LIPID), sh.end<Face>(LIPID));
+	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_LIPID);
+
+	AdjustSubsetsForSimulation(sh, true);
 }
 
 /**
  * calculates three vectors for stacking the tkds.
  * Each vector points in the direction defined by the centers of two parallel hexagons.
  */
-void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
-		int subset) {
+void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors) {
 	// collect faces associated to unique normal
 	map<vector3, vector<Face*>, vecComparator> facesByNormal;
 	map<vector3, vector<Face*>, vecComparator>::iterator fnIter;
 	vector3 normal, c1, c2;
-	for (FaceIterator iter = sh.begin<Face>(subset);
-			iter != sh.end<Face>(subset); iter++) {
+	for (FaceIterator iter = sh.begin<Face>(BOUNDARY_LIPID);
+			iter != sh.end<Face>(BOUNDARY_LIPID); iter++) {
 		Face* face = *iter;
-		if (IsBoundaryFace3D(grid, face)) {
 			CalculateNormal(normal, face, aaPos);
 			facesByNormal[normal].push_back(face);
-		}
 	}
 
 	// find 2 parallel hexagons and calculate vector through their centers,
@@ -156,6 +168,18 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
 	sh.subset_info(LIPID).name = lipid_name;
 	sh.subset_info(LIPID).color = lipid_color;
 	sh.subset_info(CORNEOCYTE).color = corneocyte_color;
+
+
+	// set subset boundary infos
+	vector4 boundary_color_lipid, boundary_color_corneo;
+	VecMultiply(boundary_color_lipid, lipid_color, 0.6);
+	VecMultiply(boundary_color_corneo, corneocyte_color, 0.6);
+
+	sh.subset_info(BOUNDARY_CORN).name = "boundary corneocytes";
+	sh.subset_info(BOUNDARY_CORN).color = boundary_color_corneo;
+
+	sh.subset_info(BOUNDARY_LIPID).name = "boundary lipid";
+	sh.subset_info(BOUNDARY_LIPID).color = boundary_color_lipid;
 }
 
 /**
@@ -171,7 +195,8 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
  */
 void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 		number d_lipid, int rows, int cols, int layers) {
-	UG_DLOG(APP, 1, "a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
+	UG_DLOG(APP, 1,
+			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
 	if (w - 2 * a < 0)
 		UG_THROW("w > 2a geometric constraint not met!");
@@ -187,14 +212,16 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 	//// fill the grid object with coordinates and indices
 	createGridFromArrays(geomGenerator->getPositions(),
 			geomGenerator->getIndices());
-	UG_DLOG(LogAssistant::APP, 1,	"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
+	UG_DLOG(LogAssistant::APP, 1,
+			"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
 			<< "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl
 			<< "Area of lipid: " << geomGenerator->getSurface(LIPID) << endl);
 	//// perform stacking
 	uint count = rows * cols * layers;
 
 	if (count > 1) {
-		UG_DLOG(LogAssistant::APP, 1,"creating " << count << " cells with lipid matrix." << endl);
+		UG_DLOG(LogAssistant::APP, 1,
+				"creating " << count << " cells with lipid matrix." << endl);
 
 		Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
 
@@ -234,8 +261,8 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 				"shifts not set correctly");
 
 		UG_DLOG(LogAssistant::APP, 1,
-				"shift vectors:\n" << "height: " << shiftHeight << "\tcols: " <<
-				shiftCols << "\trows: " << shiftRows << endl)
+				"shift vectors:\n" << "height: " << shiftHeight << "\tcols: "
+				<< shiftCols << "\trows: " << shiftRows << endl)
 
 		//// staple in height direction
 		vector3 offset_high(0, 0, 0);

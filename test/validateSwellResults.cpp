@@ -13,6 +13,7 @@
 #include <lib_grid/lib_grid.h>
 #include "../util/VTKOutputGrid.h"
 
+#include "../common_typedefs.h"
 #include "../domain_generator.h"
 #include "../geometry_generator.h"
 #include "../util/volume_calculation.h"
@@ -30,7 +31,7 @@ using namespace ug;
 
 struct gridFixture {
 	gridFixture() :
-			grid(VRTOPT_STORE_ASSOCIATED_FACES), sh(grid)/*,gen(grid, sh)*/ {
+			grid(VRTOPT_STORE_ASSOCIATED_FACES | FACEOPT_STORE_ASSOCIATED_VOLUMES), sh(grid) {
 		grid.attach_to_vertices(aPosition);
 		aaPos = Grid::VertexAttachmentAccessor<APosition>(grid, aPosition);
 	}
@@ -38,30 +39,7 @@ struct gridFixture {
 	Grid grid;
 	SubsetHandler sh;
 	Grid::VertexAttachmentAccessor<APosition> aaPos;
-//	tkd::TKDDomainGenerator gen;
 } domInstance;
-
-// fixme this does not work because of flipped fa
-void SelectCorneocyteBoundaryFaces(Selector& sel, SubsetHandler&sh) {
-
-	Grid& grid = *sel.grid();
-	vector<Face*> assocFaces;
-
-	// for all lipid volumes
-	for(VolumeIterator iter = sh.begin<Volume>(LIPID); iter!=sel.end<Volume>(LIPID);iter++) {
-		Volume* v = *iter;
-		// associated faces of v
-		CollectAssociated(assocFaces, grid, v);
-		for(uint i = 0; i < assocFaces.size(); i++) {
-			if(sh.get_subset_index(assocFaces[i]) == CORNEOCYTE)
-				sel.select(assocFaces[i]);
-		}
-	}
-
-
-	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), 2);
-	SaveGridToFile(grid,sh, "/tmp/test_Faces.ugx");
-}
 
 number quadArea(const vector3& a, const vector3& b, const vector3& c,
 		const vector3&d) {
@@ -80,16 +58,7 @@ number calculateSurfaceArea(Grid& grid, SubsetHandler& sh, int subset,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos) {
 
 	Selector sel(grid);
-	if (subset == LIPID)
-		SelectBoundaryElements(sel, sh.begin<Face>(subset),
-				sh.end<Face>(subset));
-	else if (subset == CORNEOCYTE) {
-		//fixme select outer faces of inner tkd!
-//		SelectCorneocyteBoundaryFaces(sel, sh);
-		SelectInterfaceElements(sel, sh, sh.begin<Face>(LIPID), sh.end<Face>(LIPID));
-		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), 2);
-		SaveGridToFile(grid,sh, "/tmp/test_Faces.ugx");
-	}
+	SelectSubsetElements<Face>(sel, sh, subset);
 
 	number sum = 0;
 
@@ -97,17 +66,17 @@ number calculateSurfaceArea(Grid& grid, SubsetHandler& sh, int subset,
 			iter++) {
 		Face* f = *iter;
 
-		vector3 a, b, c;
-		a = aaPos[f->vertex(0)];
-		b = aaPos[f->vertex(1)];
-		c = aaPos[f->vertex(2)];
+		vector3& a = aaPos[f->vertex(0)];
+		vector3& b = aaPos[f->vertex(1)];
+		vector3& c = aaPos[f->vertex(2)];
 		if (f->num_vertices() == 3) {
 			sum += TriangleArea(a, b, c);
 		} else if (f->num_vertices() == 4) {
-			vector3 d = aaPos[f->vertex(3)];
+			vector3& d = aaPos[f->vertex(3)];
 			sum += quadArea(a, b, c, d);
 		}
 	}
+
 	return sum;
 }
 
@@ -167,17 +136,19 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	Grid& grid = gridInstance.grid;
 	SubsetHandler& sh = gridInstance.sh;
 	Grid::VertexAttachmentAccessor<APosition>& aaPos = gridInstance.aaPos;
+
 	tkd::TKDDomainGenerator gen(grid, sh);
 	gen.createTKDDomain(a, w, h, 0.1);
+
 	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step));
-	stringstream ss ;
-	ss <<"/tmp/test" << alpha <<".ugx";
-	SaveGridToFile(grid,sh, ss.str().c_str());
+//	stringstream ss;
+//	ss << "/tmp/test" << alpha << ".ugx";
+//	SaveGridToFile(grid, sh, ss.str().c_str());
 
 	number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
 	number area = gen.getGeometryGenerator().getSurface(CORNEOCYTE);
 
-	number area_calc = calculateSurfaceArea(grid, sh, CORNEOCYTE, aaPos);
+	number area_calc = calculateSurfaceArea(grid, sh, BOUNDARY_CORN, aaPos);
 
 	BOOST_CHECK_CLOSE(area_calc, area, dev_percentage);
 
@@ -197,20 +168,24 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	SeparateSubsetsByLowerDimSubsets<Volume>(grid, sh);
 
 	int lipidSubset = -1, corneocyteSubset = -1;
-	for (FaceIterator iter = grid.begin<Face>(); iter != grid.end<Face>();
-			++iter) {
+
+	std::vector<Volume*> vols;
+	std::vector<Volume*>::iterator voliter;
+
+	// determine subset index of lipid matrix
+	for (FaceIterator iter = sh.begin<Face>(BOUNDARY_LIPID);
+			iter != sh.end<Face>(BOUNDARY_LIPID); ++iter) {
 		Face* f = *iter;
 		if (LiesOnBoundary(grid, f)) {
-			lipidSubset = sh.get_subset_index(f);
-//			sh.assign_subset(f, 2);
-			break;
+			CollectAssociated(vols, grid, f);
+			lipidSubset = sh.get_subset_index(vols[0]);
 		}
 	}
 
 	if (lipidSubset == 0)
-		corneocyteSubset = lipidSubset + 1;
+		corneocyteSubset = 1;
 	else if (lipidSubset == 1)
-		corneocyteSubset = lipidSubset - 1;
+		corneocyteSubset = 0;
 
 	number volTet_c = CalculateVolume(sh.begin<Volume>(corneocyteSubset),
 			sh.end<Volume>(corneocyteSubset), aaPos);
@@ -218,11 +193,11 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	number volTet_l = CalculateVolume(sh.begin<Volume>(lipidSubset),
 			sh.end<Volume>(lipidSubset), aaPos);
 
-	if (volTet_c < volTet_l) {
-		UG_LOG(
-				"swapping lipid and corneo volume of tetrahedralisation!" << endl)
-		swap(volTet_c, volTet_l);
-	}
+//	if (volTet_c < volTet_l) {
+//		UG_LOG(
+//				"swapping lipid and corneo volume of tetrahedralisation!" << endl)
+//		swap(volTet_c, volTet_l);
+//	}
 
 	BOOST_CHECK_CLOSE(volTet_c, vol, 1);
 
@@ -245,7 +220,7 @@ void checkResults(int step, number alpha, number a, number h, number w) {
 	if (first_run) {
 		tkd::TKDGeometryGenerator gen(a, w, h, 0.1);
 		alpha_1_volume = gen.getVolume(CORNEOCYTE);
-		alpha_1_surface = gen.getSurface(LIPID);
+		alpha_1_surface = gen.getSurface(CORNEOCYTE);
 		first_run = false;
 	}
 

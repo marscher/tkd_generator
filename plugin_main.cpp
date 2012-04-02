@@ -47,6 +47,15 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 			"set SubsetHandler informations (name, color) for corneocytes and lipid matrix",
 			"corneocyte_name#lipid_name#corneocyte_color#lipid_color");
 
+	// todo register helper functions for subset indices
+//	domgenC.add_method("getCorneocyteIndex",
+//				&domGen::getCorneocyteIndex,
+//				"Get subset index for corneocytes");
+//
+//	domgenC.add_method("getLipidIndex",
+//				&domGen::getLipidIndex,
+//				"Get subset index for lipid matrix");
+
 	// register TKDGeometryGenerator& getGeometryGenerator() const
 	domgenC.add_method<geomGen& (domGen::*)(void)>("GetGeometryGenerator",
 			&domGen::getGeometryGenerator,

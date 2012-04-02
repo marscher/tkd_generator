@@ -10,7 +10,8 @@
 #include <algorithm>
 
 namespace tkd {
-using namespace std;
+
+const ug::vector3 TKDGeometryGenerator::origin(0, 0, 0);
 
 TKDGeometryGenerator::TKDGeometryGenerator() :
 		R(0), index(0) {
@@ -28,7 +29,7 @@ TKDGeometryGenerator::TKDGeometryGenerator(number a, number w, number h,
  * @param offset
  * @param rotationOffset
  */
-void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
+void TKDGeometryGenerator::createCorneocyteTop(const ug::vector3& offset,
 		const number rotationOffset, bool bottom) {
 
 	// if we are creating the bottom part, flip orientation of all volumes
@@ -83,7 +84,7 @@ void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
 	}
 }
 
-void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
+void TKDGeometryGenerator::createCorneocyteMiddle(const ug::vector3& origin) {
 	myTransform t(R, origin);
 
 	for (int r = 0; r < 360; r += 60) {
@@ -124,7 +125,7 @@ void TKDGeometryGenerator::createGeometry() {
 	// init basic volume coordinates
 	initGeometricParams();
 
-	vector3 offset(0, 0, h_corneocyte / 2);
+	ug::vector3 offset(0, 0, h_corneocyte / 2);
 	createCorneocyte(offset);
 
 	RotationMatrix R(60);
@@ -140,10 +141,10 @@ void TKDGeometryGenerator::createGeometry() {
 /**
  * creates a tkd starting construction with offset. Construction is performed down the z axis
  */
-void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
+void TKDGeometryGenerator::createCorneocyte(const ug::vector3& offset) {
 	createCorneocyteTop(offset, 0);
 
-	vector3 offset_h(offset.x, offset.y, offset.z - h_corneocyte);
+	ug::vector3 offset_h(offset.x, offset.y, offset.z - h_corneocyte);
 
 	createCorneocyteMiddle(offset_h);
 
@@ -152,7 +153,7 @@ void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
 	createCorneocyteTop(offset_h, 60, true);
 }
 
-void TKDGeometryGenerator::createLipidMatrix(const vector3& offset,
+void TKDGeometryGenerator::createLipidMatrix(const ug::vector3& offset,
 		const number rotationOffset, bool bottom) {
 
 	if (bottom) {
@@ -197,6 +198,8 @@ void TKDGeometryGenerator::createLipidMatrix(const vector3& offset,
 void TKDGeometryGenerator::initGeometricParams() {
 	indsOut.reserve(702);
 	posOut.reserve(819);
+
+	using ug::vector3;
 
 	// height of base triangle of top inner prism
 	number g_cornoecyte = sqrt(3) * a_corneocyte / 2;
@@ -379,21 +382,21 @@ void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
 
 void TKDGeometryGenerator::flipOrientationPrism(CoordsArray& prismPos) {
 	UG_ASSERT(prismPos.size() == Prism, "no prism given.");
-	swap(prismPos[0], prismPos[3]);
-	swap(prismPos[1], prismPos[4]);
-	swap(prismPos[2], prismPos[5]);
+	std::swap(prismPos[0], prismPos[3]);
+	std::swap(prismPos[1], prismPos[4]);
+	std::swap(prismPos[2], prismPos[5]);
 }
 
 void TKDGeometryGenerator::flipOrientationTetrahedron(
 		CoordsArray& tetrahedronPos) {
 	UG_ASSERT(tetrahedronPos.size() == Tetrahedron, "no tetrahedron given.");
-	swap(tetrahedronPos[0], tetrahedronPos[2]);
+	std::swap(tetrahedronPos[0], tetrahedronPos[2]);
 }
 
 void TKDGeometryGenerator::flipOrientationPyramid(CoordsArray& pyramidPos) {
 	UG_ASSERT(pyramidPos.size() == Pyramid, "no pyramid given.");
-	swap(pyramidPos[0], pyramidPos[3]);
-	swap(pyramidPos[1], pyramidPos[2]);
+	std::swap(pyramidPos[0], pyramidPos[3]);
+	std::swap(pyramidPos[1], pyramidPos[2]);
 }
 
 void TKDGeometryGenerator::setHeight(number height) {
@@ -444,7 +447,7 @@ void TKDGeometryGenerator::setLipidBaseEdgeLength() {
 	number gamma = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1));
 
 	UG_DLOG(LogAssistant::APP, 1,
-			"alpha: " << alpha << " beta: " << beta << " gamma: " << gamma << endl)
+			"alpha: " << alpha << " beta: " << beta << " gamma: " << gamma << std::endl)
 
 	number m1 = d_lipid / (2.0 * tan(beta / 2.0));
 	number m2 = d_lipid / (2.0 * tan(gamma / 2.0));
@@ -469,15 +472,15 @@ void TKDGeometryGenerator::setLipidParameters() {
 	updateOverlap (LIPID);
 
 	UG_DLOG(LogAssistant::APP, 1,
-			"a_l: " << a_lipid << " w_l: " << w_lipid << " s_l: " << s_lipid << endl);
+			"a_l: " << a_lipid << " w_l: " << w_lipid << " s_l: " << s_lipid << std::endl);
 }
 
 void TKDGeometryGenerator::flipOrientationHexahedron(CoordsArray& hexaPos) {
 	UG_ASSERT(hexaPos.size() == Hexahedron, "no hexahedron given.");
-	swap(hexaPos[0], hexaPos[4]);
-	swap(hexaPos[1], hexaPos[5]);
-	swap(hexaPos[2], hexaPos[6]);
-	swap(hexaPos[3], hexaPos[7]);
+	std::swap(hexaPos[0], hexaPos[4]);
+	std::swap(hexaPos[1], hexaPos[5]);
+	std::swap(hexaPos[2], hexaPos[6]);
+	std::swap(hexaPos[3], hexaPos[7]);
 }
 
 } // end of namespace tkdGenerator

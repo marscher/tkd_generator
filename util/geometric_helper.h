@@ -21,28 +21,28 @@ enum {
 	CLEAR=0
 };
 
-CoordsArray& operator<<(CoordsArray& array, const vector3& vector);
+CoordsArray& operator<<(CoordsArray& array, const ug::vector3& vector);
 CoordsArray& operator<<(CoordsArray& array, const int clear);
 
 std::ostream& operator<<(std::ostream& out, const CoordsArray& arr);
 
-vector3 mirror(const vector3& vec, const int axis);
+ug::vector3 mirror(const ug::vector3& vec, const int axis);
 CoordsArray mirror(const CoordsArray& coords, const int axis);
 
-vector3 translate(const vector3& vec, const vector3& offset);
-CoordsArray translate(const CoordsArray&, const vector3& offset);
+ug::vector3 translate(const ug::vector3& vec, const ug::vector3& offset);
+CoordsArray translate(const CoordsArray&, const ug::vector3& offset);
 
-//void reflect(vector3& vOut, const vector3& v, const vector3& l, const number& c);
+//void reflect(ug::vector3& vOut, const ug::vector3& v, const ug::vector3& l, const number& c);
 
 class myTransform {
 public:
-	myTransform(RotationMatrix& R, const vector3& origin) :
+	myTransform(RotationMatrix& R, const ug::vector3& origin) :
 		m_R(R), m_origin(origin) {};
-	const vector3 perform(const vector3&) const;
+	const ug::vector3 perform(const ug::vector3&) const;
 	CoordsArray perform(const CoordsArray&);
 protected:
 	RotationMatrix& m_R;
-	const vector3& m_origin;
+	const ug::vector3& m_origin;
 };
 
 }
