@@ -38,12 +38,26 @@ public:
 	TKDGeometryGenerator(number a, number w, number height,
 			number d_lipid);
 
+	/**
+	 * gets volume of given subset
+	 */
 	number getVolume(const int subset = LIPID) const;
-	number getVolume(number a, number s, number h) const;
+	/**
+	 * calculates volume for given geometrical parameters
+	 */
+	static number getVolume(number a, number s, number h);
+	/**
+	 * gets surface for given subset
+	 */
 	number getSurface(const int subset = LIPID) const;
-	number getSurface(number a, number s, number h) const;
+	/**
+	 * calculates surface for given geometrical parameters
+	 */
+	static number getSurface(number a, number s, number h);
+
 	const IndexArray& getIndices() const;
 	const CoordsArray& getPositions() const;
+
 	number getHeight() const;
 	number getOverlap() const;
 

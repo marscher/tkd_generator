@@ -25,8 +25,7 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh) :
 	grid.attach_to_vertices(aPosition);
 	aaPos.access(grid, aPosition);
 
-	// fixme is it possible to avoid deletion of faces of corneocyte during RemoveDoubles?
-	grid.set_options(GRIDOPT_FULL_INTERCONNECTION | GRIDOPT_AUTOGENERATE_SIDES);
+	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
 void TKDDomainGenerator::setGridObject(Grid& grid, SubsetHandler& sh) {
@@ -39,6 +38,7 @@ void TKDDomainGenerator::setGridObject(Grid& grid, SubsetHandler& sh) {
 	this->sh = sh;
 	this->grid.attach_to_vertices(aPosition);
 	aaPos.access(grid, aPosition);
+	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
 /**

@@ -312,36 +312,32 @@ void TKDGeometryGenerator::initGeometricParams() {
 }
 
 number TKDGeometryGenerator::getVolume(const int subset) const {
-	number vol = 0;
 	if (subset == CORNEOCYTE)
-		vol = getVolume(a_corneocyte, s_corneocyte, 3.0 * h_corneocyte);
+		return getVolume(a_corneocyte, s_corneocyte, 3.0 * h_corneocyte);
 	else if (subset == LIPID) {
-		number volLipid = getVolume(a_lipid, s_lipid, 3.0 * h_lipid);
-		number volCorneo = getVolume(a_corneocyte, s_corneocyte,
-				3.0 * h_corneocyte);
-		vol = volLipid - volCorneo;
+		return getVolume(a_lipid, s_lipid, 3.0 * h_lipid)
+				- getVolume(CORNEOCYTE);
 	} else
 		UG_THROW("no valid subset given.");
-	return vol;
+	return 0;
 }
 
 number TKDGeometryGenerator::getSurface(const int subset) const {
-	number surface = 0;
 	if (subset == CORNEOCYTE)
-		surface = getSurface(a_corneocyte, s_corneocyte, 3 * h_corneocyte);
+		return getSurface(a_corneocyte, s_corneocyte, 3 * h_corneocyte);
 	else if (subset == LIPID)
-		surface = getSurface(a_lipid, s_lipid, 3 * h_lipid);
+		return getSurface(a_lipid, s_lipid, 3 * h_lipid);
 	else
 		UG_THROW("no valid subset given.");
-	return surface;
+	return 0;
 }
 
-number TKDGeometryGenerator::getVolume(number a, number s, number h) const {
+number TKDGeometryGenerator::getVolume(number a, number s, number h) {
 	number sq = sqrt(3) * a + s;
 	return 0.5 * sqrt(3) * h * sq * sq;
 }
 
-number TKDGeometryGenerator::getSurface(number a, number s, number h) const {
+number TKDGeometryGenerator::getSurface(number a, number s, number h) {
 	return 3.0 * sqrt(3.0) * a * a + 6.0 * a * sqrt(1.0 / 9.0 * h * h + s * s)
 			+ 6.0 * (2.0 * a + sqrt(3.0) * s)
 					* sqrt(1.0 / 9.0 * h * h + 1.0 / 4.0 * s * s);
@@ -430,11 +426,16 @@ void TKDGeometryGenerator::setGeometricParams(number a, number w, number h,
 }
 
 void TKDGeometryGenerator::updateOverlap(int subset) {
-	if (subset == CORNEOCYTE)
+	if (subset == CORNEOCYTE) {
 		this->s_corneocyte = (sqrt(3.0) / 3.0)
 				* (w_corneocyte - 2 * a_corneocyte);
-	else if (subset == LIPID)
+		UG_DLOG(LogAssistant::APP, 1,
+				"updated corneocyte overlap to: " << s_corneocyte << std::endl);
+	} else if (subset == LIPID) {
 		this->s_lipid = (sqrt(3.0) / 3.0) * (w_lipid - 2.0 * a_lipid);
+		UG_DLOG(LogAssistant::APP, 1,
+				"updated lipid overlap to: " << s_lipid << std::endl);
+	}
 }
 
 void TKDGeometryGenerator::setLipidBaseEdgeLength() {
