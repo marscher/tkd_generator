@@ -33,34 +33,31 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 			"Grid to fill with TKD#SubsetHandler to use");
 
 	// register createTKDDomain
-	domgenC.add_method<
-			void (domGen::*)(number, number, number, number, int, int, int)>(
-			"CreateDomain", &domGen::createTKDDomain,
+	domgenC.add_method(
+			"createDomain", &domGen::createTKDDomain,
 			"fills your given grid and SubsetHandler with tkds with given parameters a, h, w and d_lipid",
 			"a#w#h#d_lipid#rows#cols#layers");
 
 	// register setSubsetHandlerInfo()
-	domgenC.add_method<
-			void (domGen::*)(const char*, const char*, const vector4&,
-					const vector4&)>("SetSubsetInfo",
+	domgenC.add_method("setSubsetInfo",
 			&domGen::setSubsetHandlerInfo,
-			"set SubsetHandler informations (name, color) for corneocytes and lipid matrix",
+			"Set SubsetHandler informations (name, color) for corneocytes and lipid matrix",
 			"corneocyte_name#lipid_name#corneocyte_color#lipid_color");
 
-	// todo register helper functions for subset indices
-//	domgenC.add_method("getCorneocyteIndex",
-//				&domGen::getCorneocyteIndex,
-//				"Get subset index for corneocytes");
-//
-//	domgenC.add_method("getLipidIndex",
-//				&domGen::getLipidIndex,
-//				"Get subset index for lipid matrix");
+	// register helper functions for subset indices as global functions
+	reg->add_function("CorneocyteIndex",
+			(int (*)(void)) (&domGen::getCorneocyteIndex),
+				"Get subset index for corneocytes");
+
+	reg->add_function("LipidIndex",
+			(int (*)(void)) &domGen::getLipidIndex,
+				"Get subset index for lipid matrix");
 
 	// register TKDGeometryGenerator& getGeometryGenerator() const
-	domgenC.add_method<geomGen& (domGen::*)(void)>("GetGeometryGenerator",
+	domgenC.add_method("getGeometryGenerator",
 			&domGen::getGeometryGenerator,
-			"geometry generator used to build coordinate informations. \
-			 Also calcs volume and surface of single tkd");
+			"Geometry generator used to build coordinate informations. \
+			 Also calculates volume and surface of single tkd");
 
 	// tkd geometry generator class
 	bridge::ExportedClass<geomGen>& geomGenC = reg->add_class_<geomGen>(
@@ -71,17 +68,17 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 	// register createGeometry()
 	geomGenC.add_method("createGeometry", &geomGen::createGeometry);
 
-	// add overloaded methods in int subset and number a, h, s
+	// add volume methods
 	geomGenC.add_method("getVolume",
-			(number (geomGen::*)(int) const)(&geomGen::getVolume), "volume of given subset (1 element)");
-	geomGenC.add_method("getVolume",
-			(number (geomGen::*)(number, number,
-					number) const)(&geomGen::getVolume), "volume for given geometrical parameters");
+			(number (geomGen::*)(int) const) (&geomGen::getVolume), "Volume of given subset (1 element)");
+	// add static member function of TKDGeometryGenerator as global function
+	reg->add_function("GetVolume",
+			(number (*)(number, number, number)) (&geomGen::getVolume), "calculate Volume for given geometrical parameters");
 
 	// register surface methods
 	geomGenC.add_method("getSurface",
-			(number (geomGen::*)(int) const)(&geomGen::getSurface), "surface of given subset (1 element)");
-	geomGenC.add_method("getSurface",
-			(number (geomGen::*)(number, number,
-					number) const)(&geomGen::getSurface), "surface for given geometrical parameters");
+			(number (geomGen::*)(int) const) (&geomGen::getSurface), "Surface of given subset (1 element)");
+	// add static member function of TKDGeometryGenerator as global function
+	reg->add_function("GetSurface",
+			(number (*)(number, number, number)) (&geomGen::getSurface), "calculate Surface for given geometrical parameters");
 }
