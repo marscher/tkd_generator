@@ -20,18 +20,22 @@
 
 #include <vector>
 #include <fstream>
-#include <algorithm>
 
-using namespace boost::spirit::classic;
-using namespace std;
-using namespace ug;
+using ug::Grid;
+using ug::SubsetHandler;
+using ug::Selector;
 
+using std::vector;
+using namespace tkd;
 // percental allowed deviance of results with calculated values
-#define dev_percentage 0.5
+#define dev_percentage 0.01
 
 struct gridFixture {
 	gridFixture() :
-			grid(VRTOPT_STORE_ASSOCIATED_FACES | FACEOPT_STORE_ASSOCIATED_VOLUMES), sh(grid) {
+					grid(
+							VRTOPT_STORE_ASSOCIATED_FACES
+									| FACEOPT_STORE_ASSOCIATED_VOLUMES),
+					sh(grid) {
 		grid.attach_to_vertices(aPosition);
 		aaPos = Grid::VertexAttachmentAccessor<APosition>(grid, aPosition);
 	}
@@ -113,24 +117,29 @@ void eraseVolumes(Grid& grid, SubsetHandler&sh) {
 }
 
 bool parse_numbers(char const* str, vector<double>& v) {
-	return parse(str,
+	namespace sp = boost::spirit::classic;
+	return sp::parse(str,
 	// Begin grammar
-			(real_p[push_back_a(v)] >> *(',' >> real_p[push_back_a(v)])),
+			(sp::real_p[sp::push_back_a(v)]
+					>> *(',' >> sp::real_p[sp::push_back_a(v)])),
 			// End grammar
-			space_p).full;
+			sp::space_p).full;
 }
 
-//void saveToVTK(int step, number a, number h, number w) {
-//	gridFixture fix;
-//	Grid& grid = fix.grid;
-//	SubsetHandler& sh = fix.sh;
-//	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
-//	tkd::TKDDomainGenerator& gen = fix.gen;
-//	gen.createTKDDomain(a, w, h, 0.1, 2, 3, 1);
-//}
+bool saveToVTK(int step, number a, number h, number w) {
+	gridFixture fix;
+	Grid& grid = fix.grid;
+	SubsetHandler& sh = fix.sh;
+	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
+	tkd::TKDDomainGenerator gen(grid,sh);
+	gen.createTKDDomain(a, w, h, 0.1, 2, 3, 1);
+
+	return SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step);
+}
 
 void checkVolumeAndSurface(int step, number alpha, number first_vol,
-		number first_surface, number a, number h, number w) {
+		number first_surface, number firstLipidVol, number a, number h,
+		number w) {
 	// now check volume and surface calculated with numerically determined results (1 tkd)
 	gridFixture gridInstance;
 	Grid& grid = gridInstance.grid;
@@ -140,14 +149,16 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	tkd::TKDDomainGenerator gen(grid, sh);
 	gen.createTKDDomain(a, w, h, 0.1);
 
-	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step));
-//	stringstream ss;
-//	ss << "/tmp/test" << alpha << ".ugx";
-//	SaveGridToFile(grid, sh, ss.str().c_str());
+	BOOST_REQUIRE(saveToVTK(step,a,h,w));
 
+//	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step));
+
+	// analytical values
 	number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
+	number lipidVol = gen.getGeometryGenerator().getVolume(LIPID);
 	number area = gen.getGeometryGenerator().getSurface(CORNEOCYTE);
 
+	// calculated values
 	number area_calc = calculateSurfaceArea(grid, sh, BOUNDARY_CORN, aaPos);
 
 	BOOST_CHECK_CLOSE(area_calc, area, dev_percentage);
@@ -162,8 +173,13 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	eraseVolumes(grid, sh);
 	// disable default subset assigning of generated tetrahedrons
 	sh.set_default_subset_index(-1);
+	std::streambuf* cout_sbuf = std::cout.rdbuf(); // save original sbuf
+	std::cout.rdbuf(NULL);
 	BOOST_REQUIRE_MESSAGE(Tetrahedralize(grid, sh, 0, false, false, aPosition),
 			"tetrahedralize went wrong");
+	// enable outputs again
+	std::cout.rdbuf(cout_sbuf);
+
 	// separate lipid and corneocyte subsets again
 	SeparateSubsetsByLowerDimSubsets<Volume>(grid, sh);
 
@@ -193,13 +209,7 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	number volTet_l = CalculateVolume(sh.begin<Volume>(lipidSubset),
 			sh.end<Volume>(lipidSubset), aaPos);
 
-//	if (volTet_c < volTet_l) {
-//		UG_LOG(
-//				"swapping lipid and corneo volume of tetrahedralisation!" << endl)
-//		swap(volTet_c, volTet_l);
-//	}
-
-	BOOST_CHECK_CLOSE(volTet_c, vol, 1);
+	BOOST_CHECK_CLOSE(volTet_c, vol, dev_percentage);
 
 	// check that tetrahedron volume is close to volume calculated on orignal elements.
 	BOOST_CHECK_CLOSE(volTet_c, volCalcOnOrignal, dev_percentage);
@@ -207,31 +217,18 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	// check that volume / alpha stays constant.
 	BOOST_CHECK_CLOSE(volTet_c / alpha, first_vol, dev_percentage);
 
+	// check surface stays constant
 	BOOST_CHECK_CLOSE(area_calc, first_surface, dev_percentage);
-}
 
-void checkResults(int step, number alpha, number a, number h, number w) {
-	// first save results to vtk (2*3*1 tkds)
-//	saveToVTK(step, a, h, w);
-	static number alpha_1_volume = -1;
-	static number alpha_1_surface = -1;
-	static bool first_run = true;
-
-	if (first_run) {
-		tkd::TKDGeometryGenerator gen(a, w, h, 0.1);
-		alpha_1_volume = gen.getVolume(CORNEOCYTE);
-		alpha_1_surface = gen.getSurface(CORNEOCYTE);
-		first_run = false;
-	}
-
-	checkVolumeAndSurface(step, alpha, alpha_1_volume, alpha_1_surface, a, h,
-			w);
+	// check lipid volume stays constant
+	BOOST_CHECK_CLOSE(volTet_l, firstLipidVol, dev_percentage);
+	BOOST_CHECK_CLOSE(lipidVol, firstLipidVol, dev_percentage);
 }
 
 boost::unit_test::test_suite* initValidateResultsTS(const char* file) {
 	boost::unit_test::test_suite* ts = BOOST_TEST_SUITE("validateResults");
 
-	ifstream ifs(file);
+	std::ifstream ifs(file);
 	if (!ifs.good()) {
 		BOOST_MESSAGE("file not readable.");
 		return ts;
@@ -245,26 +242,39 @@ boost::unit_test::test_suite* initValidateResultsTS(const char* file) {
 		ifs.getline(buff, 255);
 		parse_numbers(buff, v);
 	}
+
 	ifs.close();
+
 	int step = 0;
+	number alpha_1_volume = 0, alpha_1_surface = 0, alpha_1_lipid_vol = 0;
+	number alpha, a, h, s, w, V, A, V_lip;
+
 	// load swell data from csv and generate geometries
 	for (iter = v.begin(); iter != v.end(); step++) {
-		double alpha = *iter++;
-		double a = *iter++;
-		double h = *iter++;
-		double t = *iter++;
-//		double asl = *iter++;
-		iter++;
+		alpha = *iter++;
+		a = *iter++;
+		h = *iter++;
+		s = *iter++;
+		w = *iter++;
+		V = *iter++;
+		A = *iter++;
+		V_lip = *iter++;
+//		UG_LOG("a: " << a << " h: " << h << " s: " <<
+//				s << " w: " << "V: " << V << " A: " << A << " Vl: " << V_lip << std::endl);
 
-		number s = h / 3 * t;
-		number w = (2 * sqrt(3) * a + 3 * s) / sqrt(3);
-		if (a < 0 || s < 0 || w < 0)
-			continue;
+		assert(a > 0 && s > 0 && w > 0 && h > 0);
+
+		if (step == 0) {
+			alpha_1_volume = V;
+			alpha_1_surface = A;
+			alpha_1_lipid_vol = V_lip;
+		}
 
 		boost::unit_test::test_case* tc =
-				BOOST_TEST_CASE(boost::bind(checkResults, step, alpha, a, h, w));
+				BOOST_TEST_CASE(boost::bind(checkVolumeAndSurface, step, alpha, alpha_1_volume, alpha_1_surface,
+								alpha_1_lipid_vol, a, h, w));
 
-		stringstream ss;
+		std::stringstream ss;
 		ss << "alpha=" << alpha << " a=" << a << " h=" << h << " w=" << w;
 		tc->p_name.set(ss.str());
 
