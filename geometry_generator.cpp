@@ -311,7 +311,7 @@ void TKDGeometryGenerator::initGeometricParams() {
 			<< c[3] << c[20] << c[21];
 }
 
-number TKDGeometryGenerator::getVolume(const int subset) const {
+number TKDGeometryGenerator::getVolume(TKDSubsetType subset) const {
 	if (subset == CORNEOCYTE)
 		return getVolume(a_corneocyte, s_corneocyte, 3.0 * h_corneocyte);
 	else if (subset == LIPID) {
@@ -319,17 +319,15 @@ number TKDGeometryGenerator::getVolume(const int subset) const {
 				- getVolume(CORNEOCYTE);
 	} else
 		UG_THROW("no valid subset given.");
-	return 0;
 }
 
-number TKDGeometryGenerator::getSurface(const int subset) const {
-	if (subset == CORNEOCYTE)
+number TKDGeometryGenerator::getSurface(TKDSubsetType subset) const {
+	if (subset == CORNEOCYTE || subset == BOUNDARY_CORN)
 		return getSurface(a_corneocyte, s_corneocyte, 3 * h_corneocyte);
-	else if (subset == LIPID)
+	else if (subset == LIPID || subset == BOUNDARY_LIPID)
 		return getSurface(a_lipid, s_lipid, 3 * h_lipid);
 	else
 		UG_THROW("no valid subset given.");
-	return 0;
 }
 
 number TKDGeometryGenerator::getVolume(number a, number s, number h) {
@@ -376,7 +374,7 @@ void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
 	}
 }
 
-void TKDGeometryGenerator::flipOrientationPrism(CoordsArray& prismPos) {
+void TKDGeometryGenerator::flipOrientationPrism(CoordsArray& prismPos) const {
 	UG_ASSERT(prismPos.size() == Prism, "no prism given.");
 	std::swap(prismPos[0], prismPos[3]);
 	std::swap(prismPos[1], prismPos[4]);
@@ -384,15 +382,23 @@ void TKDGeometryGenerator::flipOrientationPrism(CoordsArray& prismPos) {
 }
 
 void TKDGeometryGenerator::flipOrientationTetrahedron(
-		CoordsArray& tetrahedronPos) {
+		CoordsArray& tetrahedronPos) const {
 	UG_ASSERT(tetrahedronPos.size() == Tetrahedron, "no tetrahedron given.");
 	std::swap(tetrahedronPos[0], tetrahedronPos[2]);
 }
 
-void TKDGeometryGenerator::flipOrientationPyramid(CoordsArray& pyramidPos) {
+void TKDGeometryGenerator::flipOrientationPyramid(CoordsArray& pyramidPos) const {
 	UG_ASSERT(pyramidPos.size() == Pyramid, "no pyramid given.");
 	std::swap(pyramidPos[0], pyramidPos[3]);
 	std::swap(pyramidPos[1], pyramidPos[2]);
+}
+
+void TKDGeometryGenerator::flipOrientationHexahedron(CoordsArray& hexaPos) const {
+	UG_ASSERT(hexaPos.size() == Hexahedron, "no hexahedron given.");
+	std::swap(hexaPos[0], hexaPos[4]);
+	std::swap(hexaPos[1], hexaPos[5]);
+	std::swap(hexaPos[2], hexaPos[6]);
+	std::swap(hexaPos[3], hexaPos[7]);
 }
 
 void TKDGeometryGenerator::setHeight(number height) {
@@ -476,12 +482,5 @@ void TKDGeometryGenerator::setLipidParameters() {
 			"a_l: " << a_lipid << " w_l: " << w_lipid << " s_l: " << s_lipid << std::endl);
 }
 
-void TKDGeometryGenerator::flipOrientationHexahedron(CoordsArray& hexaPos) {
-	UG_ASSERT(hexaPos.size() == Hexahedron, "no hexahedron given.");
-	std::swap(hexaPos[0], hexaPos[4]);
-	std::swap(hexaPos[1], hexaPos[5]);
-	std::swap(hexaPos[2], hexaPos[6]);
-	std::swap(hexaPos[3], hexaPos[7]);
-}
 
 } // end of namespace tkdGenerator

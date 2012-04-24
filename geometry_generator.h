@@ -41,15 +41,18 @@ public:
 	/**
 	 * gets volume of given subset
 	 */
-	number getVolume(const int subset = LIPID) const;
+	number getVolume(TKDSubsetType t = LIPID) const;
+
 	/**
 	 * calculates volume for given geometrical parameters
 	 */
 	static number getVolume(number a, number s, number h);
+
 	/**
 	 * gets surface for given subset
 	 */
-	number getSurface(const int subset = LIPID) const;
+	number getSurface(TKDSubsetType t = LIPID) const;
+
 	/**
 	 * calculates surface for given geometrical parameters
 	 */
@@ -142,10 +145,10 @@ protected:
 	 */
 	void createGeometricObject(const CoordsArray& posIn);
 
-	void flipOrientationPrism(CoordsArray& prismPos);
-	void flipOrientationPyramid(CoordsArray& pyramidPos);
-	void flipOrientationTetrahedron(CoordsArray& tetrahedronPos);
-	void flipOrientationHexahedron(CoordsArray& hexaPos);
+	void flipOrientationPrism(CoordsArray& prismPos) const;
+	void flipOrientationPyramid(CoordsArray& pyramidPos) const;
+	void flipOrientationTetrahedron(CoordsArray& tetrahedronPos) const;
+	void flipOrientationHexahedron(CoordsArray& hexaPos) const;
 
 	///// segments of top and bottom
 	CoordsArray obenInnen;

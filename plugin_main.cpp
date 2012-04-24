@@ -70,14 +70,14 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 
 	// add volume methods
 	geomGenC.add_method("getVolume",
-			(number (geomGen::*)(int) const) (&geomGen::getVolume), "Volume of given subset (1 element)");
+			(number (geomGen::*)(tkd::TKDSubsetType) const) (&geomGen::getVolume), "Volume of given subset (1 element)");
 	// add static member function of TKDGeometryGenerator as global function
 	reg->add_function("GetVolume",
 			(number (*)(number, number, number)) (&geomGen::getVolume), "calculate Volume for given geometrical parameters");
 
 	// register surface methods
 	geomGenC.add_method("getSurface",
-			(number (geomGen::*)(int) const) (&geomGen::getSurface), "Surface of given subset (1 element)");
+			(number (geomGen::*)(tkd::TKDSubsetType) const) (&geomGen::getSurface), "Surface of given subset (1 element)");
 	// add static member function of TKDGeometryGenerator as global function
 	reg->add_function("GetSurface",
 			(number (*)(number, number, number)) (&geomGen::getSurface), "calculate Surface for given geometrical parameters");
