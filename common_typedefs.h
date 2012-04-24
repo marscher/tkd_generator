@@ -13,12 +13,14 @@
 #include "common/math/ugmath_types.h"
 #include "common/math/misc/math_util.h"
 
+namespace tkd {
 typedef std::vector<ug::vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
 
 // subset indices
-enum TKDSubsetTypes {
+enum TKDSubsetType {
 	LIPID = 0, CORNEOCYTE, BOUNDARY_CORN, BOUNDARY_LIPID
 };
 
+} // end of namespace tkd
 #endif /* COMMON_TYPEDEFS_H_ */
