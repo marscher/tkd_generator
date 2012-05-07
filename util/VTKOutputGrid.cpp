@@ -49,7 +49,7 @@ void VTKOutputGrid::write_cell_types(FILE* File, int si) {
 		type = (char) 12;
 		break;
 	default:
-		throw(UGFatalError("Element Type not known."));
+		throw(UGError("Element Type not known."));
 	}
 
 	BStream.size = sizeof(char);
