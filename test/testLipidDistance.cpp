@@ -8,7 +8,7 @@
 #include <boost/test/parameterized_test.hpp>
 
 #include "common/util/path_provider.h"
-#include "common/os_dependent/file_util.h"
+#include "common/util/file_util.h"
 
 #include "testHelper.h"
 #include "../domain_generator.h"
