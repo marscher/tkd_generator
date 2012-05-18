@@ -16,7 +16,7 @@ bool SaveGridToVTK(Grid& grid, SubsetHandler& sh, const char* filename,
 }
 
 template<class TElem>
-void VTKOutputGrid::write_cell_types(FILE* File, int si) {
+void VTKOutputGrid::write_cell_types(VTKFileWriter& File, int si) {
 //	get reference element
 	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
 //	get object type
@@ -52,7 +52,7 @@ void VTKOutputGrid::write_cell_types(FILE* File, int si) {
 		throw(UGError("Element Type not known."));
 	}
 
-	BStream.size = sizeof(char);
+//	BStream.size = sizeof(char);
 
 //	get iterators
 	typename geometry_traits<TElem>::const_iterator iterBegin, iterEnd;
@@ -70,14 +70,16 @@ void VTKOutputGrid::write_cell_types(FILE* File, int si) {
 
 		//	loop all elements, write type for each element to stream
 		for (; iterBegin != iterEnd; ++iterBegin)
-			BStreamWrite(File, &type);
+//			File.write_base64(&type);;
+			File.write(&type);
 	}
 
-	BStreamFlush(File);
+//	File.flush_base64_buffered();
+	File.flush_base64_buffered();
 }
 
 template<class TElem>
-void VTKOutputGrid::write_cell_offsets(FILE* File, int si, int& n) {
+void VTKOutputGrid::write_cell_offsets(VTKFileWriter& File, int si, int& n) {
 //	get reference element
 	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
 
@@ -101,16 +103,16 @@ void VTKOutputGrid::write_cell_offsets(FILE* File, int si, int& n) {
 			n += ref_elem_type::num_corners;
 
 			//	write offset
-			BStreamWrite(File, &n);
+			File.write_base64<int>(n);
 		}
 	}
 
 //	flush stream
-	BStreamFlush(File);
+	File.flush_base64_buffered();
 }
 
 template<class TElem>
-void VTKOutputGrid::write_cell_connectivity(FILE* File, int si) {
+void VTKOutputGrid::write_cell_connectivity(VTKFileWriter& File, int si) {
 //	get reference element type
 	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
 
@@ -145,41 +147,40 @@ void VTKOutputGrid::write_cell_connectivity(FILE* File, int si) {
 						i++) {
 					VertexBase* vert = elem->vertex(i);
 					int id = m_aaDOFIndexVRT[vert];
-					BStreamWrite(File, &id);
+					File.write_base64<int>(id);;
 				}
 			} else {
 				int id = m_aaDOFIndexVRT[elem->vertex(0)];
-				BStreamWrite(File, &id);
+				File.write_base64<int>(id);;
 				id = m_aaDOFIndexVRT[elem->vertex(2)];
-				BStreamWrite(File, &id);
+				File.write_base64<int>(id);;
 				id = m_aaDOFIndexVRT[elem->vertex(1)];
-				BStreamWrite(File, &id);
+				File.write_base64<int>(id);;
 				id = m_aaDOFIndexVRT[elem->vertex(3)];
-				BStreamWrite(File, &id);
+				File.write_base64<int>(id);;
 				id = m_aaDOFIndexVRT[elem->vertex(5)];
-				BStreamWrite(File, &id);
+				File.write_base64<int>(id);;
 				id = m_aaDOFIndexVRT[elem->vertex(4)];
-				BStreamWrite(File, &id);
+				File.write_base64<int>(id);;
 			}
 		}
 	}
 }
 
-bool VTKOutputGrid::write_cells(FILE* File, int si, int dim, int numElem,
+bool VTKOutputGrid::write_cells(VTKFileWriter& File, int si, int dim, int numElem,
 		int numConn) {
 //	write opening tag to indicate that elements will be written
-	fprintf(File, "      <Cells>\n");
+	File.write( "      <Cells>\n");
 
 	///////////////////////////
 	// connectivity
 	///////////////////////////
 //	write opening tag to indicate that connections will be written
-	fprintf(File,
+	File.write(
 			"        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"binary\">\n");
-	BStream.size = sizeof(int);
 	int n = sizeof(int) * numConn;
-	BStreamWrite(File, &n);
-	BStreamFlush(File);
+	File.write_base64<int>(n);
+	File.flush_base64_buffered();
 
 //	switch dimension
 	if (numConn > 0) {
@@ -205,20 +206,20 @@ bool VTKOutputGrid::write_cells(FILE* File, int si, int dim, int numElem,
 			return false;
 		}
 	}
-	BStreamFlush(File);
+	File.flush_base64_buffered();
 
 //	write closing tag
-	fprintf(File, "\n        </DataArray>\n");
+	File.write( "\n        </DataArray>\n");
 
 	///////////////////////////
 	// offsets
 	///////////////////////////
 //	write opening tag indicating that offsets are going to be written
-	fprintf(File,
+	File.write(
 			"        <DataArray type=\"Int32\" Name=\"offsets\" format=\"binary\">\n");
 	n = sizeof(int) * numElem;
-	BStreamWrite(File, &n);
-	BStreamFlush(File);
+	File.write_base64<int>(n);
+	File.flush_base64_buffered();
 
 	n = 0;
 //	switch dimension
@@ -245,17 +246,17 @@ bool VTKOutputGrid::write_cells(FILE* File, int si, int dim, int numElem,
 			return false;
 		}
 	}
-	BStreamFlush(File);
-	fprintf(File, "\n        </DataArray>\n");
+	File.flush_base64_buffered();
+	File.write( "\n        </DataArray>\n");
 
 	///////////////////////////
 	// types of elements
 	///////////////////////////
 //	write opening tag to indicate that types will be written
-	fprintf(File,
+	File.write(
 			"        <DataArray type=\"Int8\" Name=\"types\" format=\"binary\">\n");
-	BStreamWrite(File, &numElem);
-	BStreamFlush(File);
+	File.write_base64<int>(numElem);
+	File.flush_base64_buffered();
 
 //	switch dimension
 	if (numElem > 0) {
@@ -283,8 +284,8 @@ bool VTKOutputGrid::write_cells(FILE* File, int si, int dim, int numElem,
 	}
 
 //	write closing tag
-	fprintf(File, "\n        </DataArray>\n");
-	fprintf(File, "      </Cells>\n");
+	File.write( "\n        </DataArray>\n");
+	File.write( "      </Cells>\n");
 
 //	we're done
 	return true;
@@ -392,7 +393,7 @@ bool VTKOutputGrid::count_piece_sizes(int si, int dim, int& numVert,
 }
 
 template<typename TElem>
-void VTKOutputGrid::write_points_elementwise(FILE* File,
+void VTKOutputGrid::write_points_elementwise(VTKFileWriter& File,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos, int si, int& n) {
 //	get reference element
 	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
@@ -459,13 +460,13 @@ void VTKOutputGrid::write_points_elementwise(FILE* File,
 				//	write position to stream
 				for (int i = 0; i < 3/*domain_type::dim*/; ++i) {
 					co = Pos[i];
-					BStreamWrite(File, &co);
+					File.write_base64<float>(co);
 				}
 
 				//	fill with missing zeros (if dim < 3)
 				for (int i = 3/*domain_type::dim*/; i < 3; ++i) {
 					co = 0.0;
-					BStreamWrite(File, &co);
+					File.write_base64<float>(co);
 				}
 			}
 		}
@@ -480,22 +481,20 @@ void VTKOutputGrid::write_points_elementwise(FILE* File,
 	}
 
 //	flush the stream
-	BStreamFlush(File);
+	File.flush_base64_buffered();
 
 //	signal end of marking the grid
 	m_pGrid->end_marking();
 }
 
-bool VTKOutputGrid::write_points(FILE* File, int si, int dim, int numVert) {
+bool VTKOutputGrid::write_points(VTKFileWriter& File, int si, int dim, int numVert) {
 //	write starting xml tag for points
-	fprintf(File, "      <Points>\n");
-	fprintf(File,
+	File.write( "      <Points>\n");
+	File.write(
 			"        <DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"binary\">\n");
-	BStream.size = sizeof(int);
 	int n = 3 * sizeof(float) * numVert;
-	BStreamWrite(File, &n);
-	BStreamFlush(File);
-	BStream.size = sizeof(float);
+	File.write_base64<int>(n);
+	File.flush_base64_buffered();
 
 	Grid::VertexAttachmentAccessor<APosition> aaPos(*m_pGrid, aPosition);
 //	reset counter for vertices
@@ -528,14 +527,14 @@ bool VTKOutputGrid::write_points(FILE* File, int si, int dim, int numVert) {
 	}
 
 //	write closing tags
-	fprintf(File, "\n        </DataArray>\n");
-	fprintf(File, "      </Points>\n");
+	File.write( "\n        </DataArray>\n");
+	File.write( "      </Points>\n");
 
 //	everything fine
 	return true;
 }
 
-bool VTKOutputGrid::write_piece(FILE* File, int si, int dim) {
+bool VTKOutputGrid::write_piece(VTKFileWriter& File, int si, int dim) {
 //	counters
 	int numVert = 0, numElem = 0, numConn = 0;
 
@@ -547,8 +546,10 @@ bool VTKOutputGrid::write_piece(FILE* File, int si, int dim) {
 
 //	write the beginning of the piece, indicating the number of vertices
 //	and the number of elements for this piece of the grid.
-	fprintf(File, "    <Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",
+	char* str=0;
+	sprintf(str, "<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",
 			numVert, numElem);
+	File.write( str);
 
 //	write vertices of this piece
 	if (!write_points(File, si, dim, numVert)) {
@@ -563,7 +564,7 @@ bool VTKOutputGrid::write_piece(FILE* File, int si, int dim) {
 	}
 
 //	write opening tag to indicate point data
-	fprintf(File, "      <PointData>\n");
+	File.write( "      <PointData>\n");
 
 //	add all components if 'selectAll' chosen
 //	if (m_bSelectAll)
@@ -602,10 +603,10 @@ bool VTKOutputGrid::write_piece(FILE* File, int si, int dim) {
 //	}
 
 //	write closing tag
-	fprintf(File, "      </PointData>\n");
+	File.write( "      </PointData>\n");
 
 //	write closing tag
-	fprintf(File, "    </Piece>\n");
+	File.write( "    </Piece>\n");
 
 //	we're done
 	return true;
@@ -682,14 +683,17 @@ bool VTKOutputGrid::print_subset(Grid* grid, SubsetHandler* sh,
 		return false;
 
 //	open the file
-	FILE* File = fopen(name.c_str(), "w");
-	if (File == NULL) {
+	VTKFileWriter* File_p;
+
+	try {
+		File_p = new VTKFileWriter(name);
+	} catch (...) {
 		UG_LOG("ERROR in 'VTK::print_subset': Can not open Output File.\n");
 		return false;
 	}
 
-//	reset stream
-	BStream.front = 0;
+	VTKFileWriter& File = *File_p;
+
 
 //	bool if time point should be written to *.vtu file
 //	in parallel we must not (!) write it to the *.vtu file, but to the *.pvtu
@@ -698,22 +702,28 @@ bool VTKOutputGrid::print_subset(Grid* grid, SubsetHandler* sh,
 //	if(pcl::GetNumProcesses() > 1) bTimeDep = false;
 //#endif
 //	header
-	fprintf(File, "<?xml version=\"1.0\"?>\n");
-	fprintf(File, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
+	File.write( "<?xml version=\"1.0\"?>\n");
+	char* str=0;
+	sprintf(str,
+	 "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
 			"byte_order=\"%s\">\n",
 #ifdef __SWAPBYTES__
 			"LittleEndian"
 #else
 			"BigEndian"
 #endif
-)			;
+);
+	File.write(str);
 
 //	writing time point
-	if (bTimeDep)
-		fprintf(File, "  <Time timestep=\"%g\"/>\n", time);
+	if (bTimeDep) {
+		char* str=0;
+		sprintf(str,"  <Time timestep=\"%g\"/>\n",time );
+		File.write(str);
+	}
 
 //	opening the grid
-	fprintf(File, "  <UnstructuredGrid>\n");
+	File.write( "  <UnstructuredGrid>\n");
 
 // 	get dimension of grid-piece
 	int dim = -1;
@@ -727,7 +737,6 @@ bool VTKOutputGrid::print_subset(Grid* grid, SubsetHandler* sh,
 //		if (!write_piece(File, u, si, dim)) {
 		if (!write_piece(File, si, dim)) {
 			UG_LOG("ERROR in 'VTK::print_subset': Can not write Subset.\n");
-			fclose(File);
 			return false;
 		}
 	} else {
@@ -736,29 +745,27 @@ bool VTKOutputGrid::print_subset(Grid* grid, SubsetHandler* sh,
 				|| ((si >= 0) && m_pSubsetHandler->num<VertexBase>(si) != 0)) {
 			UG_LOG("ERROR in 'VTK::print_subset': Dimension of grid/subset not"
 			" detected correctly although grid objects present.\n");
-			fclose(File);
 			return false;
 		}
 
 		//	write that no elements are in the grid
-		fprintf(File,
+		char* str2 =0;
+		sprintf(str2,
 				"    <Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n", 0,
 				0);
+		File.write(str2);
 		if (!write_points(File, si, dim, 0)
 				|| !write_cells(File, si, dim, 0, 0)) {
 			UG_LOG(
 					"ERROR in 'VTK::print_subset': Can not write empty Points/Cells.\n");
 			return false;
 		}
-		fprintf(File, "    </Piece>\n");
+		File.write( "    </Piece>\n");
 
 	}
 //	write closing xml tags
-	fprintf(File, "  </UnstructuredGrid>\n");
-	fprintf(File, "</VTKFile>\n");
-
-//	close stream
-	fclose(File);
+	File.write( "  </UnstructuredGrid>\n");
+	File.write( "</VTKFile>\n");
 
 // 	detach help indices
 	m_pGrid->detach_from_vertices(m_aDOFIndex);
@@ -788,5 +795,6 @@ bool VTKOutputGrid::print_subset(Grid* grid, SubsetHandler* sh,
 //	}
 
 //	we're done
+	delete File_p;
 	return true;
 }

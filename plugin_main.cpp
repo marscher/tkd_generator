@@ -16,7 +16,7 @@
 using namespace ug;
 
 // register tkd generator functions for usage in ug_script
-extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
+extern "C" void InitUGPlugin(bridge::Registry* reg, const std::string& parentGroup) {
 	UG_SET_DEBUG_LEVEL(LogAssistant::APP, 0);
 
 	std::string grp(parentGroup);
@@ -32,10 +32,28 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 	domgenC.add_constructor<void (*)(Grid&, SubsetHandler&)>(
 			"Grid to fill with TKD#SubsetHandler to use");
 
-	// register createTKDDomain
+	domgenC.add_constructor<void (*)(Grid&, SubsetHandler&, bool)>(
+			"Grid to fill with TKD#SubsetHandler to use;"
+			"third parameter indicates whether a SC domain should be created");
+
+	domgenC.add_method("setIsSCDomain", &domGen::setIsSCDomain,
+			"switch whether a stratum corneum domain or a simple tkd domain"
+			"will be created on createDomain()");
+
+	domgenC.add_method("setGridObject", &domGen::setGridObject,
+			"sets Grid and SubsetHandler to use.");
+
+	// register createSCDomain
 	domgenC.add_method(
-			"createDomain", &domGen::createTKDDomain,
-			"fills your given grid and SubsetHandler with tkds with given parameters a, h, w and d_lipid",
+			"createSCDomain", &domGen::createSCDomain,
+			"fills your given grid and SubsetHandler with a stratum corneum domain "
+			" with given parameters a, h, w and d_lipid",
+			"a#w#h#d_lipid#rows#cols#layers");
+	// register createSimpleTKDDomain
+	domgenC.add_method(
+			"createSimpleTKDDomain", &domGen::createSimpleTKDDomain,
+			"fills your given grid and SubsetHandler with tkds "
+			"with given parameters a, h, w and d_lipid",
 			"a#w#h#d_lipid#rows#cols#layers");
 
 	// register setSubsetHandlerInfo()
@@ -70,15 +88,19 @@ extern "C" void InitUGPlugin(bridge::Registry* reg, std::string parentGroup) {
 
 	// add volume methods
 	geomGenC.add_method("getVolume",
-			(number (geomGen::*)(tkd::TKDSubsetType) const) (&geomGen::getVolume), "Volume of given subset (1 element)");
+			(number (geomGen::*)(int) const) (&geomGen::getVolume),
+			"Volume of given subset (1 element)");
 	// add static member function of TKDGeometryGenerator as global function
 	reg->add_function("GetVolume",
-			(number (*)(number, number, number)) (&geomGen::getVolume), "calculate Volume for given geometrical parameters");
+			(number (*)(number, number, number)) (&geomGen::getVolume),
+			"calculate Volume for given geometrical parameters");
 
 	// register surface methods
 	geomGenC.add_method("getSurface",
-			(number (geomGen::*)(tkd::TKDSubsetType) const) (&geomGen::getSurface), "Surface of given subset (1 element)");
+			(number (geomGen::*)(int) const) (&geomGen::getSurface),
+			"Surface of given subset (1 element)");
 	// add static member function of TKDGeometryGenerator as global function
 	reg->add_function("GetSurface",
-			(number (*)(number, number, number)) (&geomGen::getSurface), "calculate Surface for given geometrical parameters");
+			(number (*)(number, number, number)) (&geomGen::getSurface),
+			"calculate Surface for given geometrical parameters");
 }

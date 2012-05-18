@@ -14,12 +14,12 @@ namespace tkd {
 const ug::vector3 TKDGeometryGenerator::origin(0, 0, 0);
 
 TKDGeometryGenerator::TKDGeometryGenerator() :
-		R(0), index(0) {
+		b_createLipid(true), R(0), index(0) {
 }
 
 TKDGeometryGenerator::TKDGeometryGenerator(number a, number w, number h,
-		number d_lipid) :
-		R(0), index(0) {
+		bool createLipid, number d_lipid) :
+		b_createLipid(createLipid), R(0), index(0) {
 
 	setGeometricParams(a, w, h, d_lipid);
 }
@@ -134,8 +134,10 @@ void TKDGeometryGenerator::createGeometry() {
 		posOut[i] = R * posOut[i];
 	}
 
-	createLipidMatrix(origin);
-	createLipidMatrix(origin, 60, true);
+	if(b_createLipid) {
+		createLipidMatrix(origin);
+		createLipidMatrix(origin, 60, true);
+	}
 }
 
 /**
@@ -237,20 +239,6 @@ void TKDGeometryGenerator::initGeometricParams() {
 	const vector3 v21(a_lipid / 2.0, a_lipid * sqrt(3) / 2, v20.z);
 	const vector3 v22(0, 0, v20.z);
 
-//	l[0] = vector3(-a_lipid / 2.0, -a_lipid * b / 2.0, dis);
-//	l[1] = vector3(-l[0].x, l[0].y, l[0].z);
-//	c[3] = vector3(c[1].x, -c[1].y, c[0].z);
-//	l[6] = vector3(0, 0, l[0].z);
-//	c[10] = vector3(c[2].x + ec, c[2].y - af, c[9].z);
-//	c[12] = vector3(c[3].x + bc, c[3].y + ac, c[11].z);
-//	c[13] = vector3(c[3].x, c[12].y, c[12].z);
-//	l[14] = vector3(l[0].x, l[0].y - ab1, l[0].z - 1.0 / 3.0 * high_l);
-//	l[15] = vector3(l[1].x, l[14].y, l[14].z);
-//	l[19] = vector3(l[3].x + bc1, l[3].y + ac1, l[14].z);
-//	l[20] = vector3(l[3].x, l[19].y, l[14].z);
-//
-//	l[57] = vector3(l[72].x, l[72].y + ab1, l[50].z);
-
 	///// Initialization of top/bottom segments
 	obenInnen << CLEAR << origin << v1 << v4 << v2 << v3 << v5;
 	obenAussenPrism << CLEAR << v4 << v5 << v8 << v6 << v7 << v9;
@@ -280,8 +268,13 @@ void TKDGeometryGenerator::initGeometricParams() {
 	flipOrientationPyramid(mitteAussen2PrH_pyramid);
 
 	///// lipid matrix
-	// fixme substitute inner points with v_i
+	if(b_createLipid)
+		initLipidGeometric();
+}
+
+void TKDGeometryGenerator::initLipidGeometric() {
 	CoordsArray c(76);
+	using ug::vector3;
 	CalculateLipidCoords(c, a_corneocyte, h_corneocyte * 3, w_corneocyte,
 			d_lipid, vector3(0, 0, 3 * h_corneocyte / 2));
 
@@ -311,21 +304,27 @@ void TKDGeometryGenerator::initGeometricParams() {
 			<< c[3] << c[20] << c[21];
 }
 
-number TKDGeometryGenerator::getVolume(TKDSubsetType subset) const {
+number TKDGeometryGenerator::getVolume(int subset) const {
 	if (subset == CORNEOCYTE)
 		return getVolume(a_corneocyte, s_corneocyte, 3.0 * h_corneocyte);
 	else if (subset == LIPID) {
-		return getVolume(a_lipid, s_lipid, 3.0 * h_lipid)
-				- getVolume(CORNEOCYTE);
+		if(b_createLipid)
+			return getVolume(a_lipid, s_lipid, 3.0 * h_lipid)
+					- getVolume(CORNEOCYTE);
+		else
+			return -1;
 	} else
 		UG_THROW("no valid subset given.");
 }
 
-number TKDGeometryGenerator::getSurface(TKDSubsetType subset) const {
+number TKDGeometryGenerator::getSurface(int subset) const {
 	if (subset == CORNEOCYTE || subset == BOUNDARY_CORN)
 		return getSurface(a_corneocyte, s_corneocyte, 3 * h_corneocyte);
 	else if (subset == LIPID || subset == BOUNDARY_LIPID)
-		return getSurface(a_lipid, s_lipid, 3 * h_lipid);
+		if(b_createLipid)
+			return getSurface(a_lipid, s_lipid, 3 * h_lipid);
+		else
+			return -1;
 	else
 		UG_THROW("no valid subset given.");
 }
@@ -426,9 +425,9 @@ void TKDGeometryGenerator::setGeometricParams(number a, number w, number h,
 	setLipidThickness(d_lipid);
 
 	// update overlap as it depends on a and w
-	updateOverlap (CORNEOCYTE);
-
-	setLipidParameters();
+	updateOverlap(CORNEOCYTE);
+	if(b_createLipid)
+		setLipidParameters();
 }
 
 void TKDGeometryGenerator::updateOverlap(int subset) {
@@ -482,5 +481,15 @@ void TKDGeometryGenerator::setLipidParameters() {
 			"a_l: " << a_lipid << " w_l: " << w_lipid << " s_l: " << s_lipid << std::endl);
 }
 
+bool TKDGeometryGenerator::createLipid() const {
+	return b_createLipid;
+}
+
+void TKDGeometryGenerator::setCreateLipid(bool createLipid) {
+	this->b_createLipid = createLipid;
+	if(!this->b_createLipid) {
+		initLipidGeometric();
+	}
+}
 
 } // end of namespace tkdGenerator

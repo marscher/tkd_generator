@@ -35,13 +35,20 @@ public:
 	 * @param diameter
 	 * @param d_lipid
 	 */
-	TKDGeometryGenerator(number a, number w, number height,
-			number d_lipid);
+	TKDGeometryGenerator(number a, number w, number height, bool createLipid = true,
+			number d_lipid = 1);
+
+	/**
+	 * should lipid geometry be created?
+	 */
+	bool createLipid() const;
+
+	void setCreateLipid(bool);
 
 	/**
 	 * gets volume of given subset
 	 */
-	number getVolume(TKDSubsetType t = LIPID) const;
+	number getVolume(int subset = LIPID) const;
 
 	/**
 	 * calculates volume for given geometrical parameters
@@ -51,7 +58,7 @@ public:
 	/**
 	 * gets surface for given subset
 	 */
-	number getSurface(TKDSubsetType t = LIPID) const;
+	number getSurface(int subset = LIPID) const;
 
 	/**
 	 * calculates surface for given geometrical parameters
@@ -78,6 +85,8 @@ protected:
 	enum SolidFigures {
 		Tetrahedron = 4, Pyramid = 5, Prism = 6, Hexahedron = 8
 	};
+
+	bool b_createLipid;
 
 	// height of one third of tkd : h = 1/3 * h_tkd
 	number h_corneocyte;
@@ -116,6 +125,8 @@ protected:
 	 * inits base geometric parameters
 	 */
 	void initGeometricParams();
+
+	void initLipidGeometric();
 
 	void updateOverlap(int subset);
 

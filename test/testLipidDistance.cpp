@@ -32,7 +32,7 @@ void checkThickness(number a, number h, number w, number d_lipid) {
 
 	// create grid with new tkd generator
 	TKDDomainGenerator gen(grid, sh);
-	gen.createTKDDomain(a,w,h,d_lipid);
+	gen.createSCDomain(a,w,h,d_lipid);
 
 	// calculate distances
 	vector<number> dist = meassureLipidThickness(grid, sh, d_lipid);
@@ -67,8 +67,8 @@ BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	gridNew.attach_to_vertices(aPosition);
 	gridOld.attach_to_vertices(aPosition);
 
-	TKDDomainGenerator gen(gridNew,shnew);
-	gen.createTKDDomain(a,w,h,d_lipid);
+	TKDDomainGenerator gen(gridNew, shnew);
+	gen.createSCDomain(a,w,h,d_lipid);
 
 	// grid created with same params with old tkdmodeller
 	string oldfile =

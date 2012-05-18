@@ -17,11 +17,25 @@ namespace tkd {
 const number TKDDomainGenerator::removeDoublesThreshold = 10E-5;
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh) :
-		grid(grid), sh(sh) {
+		grid(grid), sh(sh), b_scDomain(true) {
 	if (&grid != sh.grid()) {
 		UG_THROW(
 				"ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
+
+	grid.attach_to_vertices(aPosition);
+	aaPos.access(grid, aPosition);
+
+	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
+}
+
+TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh, bool scDomain) :
+		grid(grid), sh(sh), b_scDomain(scDomain) {
+	if (&grid != sh.grid()) {
+		UG_THROW(
+				"ERROR: given SubsetHandler not assigned to given Grid instance.");
+	}
+
 	grid.attach_to_vertices(aPosition);
 	aaPos.access(grid, aPosition);
 
@@ -42,6 +56,16 @@ void TKDDomainGenerator::setGridObject(Grid& grid, SubsetHandler& sh) {
 }
 
 /**
+ * sets whether a stratum corneum domain should be created (nested tkd's).
+ */
+void TKDDomainGenerator::setIsSCDomain(bool sc_domain) {
+	this->b_scDomain = sc_domain;
+	if(b_scDomain && !getGeometryGenerator().createLipid()) {
+		getGeometryGenerator().setCreateLipid(b_scDomain);
+	}
+}
+
+/**
  * creates lib_grid objects in given grid reference according to given positions and indices
  * @param grid grid instance in which geometric objects will be created
  * @param positions
@@ -53,7 +77,7 @@ void TKDDomainGenerator::setGridObject(Grid& grid, SubsetHandler& sh) {
  * numInds == 8: hexahedron
  */
 void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
-		const IndexArray& indices) {
+		const IndexArray& indices, bool sc_domain) {
 	// generate vertices in the grid and store them in an array, so that we can index them
 	std::vector<VertexBase*> vertices(positions.size());
 	for (size_t i = 0; i < positions.size(); ++i) {
@@ -99,14 +123,15 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 	sh.assign_subset(grid.begin<EdgeBase>(), grid.end<EdgeBase>(), -1);
 	sh.assign_subset(grid.begin<Face>(), grid.end<Face>(), -1);
 
-	// todo parameterize selector
-	Selector sel(grid);
-	SelectInterfaceElements(sel, sh, grid.begin<Face>(), grid.end<Face>());
-	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_CORN);
+	if(sc_domain) {
+		Selector sel(grid);
+		SelectInterfaceElements(sel, sh, grid.begin<Face>(), grid.end<Face>());
+		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_CORN);
 
-	sel.clear();
-	SelectBoundaryElements(sel, sh.begin<Face>(LIPID), sh.end<Face>(LIPID));
-	sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_LIPID);
+		sel.clear();
+		SelectBoundaryElements(sel, sh.begin<Face>(LIPID), sh.end<Face>(LIPID));
+		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_LIPID);
+	}
 
 	AdjustSubsetsForSimulation(sh, true);
 }
@@ -115,13 +140,14 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
  * calculates three vectors for stacking the tkds.
  * Each vector points in the direction defined by the centers of two parallel hexagons.
  */
-void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors) {
+void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
+		TKDSubsetType shIndex) {
 	// collect faces associated to unique normal
 	map<vector3, vector<Face*>, vecComparator> facesByNormal;
 	map<vector3, vector<Face*>, vecComparator>::iterator fnIter;
 	vector3 normal, c1, c2;
-	for (FaceIterator iter = sh.begin<Face>(BOUNDARY_LIPID);
-			iter != sh.end<Face>(BOUNDARY_LIPID); iter++) {
+	for (FaceIterator iter = sh.begin<Face>(shIndex);
+			iter != sh.end<Face>(shIndex); iter++) {
 		Face* face = *iter;
 			CalculateNormal(normal, face, aaPos);
 			facesByNormal[normal].push_back(face);
@@ -145,9 +171,10 @@ void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors) {
 			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
 					aaPos);
 			// only store unique shifts
-			vector3 tmp(fabs(c1.x) + fabs(c2.x), fabs(c1.y) + fabs(c2.y),
-					fabs(c1.z) + fabs(c2.z));
-			shiftVectors.insert(tmp);
+			using std::abs;
+			shiftVectors.insert(vector3(abs(c1.x) + abs(c2.x),
+					abs(c1.y) + abs(c2.y),
+					abs(c1.z) + abs(c2.z)));
 		}
 	}
 }
@@ -183,7 +210,17 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
 }
 
 /**
- * creates one tkd with lipid matrix in given grid reference
+ * creates one tkd __without__ lipid matrix in given grid reference
+ * and stacks it according to given parameters (rows, cols, layers)
+ */
+void TKDDomainGenerator::createSimpleTKDDomain(number a, number w, number h,
+		int rows, int cols, int layers) {
+	setIsSCDomain(false);
+	createSCDomain(a, w, h, -1, rows, cols, layers);
+}
+
+/**
+ * creates one tkd __with__ lipid matrix in given grid reference
  * and stacks it according to given parameters (rows, cols, layers)
  * @param a
  * @param w
@@ -193,25 +230,31 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
  * @param cols
  * @parm layers
  */
-void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
+void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		number d_lipid, int rows, int cols, int layers) {
-	UG_DLOG(APP, 1,
+	UG_LOG("calling createSCDomain() with following parameter:\n" <<
 			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
 	if (w - 2 * a < 0)
 		UG_THROW("w > 2a geometric constraint not met!");
 
-	setSubsetHandlerInfo("corneocytes", "lipid matrix", vector4(0, 1, 0, 0),
-			vector4(0, 0, 1, 0));
+	if(b_scDomain)
+		setSubsetHandlerInfo("corneocytes", "lipid matrix", vector4(0, 1, 0, 0),
+				vector4(0, 0, 1, 0));
+
 	//// set grid options
 	grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
 	grid.attach_to_vertices(aPosition);
 	//// create coordinates and vertex indices for 1 tetrakaidecahedron
-	setTKDGeometryGenerator(a, w, h, d_lipid);
+	if(b_scDomain)
+		setTKDGeometryGenerator(a, w, h, true, d_lipid);
+	else
+		setTKDGeometryGenerator(a, w, h, false);
+
 	geomGenerator->createGeometry();
 	//// fill the grid object with coordinates and indices
 	createGridFromArrays(geomGenerator->getPositions(),
-			geomGenerator->getIndices());
+			geomGenerator->getIndices(), b_scDomain);
 	UG_DLOG(LogAssistant::APP, 1,
 			"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
 			<< "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl
@@ -237,19 +280,25 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 		//// calculate shift vectors for stapeling
 		shiftSet shiftVecs;
 		shiftSet::iterator shiftIter;
+		TKDSubsetType boundary = BOUNDARY_LIPID;
 
-		calculateShiftVector(shiftVecs);
+		if(!b_scDomain)
+			boundary = BOUNDARY_CORN;
+
+		calculateShiftVector(shiftVecs, boundary);
+
 		vector3 shiftHeight(0, 0, 0), shiftCols(0, 0, 0), shiftRows(0, 0, 0);
 
 		for (shiftIter = shiftVecs.begin(); shiftIter != shiftVecs.end();
 				shiftIter++) {
+			using std::abs;
 			const vector3& v = *shiftIter;
 
-			if (fabs(v.x) < SMALL && fabs(v.y) < SMALL) {
+			if (abs(v.x) < SMALL && abs(v.y) < SMALL) {
 				shiftHeight = v;
 				shiftHeight.x = 0;
 				shiftHeight.y = 0;
-			} else if (fabs(v.x) < SMALL) {
+			} else if (abs(v.x) < SMALL) {
 				shiftRows = v;
 				shiftRows.x = 0;
 			} else
@@ -329,5 +378,6 @@ void TKDDomainGenerator::createTKDDomain(number a, number w, number h,
 				aPosition, removeDoublesThreshold);
 	}
 }
+
 
 } // end of namespace tkdGenerator

@@ -30,27 +30,27 @@ public:
 
 protected:
 	template <typename TElem> void
-	write_cell_types(FILE* File, int si);
+	write_cell_types(VTKFileWriter& File, int si);
 
 	template <typename TElem>void
-	write_cell_offsets(FILE* File, int si, int& n);
+	write_cell_offsets(VTKFileWriter& File, int si, int& n);
 
 	template <typename TElem>void
-	write_cell_connectivity(FILE* File, int si);
+	write_cell_connectivity(VTKFileWriter& File, int si);
 
-	bool write_cells(FILE* File, int si, int dim, int numElem, int numConn);
+	bool write_cells(VTKFileWriter& File, int si, int dim, int numElem, int numConn);
 
 	template <typename TElem> void count_sizes(int si, int& numVert, int& numElem, int& numConn);
 
 	bool count_piece_sizes(int si, int dim, int& numVert, int& numElem,
 			int& numConn);
 
-	template <typename TElem> void write_points_elementwise(FILE* File,
+	template <typename TElem> void write_points_elementwise(VTKFileWriter& File,
 			Grid::VertexAttachmentAccessor<APosition>& aaPos, int si, int& n);
 
-	bool write_points(FILE* File, int si, int dim, int numVert);
+	bool write_points(VTKFileWriter& File, int si, int dim, int numVert);
 
-	bool write_piece(FILE* File, int si, int dim);
+	bool write_piece(VTKFileWriter& File, int si, int dim);
 
 	bool is_valid_filename(std::string& nameIn);
 

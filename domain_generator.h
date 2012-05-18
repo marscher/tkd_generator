@@ -29,14 +29,20 @@ class TKDDomainGenerator {
 
 public:
 	TKDDomainGenerator(Grid&, SubsetHandler&);
+	TKDDomainGenerator(Grid&, SubsetHandler&, bool scDomain);
 
 	void setGridObject(Grid&, SubsetHandler&);
+
+	void setIsSCDomain(bool);
 
 	void setSubsetHandlerInfo(const char* corneocyte_name,
 			const char* lipid_name, const vector4& corneocyte_color,
 			const vector4& lipid_color);
 
-	void createTKDDomain(number a, number w, number h, number d_lipid,
+	void createSCDomain(number a, number w, number h, number d_lipid,
+			int rows = 1, int cols = 1, int layers = 1);
+
+	void createSimpleTKDDomain(number a, number w, number h,
 			int rows = 1, int cols = 1, int layers = 1);
 
 	VertexAttachmentAccessor3d getVertexAttachmentAccessor() const {
@@ -72,15 +78,16 @@ private:
 	VertexAttachmentAccessor3d aaPos;
 	std::auto_ptr<TKDGeometryGenerator> geomGenerator;
 	static const number removeDoublesThreshold;
+	bool b_scDomain;
 
-	void calculateShiftVector(shiftSet& shiftVectors);
+	void calculateShiftVector(shiftSet& shiftVectors, TKDSubsetType sh = BOUNDARY_LIPID);
 
 	void createGridFromArrays(const CoordsArray& positions,
-			const IndexArray& indices);
+			const IndexArray& indices, bool sc_domain);
 
-	void setTKDGeometryGenerator(number a, number w, number h, number d_lipid) {
+	void setTKDGeometryGenerator(number a, number w, number h, bool createLipid = true, number d_lipid=-1) {
 		if (geomGenerator.get() == NULL)
-			geomGenerator.reset(new TKDGeometryGenerator(a, w, h, d_lipid));
+			geomGenerator.reset(new TKDGeometryGenerator(a, w, h, createLipid, d_lipid));
 		else {
 			geomGenerator->setGeometricParams(a,w,h,d_lipid);
 		}

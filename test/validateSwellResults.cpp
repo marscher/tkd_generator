@@ -132,7 +132,7 @@ bool saveToVTK(int step, number a, number h, number w) {
 	SubsetHandler& sh = fix.sh;
 	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
 	tkd::TKDDomainGenerator gen(grid,sh);
-	gen.createTKDDomain(a, w, h, 0.1, 2, 3, 1);
+	gen.createSCDomain(a, w, h, 0.1, 2, 3, 1);
 
 	return SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step);
 }
@@ -147,11 +147,9 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	Grid::VertexAttachmentAccessor<APosition>& aaPos = gridInstance.aaPos;
 
 	tkd::TKDDomainGenerator gen(grid, sh);
-	gen.createTKDDomain(a, w, h, 0.1);
+	gen.createSCDomain(a, w, h, 0.1);
 
 	BOOST_REQUIRE(saveToVTK(step,a,h,w));
-
-//	BOOST_REQUIRE(SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step));
 
 	// analytical values
 	number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
