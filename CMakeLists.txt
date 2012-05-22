@@ -44,7 +44,6 @@ if(STATIC)
 	# add the sources to ug4's sources
 	EXPORTSOURCES(plugins/experimental/tkd_generator ${SOURCES})
 	if(TKDTestsuite)
-		# shouldn't be possible?!
 		target_link_libraries (TKDTestsuite ug4_s)
 	endif(TKDTestsuite)
 else(STATIC)
