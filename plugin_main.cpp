@@ -16,7 +16,8 @@
 using namespace ug;
 
 // register tkd generator functions for usage in ug_script
-extern "C" void InitUGPlugin(bridge::Registry* reg, const std::string& parentGroup) {
+extern "C" void
+InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup) {
 	UG_SET_DEBUG_LEVEL(LogAssistant::APP, 0);
 
 	std::string grp(parentGroup);
