@@ -35,19 +35,21 @@ set(SOURCES_TEST test/testSuite.cpp
 				 test/validateSwellResults.cpp
 				 util/VTKOutputGrid.cpp)
 
-# create a shared library from the sources and link it against ug4.
-add_library(TKDGenerator SHARED ${SOURCES})
 if(TKDTestsuite)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UG_ROOT_PATH}/bin/)
 	add_executable(TKDTestsuite ${SOURCES_TEST})
 endif(TKDTestsuite)
 
 if(STATIC)
-	target_link_libraries (TKDGenerator ug4_s)
+	# add the sources to ug4's sources
+	EXPORTSOURCES(plugins/experimental/tkd_generator ${SOURCES})
 	if(TKDTestsuite)
-		target_link_libraries (TKDTestsuite TKDGenerator ug4_s)
+		# shouldn't be possible?!
+		target_link_libraries (TKDTestsuite ug4_s)
 	endif(TKDTestsuite)
 else(STATIC)
+	# create a shared library from the sources and link it against ug4.
+	add_library(TKDGenerator SHARED ${SOURCES})
 	target_link_libraries (TKDGenerator ug4)
 	if(TKDTestsuite)
 		target_link_libraries (TKDTestsuite TKDGenerator ug4)

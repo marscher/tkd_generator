@@ -14,7 +14,7 @@
 #include "geometry_generator.h"
 
 #include <set>
-
+namespace ug {
 namespace tkd {
 
 using namespace ug;
@@ -23,7 +23,7 @@ using namespace std;
 class TKDDomainGenerator {
 
 	// unique vector set
-	typedef std::set<vector3, vecComparator> shiftSet;
+	typedef std::set<vector3, ug::tkd::vecComparator> shiftSet;
 	// access 3d attachment of vertices
 	typedef Grid::VertexAttachmentAccessor<APosition> VertexAttachmentAccessor3d;
 
@@ -94,6 +94,6 @@ private:
 	}
 }; // end of class
 
-}// end of namespace tkdGenerator
-
+}// end of namespace tkd
+}// end of namespace ug
 #endif /* TETRAKAIDEKAEDER_GENERATOR_H_ */

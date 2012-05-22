@@ -14,6 +14,7 @@
 
 using namespace ug;
 
+namespace ug {
 namespace tkd {
 
 number deltaLipidThickness(const vector<number>& distances,
@@ -122,5 +123,6 @@ bool checkParallelBoundaryFaces(Grid& grid, SubsetHandler& sh) {
 	return true;
 }
 
-} // end of namespace tkdGenerator
+} // end of namespace tkd
+} // end of namespace ug
 #endif /* TESTHELPER_H_ */

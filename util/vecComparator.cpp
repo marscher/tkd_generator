@@ -5,6 +5,7 @@
  *      Author: marscher
  */
 #include "vecComparator.h"
+namespace ug {
 namespace tkd {
 
 // returns a < b
@@ -31,4 +32,5 @@ bool vecComparator::operator()(const ug::vector3& a,
 
 const number vecComparator::SMALL = 10E-6;
 
-} /* namespace tkdGenerator */
+} /* namespace tkd */
+} /* namespace ug */

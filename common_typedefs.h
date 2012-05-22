@@ -13,6 +13,7 @@
 #include "common/math/ugmath_types.h"
 #include "common/math/misc/math_util.h"
 
+namespace ug {
 namespace tkd {
 typedef std::vector<ug::vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
@@ -23,4 +24,5 @@ enum TKDSubsetType {
 };
 
 } // end of namespace tkd
+} // end of namespace ug
 #endif /* COMMON_TYPEDEFS_H_ */

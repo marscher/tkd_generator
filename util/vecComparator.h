@@ -8,6 +8,7 @@
 #ifndef VECCOMPARATOR_H_
 #define VECCOMPARATOR_H_
 #include "common/math/ugmath_types.h"
+namespace ug {
 namespace tkd {
 
 struct vecComparator {
@@ -18,5 +19,6 @@ struct vecComparator {
 	static const number SMALL;
 };
 
-} /* namespace tkdGenerator */
+} /* namespace tkd */
+} /* namespace ug */
 #endif /* VECCOMPARATOR_H_ */

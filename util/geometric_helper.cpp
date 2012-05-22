@@ -8,6 +8,7 @@
 #include "common/log.h"
 #include "common/math/math_vector_matrix/math_matrix.h"
 #include "common/math/math_vector_matrix/math_matrix_vector_functions.h"
+namespace ug {
 namespace tkd {
 
 /**
@@ -93,4 +94,5 @@ CoordsArray translate(const CoordsArray& coords, const ug::vector3& offset) {
 //	VecSubtract(vOut, v, vOut);
 //}
 
-} // end of namespace tkdGenerator
+} // end of namespace tkd
+} // end of namespace ug

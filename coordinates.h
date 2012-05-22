@@ -4,8 +4,8 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <vector>
+namespace ug {
 namespace tkd {
-
 
 void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		number width, number d_lipid, const ug::vector3& offset) {
@@ -160,5 +160,6 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		l[i].z += offset.z;
 	}
 }
-}	// end of namespace tkdGenerator
+}	// end of namespace tkd
+} // end of namespace ug
 #endif

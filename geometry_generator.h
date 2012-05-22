@@ -11,6 +11,7 @@
 #include "common_typedefs.h"
 #include "util/rotation_matrix.h"
 
+namespace ug {
 namespace tkd {
 
 /**
@@ -203,5 +204,6 @@ protected:
 	const static ug::vector3 origin;
 };
 
-} //end of namespace
+} //end of namespace tkd
+}// end of namespace ug
 #endif /* GEOM_GENERATOR_H_ */

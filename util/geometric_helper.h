@@ -10,7 +10,7 @@
 
 #include "../common_typedefs.h"
 #include "rotation_matrix.h"
-
+namespace ug {
 namespace tkd {
 
 enum axis {
@@ -45,6 +45,6 @@ protected:
 	const ug::vector3& m_origin;
 };
 
-}
-
+} // end of namespace tkd
+} // end of namespace ug
 #endif /* GEOMETRIC_HELPER_H_ */

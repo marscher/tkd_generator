@@ -11,7 +11,7 @@
 #include "lib_grid/lib_grid.h"
 
 #include <map>
-
+namespace ug {
 namespace tkd {
 
 const number TKDDomainGenerator::removeDoublesThreshold = 10E-5;
@@ -235,7 +235,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	UG_LOG("calling createSCDomain() with following parameter:\n" <<
 			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
-	if (w - 2 * a < 0)
+	if (std::abs(w - 2 * a) > removeDoublesThreshold)
 		UG_THROW("w > 2a geometric constraint not met!");
 
 	if(b_scDomain)
@@ -381,3 +381,4 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 
 } // end of namespace tkdGenerator
+} // end of namespace ug

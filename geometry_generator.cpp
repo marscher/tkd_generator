@@ -8,7 +8,7 @@
 #include "util/geometric_helper.h"
 #include "coordinates.h"
 #include <algorithm>
-
+namespace ug {
 namespace tkd {
 
 const ug::vector3 TKDGeometryGenerator::origin(0, 0, 0);
@@ -492,4 +492,5 @@ void TKDGeometryGenerator::setCreateLipid(bool createLipid) {
 	}
 }
 
-} // end of namespace tkdGenerator
+}// end of namespace tkd
+}// end of namespace ug

@@ -23,8 +23,8 @@ InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup)
 	std::string grp(parentGroup);
 	grp.append("tkd_generator/");
 
-	typedef tkd::TKDGeometryGenerator geomGen;
-	typedef tkd::TKDDomainGenerator domGen;
+	typedef ug::tkd::TKDGeometryGenerator geomGen;
+	typedef ug::tkd::TKDDomainGenerator domGen;
 
 	// register tkd domain generator class
 	bridge::ExportedClass<domGen>& domgenC = reg->add_class_<domGen>(

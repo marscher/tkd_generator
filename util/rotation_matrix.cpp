@@ -10,7 +10,7 @@
 // needed for M_PI macro
 #define _USE_MATH_DEFINES
 #include <cmath>
-
+namespace ug {
 namespace tkd {
 
 /**
@@ -70,4 +70,5 @@ ug::vector3 RotationMatrix::operator*(const ug::vector3& vec) const {
 	return result;
 }
 
-} // end of namespace
+} // end of namespace tkd
+} // end of namespace ug

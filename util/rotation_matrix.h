@@ -9,7 +9,7 @@
 #define _ROTATION_MATRIX_
 
 #include "../common_typedefs.h"
-
+namespace ug {
 namespace tkd {
 
 /**
@@ -29,5 +29,6 @@ public:
 	ug::vector3 operator*(const ug::vector3& v) const;
 };
 
-} // end of namespace
+} // end of namespace tkd
+} // end of namespace ug
 #endif
