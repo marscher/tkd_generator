@@ -235,7 +235,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	UG_LOG("calling createSCDomain() with following parameter:\n" <<
 			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
-	if (std::abs(w - 2 * a) > removeDoublesThreshold)
+	if (! std::abs(w - 2 * a) > removeDoublesThreshold)
 		UG_THROW("w > 2a geometric constraint not met!");
 
 	if(b_scDomain)
