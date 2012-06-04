@@ -570,7 +570,7 @@ bool VTKOutputGrid::write_piece(VTKFileWriter& File, int si, int dim) {
 //	if (m_bSelectAll)
 //	if(true)
 //		for (size_t fct = 0; fct < u.num_fct(); ++fct)
-//			select_nodal_scalar(u.name(fct).c_str(), u.name(fct).c_str());
+//			select_nodal(u.name(fct).c_str(), u.name(fct).c_str());
 //
 ////	loop all selected symbolic names
 //	for (size_t sym = 0; sym < m_vSymbFct.size(); ++sym) {
