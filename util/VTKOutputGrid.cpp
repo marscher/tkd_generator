@@ -100,7 +100,7 @@ void VTKOutputGrid::write_cell_offsets(VTKFileWriter& File, int si, int& n) {
 		//	loop all elements
 		for (; iterBegin != iterEnd; ++iterBegin) {
 			//	increase counter of vertices
-			n += ref_elem_type::num_corners;
+			n += ref_elem_type::numCorners;
 
 			//	write offset
 			File.write_base64<int>(n);
@@ -143,7 +143,7 @@ void VTKOutputGrid::write_cell_connectivity(VTKFileWriter& File, int si) {
 
 			//	write ids of the element
 			if (refID != ROID_PRISM) {
-				for (size_t i = 0; i < (size_t) ref_elem_type::num_corners;
+				for (size_t i = 0; i < (size_t) ref_elem_type::numCorners;
 						i++) {
 					VertexBase* vert = elem->vertex(i);
 					int id = m_aaDOFIndexVRT[vert];
@@ -321,10 +321,10 @@ void VTKOutputGrid::count_sizes(int si, int& numVert, int& numElem,
 
 			//	count number of elements and number of connections
 			++numElem;
-			numConn += ref_elem_type::num_corners;
+			numConn += ref_elem_type::numCorners;
 
 			//	loop vertices of the element
-			for (size_t i = 0; i < (size_t) ref_elem_type::num_corners; ++i) {
+			for (size_t i = 0; i < (size_t) ref_elem_type::numCorners; ++i) {
 				//	get vertex of the element
 				VertexBase* v = GetVertex(elem, i);
 
@@ -440,7 +440,7 @@ void VTKOutputGrid::write_points_elementwise(VTKFileWriter& File,
 			TElem *elem = *iterBegin;
 
 			//	loop vertices of the element
-			for (size_t i = 0; i < (size_t) ref_elem_type::num_corners; ++i) {
+			for (size_t i = 0; i < (size_t) ref_elem_type::numCorners; ++i) {
 				//	get vertex of element
 				VertexBase* v = GetVertex(elem, i);
 
