@@ -16,7 +16,7 @@ namespace tkd {
 
 const number TKDDomainGenerator::removeDoublesThreshold = 10E-5;
 
-TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh) :
+TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
 		grid(grid), sh(sh), b_scDomain(true) {
 	if (&grid != sh.grid()) {
 		UG_THROW(
@@ -29,7 +29,7 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh) :
 	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
-TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh, bool scDomain) :
+TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh, bool scDomain) :
 		grid(grid), sh(sh), b_scDomain(scDomain) {
 	if (&grid != sh.grid()) {
 		UG_THROW(
@@ -42,7 +42,7 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, SubsetHandler& sh, bool scDom
 	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
-void TKDDomainGenerator::setGridObject(Grid& grid, SubsetHandler& sh) {
+void TKDDomainGenerator::setGridObject(Grid& grid, ISubsetHandler& sh) {
 	if (&grid != sh.grid()) {
 		UG_THROW(
 				"ERROR: given SubsetHandler not assigned to given Grid instance.");
@@ -129,7 +129,8 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_CORN);
 
 		sel.clear();
-		SelectBoundaryElements(sel, sh.begin<Face>(LIPID), sh.end<Face>(LIPID));
+		GeometricObjectCollection goc = sh.get_geometric_objects_in_subset(LIPID);
+		SelectBoundaryElements(sel, goc.begin<Face>(), goc.end<Face>());
 		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_LIPID);
 	}
 
@@ -146,8 +147,10 @@ void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
 	map<vector3, vector<Face*>, vecComparator> facesByNormal;
 	map<vector3, vector<Face*>, vecComparator>::iterator fnIter;
 	vector3 normal, c1, c2;
-	for (FaceIterator iter = sh.begin<Face>(shIndex);
-			iter != sh.end<Face>(shIndex); iter++) {
+
+	GeometricObjectCollection goc = sh.get_geometric_objects_in_subset(shIndex);
+	for (FaceIterator iter = goc.begin<Face>();
+			iter != goc.end<Face>(); iter++) {
 		Face* face = *iter;
 			CalculateNormal(normal, face, aaPos);
 			facesByNormal[normal].push_back(face);

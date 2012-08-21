@@ -28,10 +28,10 @@ class TKDDomainGenerator {
 	typedef Grid::VertexAttachmentAccessor<APosition> VertexAttachmentAccessor3d;
 
 public:
-	TKDDomainGenerator(Grid&, SubsetHandler&);
-	TKDDomainGenerator(Grid&, SubsetHandler&, bool scDomain);
+	TKDDomainGenerator(Grid&, ISubsetHandler&);
+	TKDDomainGenerator(Grid&, ISubsetHandler&, bool scDomain);
 
-	void setGridObject(Grid&, SubsetHandler&);
+	void setGridObject(Grid&, ISubsetHandler&);
 
 	void setIsSCDomain(bool);
 
@@ -74,7 +74,7 @@ public:
 
 private:
 	Grid& grid;
-	SubsetHandler& sh;
+	ISubsetHandler& sh;
 	VertexAttachmentAccessor3d aaPos;
 	std::auto_ptr<TKDGeometryGenerator> geomGenerator;
 	static const number removeDoublesThreshold;

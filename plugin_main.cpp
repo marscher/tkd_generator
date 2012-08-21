@@ -30,10 +30,10 @@ InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup)
 	bridge::ExportedClass<domGen>& domgenC = reg->add_class_<domGen>(
 			"TKDDomainGenerator", grp, "Domain (grid) generator for tkds.");
 
-	domgenC.add_constructor<void (*)(Grid&, SubsetHandler&)>(
+	domgenC.add_constructor<void (*)(Grid&, ISubsetHandler&)>(
 			"Grid to fill with TKD#SubsetHandler to use");
 
-	domgenC.add_constructor<void (*)(Grid&, SubsetHandler&, bool)>(
+	domgenC.add_constructor<void (*)(Grid&, ISubsetHandler&, bool)>(
 			"Grid to fill with TKD#SubsetHandler to use;"
 			"third parameter indicates whether a SC domain should be created");
 
