@@ -46,7 +46,7 @@ public:
 			int rows = 1, int cols = 1, int layers = 1);
 
 	VertexAttachmentAccessor3d getVertexAttachmentAccessor() const {
-		return aaPos;
+		return m_aaPos;
 	}
 
 	tkd::TKDGeometryGenerator& getGeometryGenerator() {
@@ -73,9 +73,9 @@ public:
 	}
 
 private:
-	Grid& grid;
-	ISubsetHandler& sh;
-	VertexAttachmentAccessor3d aaPos;
+	Grid& m_grid;
+	ISubsetHandler& m_sh;
+	VertexAttachmentAccessor3d m_aaPos;
 	std::auto_ptr<TKDGeometryGenerator> geomGenerator;
 	static const number removeDoublesThreshold;
 	bool b_scDomain;

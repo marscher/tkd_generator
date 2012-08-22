@@ -17,29 +17,29 @@ namespace tkd {
 const number TKDDomainGenerator::removeDoublesThreshold = 10E-5;
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
-		grid(grid), sh(sh), b_scDomain(true) {
+		m_grid(grid), m_sh(sh), b_scDomain(true) {
 	if (&grid != sh.grid()) {
 		UG_THROW(
 				"ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 
-	grid.attach_to_vertices(aPosition);
-	aaPos.access(grid, aPosition);
+	m_grid.attach_to_vertices(aPosition);
+	m_aaPos.access(m_grid, aPosition);
 
-	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
+	m_grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh, bool scDomain) :
-		grid(grid), sh(sh), b_scDomain(scDomain) {
+		m_grid(grid), m_sh(sh), b_scDomain(scDomain) {
 	if (&grid != sh.grid()) {
 		UG_THROW(
 				"ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 
-	grid.attach_to_vertices(aPosition);
-	aaPos.access(grid, aPosition);
+	m_grid.attach_to_vertices(aPosition);
+	m_aaPos.access(m_grid, aPosition);
 
-	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
+	m_grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
 void TKDDomainGenerator::setGridObject(Grid& grid, ISubsetHandler& sh) {
@@ -48,11 +48,11 @@ void TKDDomainGenerator::setGridObject(Grid& grid, ISubsetHandler& sh) {
 				"ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 
-	this->grid = grid;
-	this->sh = sh;
-	this->grid.attach_to_vertices(aPosition);
-	aaPos.access(grid, aPosition);
-	grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
+	this->m_grid = grid;
+	this->m_sh = sh;
+	this->m_grid.attach_to_vertices(aPosition);
+	m_aaPos.access(m_grid, aPosition);
+	m_grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
 }
 
 /**
@@ -81,8 +81,8 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 	// generate vertices in the grid and store them in an array, so that we can index them
 	std::vector<VertexBase*> vertices(positions.size());
 	for (size_t i = 0; i < positions.size(); ++i) {
-		VertexBase* v = *grid.create<Vertex>();
-		aaPos[v] = positions[i];
+		VertexBase* v = *m_grid.create<Vertex>();
+		m_aaPos[v] = positions[i];
 		vertices[i] = v;
 	}
 	// the VolumeDescriptor will be used to create new volumes
@@ -93,7 +93,7 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 		// inner tkd = 63 elements, so lipid matrix volume index begins with 64
 		// this assumes that default subset index is set to CORNEOCYTE
 		if (count > 62) {
-			sh.set_default_subset_index(LIPID);
+			m_sh.set_default_subset_index(LIPID);
 		}
 		int num = indices[i++];
 		vd.set_num_vertices(num);
@@ -101,40 +101,58 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 			vd.set_vertex(j, vertices[indices[i++]]);
 		switch (num) {
 		case 4:
-			grid.create<ug::Tetrahedron>(vd);
+			m_grid.create<ug::Tetrahedron>(vd);
 			break;
 		case 5:
-			grid.create<ug::Pyramid>(vd);
+			m_grid.create<ug::Pyramid>(vd);
 			break;
 		case 6:
-			grid.create<ug::Prism>(vd);
+			m_grid.create<ug::Prism>(vd);
 			break;
 		case 8:
-			grid.create<ug::Hexahedron>(vd);
+			m_grid.create<ug::Hexahedron>(vd);
 			break;
 		}
 	}
 
 	// remove double vertices
-	RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+	RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
 			aPosition, removeDoublesThreshold);
 
-	sh.assign_subset(grid.begin<VertexBase>(), grid.end<VertexBase>(), -1);
-	sh.assign_subset(grid.begin<EdgeBase>(), grid.end<EdgeBase>(), -1);
-	sh.assign_subset(grid.begin<Face>(), grid.end<Face>(), -1);
+	m_sh.assign_subset(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(), -1);
+	m_sh.assign_subset(m_grid.begin<EdgeBase>(), m_grid.end<EdgeBase>(), -1);
+	m_sh.assign_subset(m_grid.begin<Face>(), m_grid.end<Face>(), -1);
 
+	// assign boundary faces
 	if(sc_domain) {
-		Selector sel(grid);
-		SelectInterfaceElements(sel, sh, grid.begin<Face>(), grid.end<Face>());
-		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_CORN);
+		Selector sel(m_grid);
+		SelectInterfaceElements(sel, m_sh, m_grid.begin<Face>(), m_grid.end<Face>());
+		m_sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_CORN);
 
 		sel.clear();
-		GeometricObjectCollection goc = sh.get_geometric_objects_in_subset(LIPID);
+		GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(LIPID);
 		SelectBoundaryElements(sel, goc.begin<Face>(), goc.end<Face>());
-		sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_LIPID);
+		m_sh.assign_subset(sel.begin<Face>(), sel.end<Face>(), BOUNDARY_LIPID);
 	}
 
-	AdjustSubsetsForSimulation(sh, true);
+	// TODO: assign TOP/BOTTOM
+	/*if(false) {
+		// TOP/BOT
+		Selector sel(m_grid);
+		vector3 normal;
+
+		GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(BOUNDARY_LIPID);
+		for (FaceIterator iter = goc.begin<Face>();
+			  iter != goc.end<Face>(); iter++) {
+					Face* face = *iter;
+					CalculateNormal(normal, face, m_aaPos);
+					double norm=sqrt(normal*normal);
+					double dir=normal*vector3(0,0,1.0);
+					dir /=norm;
+					if (dir==norm) {}
+			}
+	}*/
+	AdjustSubsetsForSimulation(m_sh, true);
 }
 
 /**
@@ -148,11 +166,11 @@ void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
 	map<vector3, vector<Face*>, vecComparator>::iterator fnIter;
 	vector3 normal, c1, c2;
 
-	GeometricObjectCollection goc = sh.get_geometric_objects_in_subset(shIndex);
+	GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(shIndex);
 	for (FaceIterator iter = goc.begin<Face>();
 			iter != goc.end<Face>(); iter++) {
 		Face* face = *iter;
-			CalculateNormal(normal, face, aaPos);
+			CalculateNormal(normal, face, m_aaPos);
 			facesByNormal[normal].push_back(face);
 	}
 
@@ -170,9 +188,9 @@ void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
 			// get parallel faces
 			vector<Face*>& parallelHexagon = facesByNormal[inverseNormal];
 			// calculate their center
-			c1 = CalculateCenter(faces.begin(), faces.end(), aaPos);
+			c1 = CalculateCenter(faces.begin(), faces.end(), m_aaPos);
 			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
-					aaPos);
+					m_aaPos);
 			// only store unique shifts
 			using std::abs;
 			shiftVectors.insert(vector3(abs(c1.x) + abs(c2.x),
@@ -192,24 +210,25 @@ void TKDDomainGenerator::calculateShiftVector(shiftSet& shiftVectors,
 void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
 		const char* lipid_name, const vector4& corneocyte_color,
 		const vector4& lipid_color) {
-	// Subset 1 for corneocytes (same as in Feuchters tkdmodeller)
-	sh.set_default_subset_index(CORNEOCYTE);
-	sh.subset_info(CORNEOCYTE).name = corneocyte_name;
-	sh.subset_info(LIPID).name = lipid_name;
-	sh.subset_info(LIPID).color = lipid_color;
-	sh.subset_info(CORNEOCYTE).color = corneocyte_color;
 
+	// Subset 1 for corneocytes (same as in Feuchters tkdmodeller)
+	m_sh.set_default_subset_index(CORNEOCYTE);
+	m_sh.subset_info(CORNEOCYTE).name = corneocyte_name;
+	m_sh.subset_info(CORNEOCYTE).color = corneocyte_color;
+
+	m_sh.subset_info(LIPID).name = lipid_name;
+	m_sh.subset_info(LIPID).color = lipid_color;
 
 	// set subset boundary infos
-	vector4 boundary_color_lipid, boundary_color_corneo;
-	VecMultiply(boundary_color_lipid, lipid_color, 0.6);
-	VecMultiply(boundary_color_corneo, corneocyte_color, 0.6);
+	vector4 boundary_color;
+	VecMultiply(boundary_color, lipid_color, 0.6);
+	m_sh.subset_info(BOUNDARY_CORN).name = "COR-LIP";
+	m_sh.subset_info(BOUNDARY_CORN).color = boundary_color;
 
-	sh.subset_info(BOUNDARY_CORN).name = "boundary corneocytes";
-	sh.subset_info(BOUNDARY_CORN).color = boundary_color_corneo;
+	VecMultiply(boundary_color, corneocyte_color, 0.6);
+	m_sh.subset_info(BOUNDARY_LIPID).name = "TOP";
+	m_sh.subset_info(BOUNDARY_LIPID).color = boundary_color;
 
-	sh.subset_info(BOUNDARY_LIPID).name = "boundary lipid";
-	sh.subset_info(BOUNDARY_LIPID).color = boundary_color_lipid;
 }
 
 /**
@@ -235,19 +254,34 @@ void TKDDomainGenerator::createSimpleTKDDomain(number a, number w, number h,
  */
 void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		number d_lipid, int rows, int cols, int layers) {
+
+
+
+
 	UG_LOG("calling createSCDomain() with following parameter:\n" <<
 			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
 	if (! std::abs(w - 2 * a) > removeDoublesThreshold)
 		UG_THROW("w > 2a geometric constraint not met!");
 
+
+	// deactivate hierarchical insertion for multigrid (creates empty levels...)
+	bool hierarchicalInertionEnabled = false;
+	MultiGrid* mg= dynamic_cast<MultiGrid*>(&m_grid);
+	if (mg)
+	{
+		hierarchicalInertionEnabled = mg->hierarchical_insertion_enabled();
+		mg->enable_hierarchical_insertion(false);
+	}
+
+
 	if(b_scDomain)
 		setSubsetHandlerInfo("corneocytes", "lipid matrix", vector4(0, 1, 0, 0),
 				vector4(0, 0, 1, 0));
 
 	//// set grid options
-	grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
-	grid.attach_to_vertices(aPosition);
+	m_grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
+	m_grid.attach_to_vertices(aPosition);
 	//// create coordinates and vertex indices for 1 tetrakaidecahedron
 	if(b_scDomain)
 		setTKDGeometryGenerator(a, w, h, true, d_lipid);
@@ -269,12 +303,12 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		UG_DLOG(LogAssistant::APP, 1,
 				"creating " << count << " cells with lipid matrix." << endl);
 
-		Grid::VertexAttachmentAccessor<APosition> aaPos(grid, aPosition);
+		Grid::VertexAttachmentAccessor<APosition> m_aaPos(m_grid, aPosition);
 
-		Selector sel(grid);
+		Selector sel(m_grid);
 		sel.enable_autoselection(false);
 		// select lipid and corneocyte of first tkd for duplication
-		sel.select(grid.begin<Volume>(), grid.end<Volume>());
+		sel.select(m_grid.begin<Volume>(), m_grid.end<Volume>());
 
 		// do not select duplicates so we can continue to work with initial selection
 		bool selectNew = false;
@@ -321,13 +355,13 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 		for (int k = 0; k < layers - 1; k++) {
 			VecAdd(offset_high, offset_high, shiftHeight);
-			Duplicate(grid, sel, offset_high, aPosition, deselectOld,
+			Duplicate(m_grid, sel, offset_high, aPosition, deselectOld,
 					selectNew);
 		}
 
 		//// stack in rows direction
 		// select all
-		sel.select(grid.begin<Volume>(), grid.end<Volume>());
+		sel.select(m_grid.begin<Volume>(), m_grid.end<Volume>());
 
 		vector3 offset_rows(0, 0, 0);
 
@@ -340,17 +374,17 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 				VecSubtract(offset_rows, offset_rows, shiftHeight);
 			}
 
-			Duplicate(grid, sel, offset_rows, aPosition, deselectOld,
+			Duplicate(m_grid, sel, offset_rows, aPosition, deselectOld,
 					selectNew);
 		}
 
 		// remove double vertices for first row
-		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+		RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
 				aPosition, removeDoublesThreshold);
 
 		//// stack in column direction
 		// select first generated row
-		sel.select(grid.begin<Volume>(), grid.end<Volume>());
+		sel.select(m_grid.begin<Volume>(), m_grid.end<Volume>());
 
 		vector3 offset_cols(0, 0, 0);
 		vector3 oneThirdHeight;
@@ -372,14 +406,23 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 				offset_cols.y = 0;
 			}
 
-			Duplicate(grid, sel, offset_cols, aPosition, deselectOld,
+			Duplicate(m_grid, sel, offset_cols, aPosition, deselectOld,
 					selectNew);
 		}
 
 		// finally remove double vertices
-		RemoveDoubles<3>(grid, grid.vertices_begin(), grid.vertices_end(),
+		RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
 				aPosition, removeDoublesThreshold);
 	}
+
+
+
+	// activate hierarchical insertion for multigrid again
+	if(hierarchicalInertionEnabled && mg)
+		mg->enable_hierarchical_insertion(true);
+
+	// TODO: grid _changed_calback??
+	UpdateMaxDimensionOfSubset(m_sh, "dim");
 }
 
 
