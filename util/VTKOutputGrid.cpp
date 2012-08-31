@@ -704,15 +704,15 @@ bool VTKOutputGrid::print_subset(Grid* grid, SubsetHandler* sh,
 //	header
 	File.write( "<?xml version=\"1.0\"?>\n");
 	char* str=0;
-	sprintf(str,
-	 "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
-			"byte_order=\"%s\">\n",
-#ifdef __SWAPBYTES__
-			"LittleEndian"
-#else
-			"BigEndian"
-#endif
-);
+
+	if(IsLittleEndian()){
+		sprintf(str, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
+				"byte_order=\"LittleEndian\">\n");
+	}
+	else{
+		sprintf(str, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
+				"byte_order=\"BigEndian\">\n");
+	}
 	File.write(str);
 
 //	writing time point
