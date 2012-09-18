@@ -19,7 +19,7 @@ test_suite*
 init_unit_test_suite(int argc, char* argv[]) {
 	ug::UGInit(&argc, &argv);
 
-	framework::master_test_suite().p_name.value = "tkd-Testsuite";
+	framework::master_test_suite().p_name.set("tkd-Testsuite");
 
 	const char* datafile = NULL;
 

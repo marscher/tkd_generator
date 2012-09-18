@@ -32,8 +32,7 @@ set(SOURCES	plugin_main.cpp
 set(SOURCES_TEST test/testSuite.cpp
                  test/testLipidDistance.cpp
 				 test/testVolume.cpp
-				 test/validateSwellResults.cpp
-				 util/VTKOutputGrid.cpp)
+				 test/validateSwellResults.cpp)
 
 if(TKDTestsuite)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UG_ROOT_PATH}/bin/)

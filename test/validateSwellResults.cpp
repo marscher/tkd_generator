@@ -11,7 +11,6 @@
 #include <boost/spirit/include/classic.hpp>
 
 #include <lib_grid/lib_grid.h>
-#include "../util/VTKOutputGrid.h"
 
 #include "../common_typedefs.h"
 #include "../domain_generator.h"
@@ -26,7 +25,7 @@ using ug::SubsetHandler;
 using ug::Selector;
 
 using std::vector;
-using namespace tkd;
+using namespace ug::tkd;
 // percental allowed deviance of results with calculated values
 #define dev_percentage 0.01
 
@@ -126,17 +125,6 @@ bool parse_numbers(char const* str, vector<double>& v) {
 			sp::space_p).full;
 }
 
-bool saveToVTK(int step, number a, number h, number w) {
-	gridFixture fix;
-	Grid& grid = fix.grid;
-	SubsetHandler& sh = fix.sh;
-	Grid::VertexAttachmentAccessor<APosition>& aaPos = fix.aaPos;
-	tkd::TKDDomainGenerator gen(grid,sh);
-	gen.createSCDomain(a, w, h, 0.1, 2, 3, 1);
-
-	return SaveGridToVTK(grid, sh, "/tmp/tkd/tkd", aaPos, step);
-}
-
 void checkVolumeAndSurface(int step, number alpha, number first_vol,
 		number first_surface, number firstLipidVol, number a, number h,
 		number w) {
@@ -228,7 +216,7 @@ boost::unit_test::test_suite* initValidateResultsTS(const char* file) {
 
 	std::ifstream ifs(file);
 	if (!ifs.good()) {
-		BOOST_MESSAGE("file not readable.");
+		BOOST_MESSAGE("given file: " << file << " not readable.");
 		return ts;
 	}
 
@@ -243,12 +231,13 @@ boost::unit_test::test_suite* initValidateResultsTS(const char* file) {
 
 	ifs.close();
 
-	int step = 0;
+	uint step = 0;
 	number alpha_1_volume = 0, alpha_1_surface = 0, alpha_1_lipid_vol = 0;
 	number alpha, a, h, s, w, V, A, V_lip;
 
 	// load swell data from csv and generate geometries
 	for (iter = v.begin(); iter != v.end(); step++) {
+		UG_LOG("step: " << step << endl);
 		alpha = *iter++;
 		a = *iter++;
 		h = *iter++;
