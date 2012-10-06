@@ -18,8 +18,6 @@ using namespace ug;
 // register tkd generator functions for usage in ug_script
 extern "C" void
 InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup) {
-	UG_SET_DEBUG_LEVEL(LogAssistant::APP, 0);
-
 	std::string grp(parentGroup);
 	grp.append("tkd_generator/");
 
@@ -88,7 +86,7 @@ InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup)
 	geomGenC.add_method("createGeometry", &geomGen::createGeometry);
 
 	// add volume methods
-	geomGenC.add_method("getVolume",
+	geomGenC.add_method("GetVolume",
 			(number (geomGen::*)(int) const) (&geomGen::getVolume),
 			"Volume of given subset (1 element)");
 	// add static member function of TKDGeometryGenerator as global function
@@ -97,7 +95,7 @@ InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup)
 			"calculate Volume for given geometrical parameters");
 
 	// register surface methods
-	geomGenC.add_method("getSurface",
+	geomGenC.add_method("GetSurface",
 			(number (geomGen::*)(int) const) (&geomGen::getSurface),
 			"Surface of given subset (1 element)");
 	// add static member function of TKDGeometryGenerator as global function
