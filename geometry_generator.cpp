@@ -11,7 +11,7 @@
 namespace ug {
 namespace tkd {
 
-const ug::vector3 TKDGeometryGenerator::origin(0, 0, 0);
+const vector3 TKDGeometryGenerator::origin(0, 0, 0);
 
 TKDGeometryGenerator::TKDGeometryGenerator() :
 		b_createLipid(true), R(0), index(0) {
@@ -29,7 +29,7 @@ TKDGeometryGenerator::TKDGeometryGenerator(number a, number w, number h,
  * @param offset
  * @param rotationOffset
  */
-void TKDGeometryGenerator::createCorneocyteTop(const ug::vector3& offset,
+void TKDGeometryGenerator::createCorneocyteTop(const vector3& offset,
 		const number rotationOffset, bool bottom) {
 
 	// if we are creating the bottom part, flip orientation of all volumes
@@ -84,7 +84,7 @@ void TKDGeometryGenerator::createCorneocyteTop(const ug::vector3& offset,
 	}
 }
 
-void TKDGeometryGenerator::createCorneocyteMiddle(const ug::vector3& origin) {
+void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
 	myTransform t(R, origin);
 
 	for (int r = 0; r < 360; r += 60) {
@@ -125,7 +125,7 @@ void TKDGeometryGenerator::createGeometry() {
 	// init basic volume coordinates
 	initGeometricParams();
 
-	ug::vector3 offset(0, 0, h_corneocyte / 2);
+	vector3 offset(0, 0, h_corneocyte / 2);
 	createCorneocyte(offset);
 
 	RotationMatrix R(60);
@@ -137,25 +137,49 @@ void TKDGeometryGenerator::createGeometry() {
 	if(b_createLipid) {
 		createLipidMatrix(origin);
 		createLipidMatrix(origin, 60, true);
+
+		// clear lipid arrays after creation
+		obenInnenPrismL.clear();
+		obenAussen_leftPrismL.clear();
+		obenAussen_rightPrismL.clear();
+		upperHexahedronL.clear();
+		bottomLeftPrismL.clear();
+		bottomOuterHexahedronL.clear();
+		bottomRightPrismL.clear();
+		sideQuad.clear();
 	}
 }
 
 /**
  * creates a tkd starting construction with offset. Construction is performed down the z axis
  */
-void TKDGeometryGenerator::createCorneocyte(const ug::vector3& offset) {
+void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
 	createCorneocyteTop(offset, 0);
 
-	ug::vector3 offset_h(offset.x, offset.y, offset.z - h_corneocyte);
+	vector3 offset_h(offset.x, offset.y, offset.z - h_corneocyte);
 
 	createCorneocyteMiddle(offset_h);
 
 	// offset is same like middle because bottom is mirrored around z axis
 	// in fact this is the bottom part, rotated with 60° relative to top
 	createCorneocyteTop(offset_h, 60, true);
+
+	// clear memory of corn arrays
+	obenInnen.clear();
+	obenAussenPrism.clear();
+	obenAussenPr_rightTetrahedron.clear();
+	obenAussenPr_leftTetrahedron.clear();
+	obenAussenPr2T_prism.clear();
+	mitteAussenP1.clear();
+	mitteAussenP2.clear();
+	mitteAussenH2Pr_tetrahedron.clear();
+	mitteAussenH2Pr_pyramid.clear();
+	mitteAussen2PrH_tetrahedron.clear();
+	mitteAussen2PrH_pyramid.clear();
+	mitteAussenHexahedron.clear();
 }
 
-void TKDGeometryGenerator::createLipidMatrix(const ug::vector3& offset,
+void TKDGeometryGenerator::createLipidMatrix(const vector3& offset,
 		const number rotationOffset, bool bottom) {
 
 	if (bottom) {
@@ -200,8 +224,6 @@ void TKDGeometryGenerator::createLipidMatrix(const ug::vector3& offset,
 void TKDGeometryGenerator::initGeometricParams() {
 	indsOut.reserve(702);
 	posOut.reserve(819);
-
-	using ug::vector3;
 
 	// height of base triangle of top inner prism
 	number g_cornoecyte = sqrt(3) * a_corneocyte / 2;
@@ -274,7 +296,6 @@ void TKDGeometryGenerator::initGeometricParams() {
 
 void TKDGeometryGenerator::initLipidGeometric() {
 	CoordsArray c(76);
-	using ug::vector3;
 	CalculateLipidCoords(c, a_corneocyte, h_corneocyte * 3, w_corneocyte,
 			d_lipid, vector3(0, 0, 3 * h_corneocyte / 2));
 
@@ -366,7 +387,7 @@ void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
 	posOut.insert(posOut.end(), posIn.begin(), posIn.end());
 
 	// tell lib_grid how much vertex indices are belonging to this geometric object
-	indsOut.push_back(posIn.size());
+	indsOut.push_back(numCoords);
 	// enum each node of this geometric object to assign unique node index
 	for (size_t current = index; index < current + numCoords; index++) {
 		indsOut.push_back(index);

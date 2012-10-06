@@ -136,20 +136,20 @@ protected:
 	void setLipidDiameter();
 	void setLipidParameters();
 
-	void createCorneocyte(const ug::vector3&);
-	void createLipidMatrix(const ug::vector3&, const number rotationOffset = 0,
+	void createCorneocyte(const vector3&);
+	void createLipidMatrix(const vector3&, const number rotationOffset = 0,
 			bool bottom = false);
 
 	/**
 	 *	creates the upper part of tkd (symmetric to bottom part!)
 	 */
-	void createCorneocyteTop(const ug::vector3& offset,
+	void createCorneocyteTop(const vector3& offset,
 			const number rotationOffset = 0, bool bottom = false);
 
 	/**
 	 * creates middle part with given offset
 	 */
-	void createCorneocyteMiddle(const ug::vector3& offset);
+	void createCorneocyteMiddle(const vector3& offset);
 
 	/**
 	 * pushes posIn into global posOut reference and creates
@@ -201,7 +201,7 @@ protected:
 	// lipid side quad
 	CoordsArray sideQuad;
 
-	const static ug::vector3 origin;
+	const static vector3 origin;
 };
 
 } //end of namespace tkd
