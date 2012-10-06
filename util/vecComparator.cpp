@@ -9,8 +9,8 @@ namespace ug {
 namespace tkd {
 
 // returns a < b
-bool vecComparator::operator()(const ug::vector3& a,
-		const ug::vector3& b) const {
+bool vecComparator::operator()(const vector3& a,
+		const vector3& b) const {
 
 	if (a.x < b.x - SMALL)
 		return true;

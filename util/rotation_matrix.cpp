@@ -64,8 +64,8 @@ RotationMatrix::RotationMatrix(const number& deg, const bool mirror) {
  * performs rotation and, if set, mirroring around z axis.
  * @param vec vector to rotate (and mirror)
  */
-ug::vector3 RotationMatrix::operator*(const ug::vector3& vec) const {
-	ug::vector3 result;
+vector3 RotationMatrix::operator*(const vector3& vec) const {
+	vector3 result;
 	MatVecMult(result, *this, vec);
 	return result;
 }

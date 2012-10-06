@@ -14,7 +14,7 @@ namespace tkd {
 struct vecComparator {
 
 	// returns a < b
-	bool operator()(const ug::vector3& a, const ug::vector3& b) const;
+	bool operator()(const vector3&, const vector3&) const;
 	
 	static const number SMALL;
 };
