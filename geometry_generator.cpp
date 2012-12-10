@@ -455,11 +455,11 @@ void TKDGeometryGenerator::updateOverlap(int subset) {
 	if (subset == CORNEOCYTE) {
 		this->s_corneocyte = (sqrt(3.0) / 3.0)
 				* (w_corneocyte - 2 * a_corneocyte);
-		UG_DLOG(LogAssistant::APP, 1,
+		UG_DLOG(APP, 1,
 				"updated corneocyte overlap to: " << s_corneocyte << std::endl);
 	} else if (subset == LIPID) {
 		this->s_lipid = (sqrt(3.0) / 3.0) * (w_lipid - 2.0 * a_lipid);
-		UG_DLOG(LogAssistant::APP, 1,
+		UG_DLOG(APP, 1,
 				"updated lipid overlap to: " << s_lipid << std::endl);
 	}
 }
@@ -473,7 +473,7 @@ void TKDGeometryGenerator::setLipidBaseEdgeLength() {
 	number beta = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1 * sin(alpha)));
 	number gamma = 1.0 / 2.0 * M_PI + acos(h / (3.0 * a1));
 
-	UG_DLOG(LogAssistant::APP, 1,
+	UG_DLOG(APP, 1,
 			"alpha: " << alpha << " beta: " << beta << " gamma: " << gamma << std::endl)
 
 	number m1 = d_lipid / (2.0 * tan(beta / 2.0));
@@ -498,7 +498,7 @@ void TKDGeometryGenerator::setLipidParameters() {
 
 	updateOverlap (LIPID);
 
-	UG_DLOG(LogAssistant::APP, 1,
+	UG_DLOG(APP, 1,
 			"a_l: " << a_lipid << " w_l: " << w_lipid << " s_l: " << s_lipid << std::endl);
 }
 

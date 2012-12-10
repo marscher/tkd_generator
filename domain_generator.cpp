@@ -292,7 +292,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	//// fill the grid object with coordinates and indices
 	createGridFromArrays(geomGenerator->getPositions(),
 			geomGenerator->getIndices(), b_scDomain);
-	UG_DLOG(LogAssistant::APP, 1,
+	UG_DLOG(APP, 1,
 			"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl
 			<< "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl
 			<< "Area of lipid: " << geomGenerator->getSurface(LIPID) << endl);
@@ -300,7 +300,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	uint count = rows * cols * layers;
 
 	if (count > 1) {
-		UG_DLOG(LogAssistant::APP, 1,
+		UG_DLOG(APP, 1,
 				"creating " << count << " cells with lipid matrix." << endl);
 
 		Grid::VertexAttachmentAccessor<APosition> m_aaPos(m_grid, aPosition);
@@ -346,7 +346,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 				VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL && VecLength(shiftRows) > SMALL,
 				"shifts not set correctly");
 
-		UG_DLOG(LogAssistant::APP, 1,
+		UG_DLOG(APP, 1,
 				"shift vectors:\n" << "height: " << shiftHeight << "\tcols: "
 				<< shiftCols << "\trows: " << shiftRows << endl)
 
