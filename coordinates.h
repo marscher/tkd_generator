@@ -8,8 +8,7 @@ namespace ug {
 namespace tkd {
 
 void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
-		number width, number d_lipid, const ug::vector3& offset) {
-	using ug::vector3;
+		number width, number d_lipid, const vector3& offset) {
 	using std::vector;
 
 	const number b = sqrt(3);
@@ -160,6 +159,7 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		l[i].z += offset.z;
 	}
 }
-}	// end of namespace tkd
+
+} // end of namespace tkd
 } // end of namespace ug
 #endif

@@ -274,4 +274,5 @@ number CalculateVolume(geometry_traits<Volume>::iterator begin,
 	return result;
 }
 
-} // end of namespace ug
+}
+ // end of namespace ug

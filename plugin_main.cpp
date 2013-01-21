@@ -8,7 +8,6 @@
 #include "registry/registry.h"
 #include "bridge/bridge.h"
 #include "lib_grid/lib_grid.h"
-#include "common/types.h"
 
 #include "domain_generator.h"
 #include "geometry_generator.h"

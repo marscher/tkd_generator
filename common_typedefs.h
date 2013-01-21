@@ -15,12 +15,13 @@
 
 namespace ug {
 namespace tkd {
-typedef std::vector<ug::vector3> CoordsArray;
+
+typedef std::vector<vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
 
 // subset indices
 enum TKDSubsetType {
-	LIPID = 0, CORNEOCYTE, BOUNDARY_CORN, BOUNDARY_LIPID
+	LIPID = 0, CORNEOCYTE, BOUNDARY_CORN, BOUNDARY_LIPID, TOP, BOTTOM
 };
 
 } // end of namespace tkd

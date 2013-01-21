@@ -12,10 +12,9 @@
 #include "lib_grid/lib_grid.h"
 #include <numeric>
 
-using namespace ug;
-
 namespace ug {
 namespace tkd {
+using std::vector;
 
 number deltaLipidThickness(const vector<number>& distances,
 		const number d_lipid) {
@@ -31,7 +30,7 @@ number deltaLipidThickness(const vector<number>& distances,
  * @param d_lipid thickness of lipid matrix to compare with
  * @param assign if true broken elements will be assign to new subset
  */
-vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
+std::vector<number> meassureLipidThickness(Grid& grid, SubsetHandler& sh,
 		number d_lipid, bool assign = false) {
 	vector<Face*> faces;
 	vector<number> distances;

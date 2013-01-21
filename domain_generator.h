@@ -8,22 +8,18 @@
 #define TETRAKAIDEKAEDER_GENERATOR_H_
 
 #include "lib_grid/lib_grid.h"
-
 #include "common_typedefs.h"
-#include "util/vecComparator.h"
 #include "geometry_generator.h"
 
 #include <set>
+
 namespace ug {
 namespace tkd {
-
-using namespace ug;
-using namespace std;
 
 class TKDDomainGenerator {
 
 	// unique vector set
-	typedef std::set<vector3, ug::tkd::vecComparator> shiftSet;
+	typedef std::set<vector3> UniqueVector3Set;
 	// access 3d attachment of vertices
 	typedef Grid::VertexAttachmentAccessor<APosition> VertexAttachmentAccessor3d;
 
@@ -39,17 +35,17 @@ public:
 			const char* lipid_name, const vector4& corneocyte_color,
 			const vector4& lipid_color);
 
-	void createSCDomain(number a, number w, number h, number d_lipid,
-			int rows = 1, int cols = 1, int layers = 1);
+	void createSCDomain(number a, number w, number h, number d_lipid, int rows =
+			1, int cols = 1, int layers = 1);
 
-	void createSimpleTKDDomain(number a, number w, number h,
-			int rows = 1, int cols = 1, int layers = 1);
+	void createSimpleTKDDomain(number a, number w, number h, int rows = 1,
+			int cols = 1, int layers = 1);
 
-	VertexAttachmentAccessor3d getVertexAttachmentAccessor() const {
+	const VertexAttachmentAccessor3d& getVertexAttachmentAccessor() const {
 		return m_aaPos;
 	}
 
-	tkd::TKDGeometryGenerator& getGeometryGenerator() {
+	TKDGeometryGenerator& getGeometryGenerator() {
 		if(geomGenerator.get() == NULL)
 			geomGenerator.reset(new TKDGeometryGenerator());
 		return *geomGenerator;
@@ -75,25 +71,33 @@ public:
 private:
 	Grid& m_grid;
 	ISubsetHandler& m_sh;
+	Selector m_sel;
 	VertexAttachmentAccessor3d m_aaPos;
 	std::auto_ptr<TKDGeometryGenerator> geomGenerator;
-	static const number removeDoublesThreshold;
+	static const number REMOVE_DOUBLES_THRESHOLD;
 	bool b_scDomain;
 
-	void calculateShiftVector(shiftSet& shiftVectors, TKDSubsetType sh = BOUNDARY_LIPID);
+	void assignPeriodicBoundaryFacesToSubsets(std::map<vector3, std::vector<Face*> >&);
+
+	void calculateShiftVectors(UniqueVector3Set& shiftVectors,
+			std::map<vector3, std::vector<Face*> >& facesByNormal, TKDSubsetType sh =
+			BOUNDARY_LIPID);
 
 	void createGridFromArrays(const CoordsArray& positions,
 			const IndexArray& indices, bool sc_domain);
 
-	void setTKDGeometryGenerator(number a, number w, number h, bool createLipid = true, number d_lipid=-1) {
-		if (geomGenerator.get() == NULL)
-			geomGenerator.reset(new TKDGeometryGenerator(a, w, h, createLipid, d_lipid));
+	void setTKDGeometryGenerator(number a, number w, number h,
+			bool createLipid = true, number d_lipid = -1) {
+		if(geomGenerator.get() == NULL)
+			geomGenerator.reset(
+					new TKDGeometryGenerator(a, w, h, createLipid, d_lipid));
 		else {
-			geomGenerator->setGeometricParams(a,w,h,d_lipid);
+			geomGenerator->setGeometricParams(a, w, h, d_lipid);
 		}
 	}
-}; // end of class
+	void setupGridObjects();
+};
 
-}// end of namespace tkd
-}// end of namespace ug
+} // end of namespace tkd
+} // end of namespace ug
 #endif /* TETRAKAIDEKAEDER_GENERATOR_H_ */

@@ -12,6 +12,8 @@
 
 namespace ug {
 
+number AnisotropicFactor(const Volume&, Grid*, Grid::VertexAttachmentAccessor<APosition>&);
+
 // wrappers for high level volume classes
 number CalculateVolume(const Tetrahedron&,
 		Grid::VertexAttachmentAccessor<APosition>&);

@@ -24,15 +24,14 @@ set(SOURCES	plugin_main.cpp
             domain_generator.cpp
             geometry_generator.cpp
 			util/rotation_matrix.cpp
-			util/geometric_helper.cpp
-			util/volume_calculation.cpp
-			util/vecComparator.cpp)
+			util/geometric_helper.cpp)
 
 # sources test
 set(SOURCES_TEST test/testSuite.cpp
                  test/testLipidDistance.cpp
 				 test/testVolume.cpp
-				 test/validateSwellResults.cpp)
+				 test/validateSwellResults.cpp
+				 util/volume_calculation.cpp)
 
 if(TKDTestsuite)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UG_ROOT_PATH}/bin/)

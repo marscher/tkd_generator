@@ -20,12 +20,10 @@
 #include <vector>
 #include <fstream>
 
-using ug::Grid;
-using ug::SubsetHandler;
-using ug::Selector;
+using namespace ug;
+using namespace ug::tkd;
 
 using std::vector;
-using namespace ug::tkd;
 // percental allowed deviance of results with calculated values
 #define dev_percentage 0.01
 
@@ -137,8 +135,6 @@ void checkVolumeAndSurface(int step, number alpha, number first_vol,
 	tkd::TKDDomainGenerator gen(grid, sh);
 	gen.createSCDomain(a, w, h, 0.1);
 
-	BOOST_REQUIRE(saveToVTK(step,a,h,w));
-
 	// analytical values
 	number vol = gen.getGeometryGenerator().getVolume(CORNEOCYTE);
 	number lipidVol = gen.getGeometryGenerator().getVolume(LIPID);
@@ -237,7 +233,7 @@ boost::unit_test::test_suite* initValidateResultsTS(const char* file) {
 
 	// load swell data from csv and generate geometries
 	for (iter = v.begin(); iter != v.end(); step++) {
-		UG_LOG("step: " << step << endl);
+		UG_LOG("step: " << step << std::endl);
 		alpha = *iter++;
 		a = *iter++;
 		h = *iter++;

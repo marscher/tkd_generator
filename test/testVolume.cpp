@@ -10,7 +10,7 @@
 #include "../util/volume_calculation.h"
 
 using namespace ug;
-using std::vector;
+//using std::vector;
 using namespace std;
 
 /**

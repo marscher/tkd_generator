@@ -17,7 +17,9 @@
 #include <cmath>
 
 using namespace boost::unit_test;
-using namespace tkd;
+//using namespace tkd;
+using namespace ug;
+using namespace ug::tkd;
 
 BOOST_AUTO_TEST_SUITE(lipid)
 
