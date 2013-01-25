@@ -4,33 +4,30 @@
  *  Created on: 30.03.2012
  *      Author: marscher
  */
-#include "vecComparator.h"
-namespace ug {
-namespace tkd {
-
-// returns a < b
-bool vecComparator::operator()(const vector3& a,
-		const vector3& b) const {
-
-	if (a.x < b.x - SMALL)
-		return true;
-	if (a.x > b.x + SMALL)
-		return false;
-
-	if (a.y < b.y - SMALL)
-		return true;
-	if (a.y > b.y + SMALL)
-		return false;
-
-	if (a.z < b.z - SMALL)
-		return true;
-	if (a.z > b.z + SMALL)
-		return false;
-
-	return false;
+#include "./vecComparator.h"
+namespace std {
+/**
+ * To compare vector3 with < operator (lexicographically sorted by component).
+ * Use with care!
+ */
+bool less<vector3>::operator()(const vector3& a, const vector3& b) const {
+	return a < b;
 }
 
-const number vecComparator::SMALL = 10E-6;
+/**
+ * assumes a == b iff !(a < b) && !(b < a)
+ */
+bool equal_to<vector3>::operator()(const vector3& a, const vector3& b) const {
+	return a == b;
+}
 
-} /* namespace tkd */
+} // end of namespace std
+
+// ug exposed comparator
+namespace ug {
+
+bool operator==(const vector3& a, const vector3& b) {
+	return !(a < b) && !(b < a);
+}
+
 } /* namespace ug */

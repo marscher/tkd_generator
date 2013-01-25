@@ -6,8 +6,6 @@
  */
 
 #include "registry/registry.h"
-#include "bridge/bridge.h"
-#include "lib_grid/lib_grid.h"
 
 #include "domain_generator.h"
 #include "geometry_generator.h"
@@ -30,11 +28,11 @@ InitUGPlugin_TKDGenerator(bridge::Registry* reg, const std::string& parentGroup)
 	domgenC.add_constructor<void (*)(Grid&, ISubsetHandler&)>(
 			"Grid to fill with TKD#SubsetHandler to use");
 
-	domgenC.add_constructor<void (*)(Grid&, ISubsetHandler&, bool)>(
+	domgenC.add_constructor<void (*)(Grid&, ISubsetHandler&, bool, bool)>(
 			"Grid to fill with TKD#SubsetHandler to use;"
 			"third parameter indicates whether a SC domain should be created");
 
-	domgenC.add_method("setIsSCDomain", &domGen::setIsSCDomain,
+	domgenC.add_method("setIsSCDomain", &domGen::setSCDomain,
 			"switch whether a stratum corneum domain or a simple tkd domain"
 			"will be created on createDomain()");
 

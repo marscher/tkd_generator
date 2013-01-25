@@ -5,37 +5,37 @@
  *      Author: marscher
  */
 
-#include "domain_generator.h"
-#include "test/testHelper.h"
-#include "util/vecComparator.h"
-#include "lib_grid/lib_grid.h"
+#include "./domain_generator.h"
 
-#include <map>
+#include "lib_grid/algorithms/selection_util.h"
+#include "lib_grid/algorithms/subset_util.h"
+#include "lib_grid/algorithms/duplicate.h"
+#include "lib_grid/algorithms/debug_util.h"
+
 #include <algorithm>
+
+using namespace std;
 
 namespace ug {
 namespace tkd {
 
-using namespace std;
-
 const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-5;
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
-		m_grid(grid), m_sh(sh), b_scDomain(true) {
+		m_grid(grid), m_sh(sh), b_scDomain(true), b_distinctBndSubsetInds(false) {
 	if(&grid != sh.grid()) {
-		UG_THROW(
-				"ERROR: given SubsetHandler not assigned to given Grid instance.");
+		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 
 	setupGridObjects();
 }
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh,
-		bool scDomain) :
-		m_grid(grid), m_sh(sh), b_scDomain(scDomain) {
+		bool scDomain, bool distinctBndSubsetInds) :
+		m_grid(grid), m_sh(sh), b_scDomain(scDomain),
+		b_distinctBndSubsetInds(distinctBndSubsetInds) {
 	if(&grid != sh.grid()) {
-		UG_THROW(
-				"ERROR: given SubsetHandler not assigned to given Grid instance.");
+		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 
 	setupGridObjects();
@@ -43,8 +43,7 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh,
 
 void TKDDomainGenerator::setGridObject(Grid& grid, ISubsetHandler& sh) {
 	if(&grid != sh.grid()) {
-		UG_THROW(
-				"ERROR: given SubsetHandler not assigned to given Grid instance.");
+		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
 
 	this->m_grid = grid;
@@ -56,20 +55,29 @@ void TKDDomainGenerator::setGridObject(Grid& grid, ISubsetHandler& sh) {
 void TKDDomainGenerator::setupGridObjects() {
 	m_grid.attach_to_vertices(aPosition);
 	m_aaPos.access(m_grid, aPosition);
-
 	m_grid.set_options(GRIDOPT_AUTOGENERATE_SIDES);
-
 	m_sel.assign_grid(m_grid);
 }
 
-/**
- * sets whether a stratum corneum domain should be created (nested tkd's).
- */
-void TKDDomainGenerator::setIsSCDomain(bool sc_domain) {
+void TKDDomainGenerator::setTKDGeometryGenerator(number a, number w, number h,
+		bool createLipid, number d_lipid) {
+	if (m_pGeomGenerator.get() == NULL)
+		m_pGeomGenerator.reset(
+				new TKDGeometryGenerator(a, w, h, createLipid, d_lipid));
+	else {
+		m_pGeomGenerator->setGeometricParams(a, w, h, d_lipid);
+	}
+}
+
+void TKDDomainGenerator::setSCDomain(bool sc_domain) {
 	this->b_scDomain = sc_domain;
 	if(b_scDomain && !getGeometryGenerator().createLipid()) {
 		getGeometryGenerator().setCreateLipid(b_scDomain);
 	}
+}
+
+bool TKDDomainGenerator::isSCDomain() const {
+	return b_scDomain;
 }
 
 /**
@@ -78,15 +86,20 @@ void TKDDomainGenerator::setIsSCDomain(bool sc_domain) {
  * @param positions
  * @param indices: numInds1, ind1_1, ind1_2, ..., numInds2, ind2_1, ind2_2, ...
  *
+ * the IndexArray contains consecutive integers to describe the geometric objects:
+ * First the number of indices of a object is given, followed by the actual indices
+ * for the object. Eg. [4, 0, 1, 2, 3] for a tetrahedron.
  * numInds == 4: tetrahedron
  * numInds == 5: pyramid
  * numInds == 6: prism
  * numInds == 8: hexahedron
  */
 void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
-		const IndexArray& indices, bool sc_domain) {
+		const IndexArray& indices) {
 	// generate vertices in the grid and store them in an array, so that we can index them
-	std::vector<VertexBase*> vertices(positions.size());
+	std::vector<VertexBase*> vertices;
+	vertices.resize(positions.size());
+	// for each position create vertex in grid and attach position to it
 	for (uint i = 0; i < positions.size(); ++i) {
 		VertexBase* v = *m_grid.create<Vertex>();
 		m_aaPos[v] = positions[i];
@@ -119,76 +132,112 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 		case 8:
 			m_grid.create<Hexahedron>(vd);
 			break;
+		default:
+			UG_THROW("wrong number of indices.")
 		}
 	}
 
 	// remove double vertices
 	RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
 			aPosition, REMOVE_DOUBLES_THRESHOLD);
-
-	m_sh.assign_subset(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(),
-			-1);
+	// assign elements of lower types than volumes to subset -1 (unassigned)
+	m_sh.assign_subset(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(), -1);
 	m_sh.assign_subset(m_grid.begin<EdgeBase>(), m_grid.end<EdgeBase>(), -1);
 	m_sh.assign_subset(m_grid.begin<Face>(), m_grid.end<Face>(), -1);
 
 	// assign boundary faces of single tkd
-	if(sc_domain) {
+	if(b_scDomain) {
 		m_sel.clear();
-		SelectInterfaceElements(m_sel, m_sh, m_grid.begin<Face>(),
-				m_grid.end<Face>());
-		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
-				BOUNDARY_CORN);
+		SelectInterfaceElements(m_sel, m_sh, m_grid.begin<Face>(), m_grid.end<Face>());
+		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(), BOUNDARY_CORN);
 
-		GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(
-				LIPID);
-		m_sel.clear();
-		SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
-		// FIXME subset index is misused here
-		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
-				BOUNDARY_LIPID);
+//		if(!b_distinctBndSubsetInds) {
+			GeometricObjectCollection goc =
+					m_sh.get_geometric_objects_in_subset(LIPID);
+			m_sel.clear();
+			SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
+			// FIXME subset index is misused here
+			m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
+					BOUNDARY_LIPID);
+//		}
 	}
 
 	AdjustSubsetsForSimulation(m_sh, true);
 }
 
+const TKDDomainGenerator::FaceVec& TKDDomainGenerator::getOppositeFaces(
+		const FaceNormalMapping& map,
+		const vector3& normal) const {
+	vector3 n_flip;
+	VecScale(n_flip, normal, -1);
+	return map.at(n_flip);
+}
+
+
 /**
  * assign top/bottom faces
  */
-void TKDDomainGenerator::assignPeriodicBoundaryFacesToSubsets(
-		std::map<vector3, vector<Face*> >& facesByNormal) {
-	vector3 face_normal;
-	const static vector3 top(0, 0, 1), bottom(0, 0, -1);
+void TKDDomainGenerator::assignBoundaryFacesToSubsets(
+		const FaceNormalMapping& facesByNormal) {
+	const vector3 top(0, 0, 1), bottom(0, 0, -1);
 
-	typedef std::map<vector3, vector<Face*> >::iterator fnIter;
+	// start with last used index to assign boundary faces
 	int si = BOTTOM + 1;
-	vector<std::vector<Face*>* > faceVec;
+	for (FNIter iter = facesByNormal.begin(); iter != facesByNormal.end(); ++iter) {
+		const vector3& n1 = (*iter).first;
+		const FaceVec& faces1 = (*iter).second;
+		// calculate normal with flipped orientation and lookup their faces
+		const FaceVec& faces2 = getOppositeFaces(facesByNormal, n1);
+		// da size passt, muss zuweisung vom subset schief gehen (mehrfache?!)
 
-	for (fnIter iter = facesByNormal.begin(); iter != facesByNormal.end(); ++iter) {
-		const vector3& face_normal = (*iter).first;
-		vector<Face*>& faces1 = (*iter).second;
-
-		vector3 inverseNormal = face_normal;
-		// switch orientation
-		VecScale(inverseNormal, inverseNormal, -1);
-		vector<Face*>& faces2 = facesByNormal[inverseNormal];
-
-//		UG_ASSERT(faces1.size() > 0, "no faces");
-//		UG_ASSERT(faces2.size() > 0, "no faces");
-		if(!faces1.empty() && !faces2.empty())
-		if(face_normal == top) {
-			UG_LOG("top found")
+		if (m_sh.get_subset_index(faces1[0]) == BOUNDARY_LIPID &&
+			m_sh.get_subset_index(faces2[0]) == BOUNDARY_LIPID) {
+				// ensure faces are not yet assigned (contained in bnd lipid)
+				m_sh.assign_subset(faces1.begin(), faces1.end(), si);
+				si++;
+				m_sh.assign_subset(faces2.begin(), faces2.end(), si);
+		} else if(n1 == top) {
 			m_sh.assign_subset(faces1.begin(), faces1.end(), TOP);
 			m_sh.assign_subset(faces2.begin(), faces2.end(), BOTTOM);
-		} else {
-			m_sh.assign_subset(faces1.begin(), faces1.end(), si);
-			si++;
-			m_sh.assign_subset(faces2.begin(), faces2.end(), si);
 		}
-		// fixme avoid duplicate assignment
-//		facesByNormal.erase(iter);
-//		facesByNormal.erase(inverseNormal);
+	}
+}
+
+/**
+ * calculates the normal for all faces on given subset and stores them in
+ * given map.
+ */
+void TKDDomainGenerator::mapBoundaryFacesToNormals(
+		FaceNormalMapping& facesByNormal, TKDSubsetType shIndex) {
+	GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(
+			shIndex);
+	vector3 normal;
+	for (FaceIterator iter = goc.begin<Face>(); iter != goc.end<Face>();
+			++iter) {
+		Face* face = *iter;
+		CalculateNormal(normal, face, m_aaPos);
+		FaceVec& v = facesByNormal[normal];
+		v.push_back(face);
 	}
 
+#ifdef DEBUG
+	// debug print map ordering
+	int count = 0;
+	cout << setprecision(2);
+	for(FNIter iter = facesByNormal.begin(); iter!= facesByNormal.end();++iter) {
+		const vector3& normal = (*iter).first;
+		FaceVec& v = (*iter).second;
+		UG_LOG("normal:\t" << normal << "\nface: [")
+		UG_ASSERT((v.size() == 1) || v.size() == 6, "wrong num of faces per normal")
+		for(uint i = 0; i < v.size(); ++i)
+			UG_LOG(GetGeometricObjectCenter(m_grid, v[i]) << ",")
+
+		UG_LOG("]\n----------------------------------------------------\n")
+		count++;
+	}
+	UG_LOG("count : " << count << endl)
+	UG_ASSERT(count == 14, "need 14 faces.")
+#endif
 }
 
 /**
@@ -196,36 +245,19 @@ void TKDDomainGenerator::assignPeriodicBoundaryFacesToSubsets(
  * Each vector points in the direction defined by the centers of two parallel hexagons.
  */
 void TKDDomainGenerator::calculateShiftVectors(UniqueVector3Set& shiftVectors,
-		std::map<vector3, std::vector<Face*> >& facesByNormal,
-		TKDSubsetType shIndex) {
-	// collect faces associated to unique normal
-//	std::map<vector3, vector<Face*> > facesByNormal;
-	std::map<vector3, vector<Face*> >::iterator fnIter;
-	vector3 normal, c1, c2;
+		const FaceNormalMapping& facesByNormal) const {
+	vector3 c1, c2;
 
-	GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(
-			shIndex);
-	for (FaceIterator iter = goc.begin<Face>(); iter != goc.end<Face>();
-			++iter) {
-		Face* face = *iter;
-		CalculateNormal(normal, face, m_aaPos);
-		facesByNormal[normal].push_back(face);
-	}
-	int si = BOTTOM +1;
 	// find 2 parallel hexagons and calculate vector through their centers,
 	// if the vector is unique it will be stored in shiftVectors
-	for (fnIter = facesByNormal.begin(); fnIter != facesByNormal.end();
-			++fnIter) {
-		vector<Face*>& faces = (*fnIter).second;
-			vector3 normal = (*fnIter).first;
-			vector3 inverseNormal = normal;
-			// switch orientation
-			VecScale(inverseNormal, inverseNormal, -1);
-			// get parallel faces
-			vector<Face*>& parallelHexagon = facesByNormal[inverseNormal];
-			m_sh.assign_subset(faces.begin(), faces.end(), si);
-			si++;
-			m_sh.assign_subset(parallelHexagon.begin(), parallelHexagon.end(), si);
+	for (FNIter iter = facesByNormal.begin(); iter != facesByNormal.end();
+			++iter) {
+		const FaceVec& faces = (*iter).second;
+		// flip orientation of current normal
+//		vector3 inverseNormal;
+//		VecScale(inverseNormal, (*iter).first, -1);
+		// get parallel faces
+		const FaceVec& parallelHexagon = getOppositeFaces(facesByNormal, (*iter).first);
 		// hexagon?
 		if(faces.size() == 6) {
 			// calculate their center
@@ -286,7 +318,7 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
  */
 void TKDDomainGenerator::createSimpleTKDDomain(number a, number w, number h,
 		int rows, int cols, int layers) {
-	setIsSCDomain(false);
+	setSCDomain(false);
 	createSCDomain(a, w, h, -1, rows, cols, layers);
 }
 
@@ -304,8 +336,8 @@ void TKDDomainGenerator::createSimpleTKDDomain(number a, number w, number h,
 void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		number d_lipid, int rows, int cols, int layers) {
 
-	UG_LOG(
-			"calling createSCDomain() with following parameter:\n" << "a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
+	UG_LOG("calling createSCDomain() with following parameter:\n" << "a: " << a
+			<< " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
 	if((w - 2 * a) <= REMOVE_DOUBLES_THRESHOLD)
 		UG_THROW("w > 2a geometric constraint not met!")
@@ -331,18 +363,24 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	else
 		setTKDGeometryGenerator(a, w, h, false);
 
-	geomGenerator->createGeometry();
+	m_pGeomGenerator->createGeometry();
 	//// fill the grid object with coordinates and indices
-	createGridFromArrays(geomGenerator->getPositions(),
-			geomGenerator->getIndices(), b_scDomain);
-	UG_LOG(
-			"Volume of corneocyte: " << geomGenerator->getVolume(CORNEOCYTE) << endl << "volume of lipid: " << geomGenerator->getVolume(LIPID) << endl << "Area of lipid: " << geomGenerator->getSurface(LIPID) << endl);
+	createGridFromArrays(m_pGeomGenerator->getPositions(),	m_pGeomGenerator->getIndices());
+	UG_LOG("Volume of corneocyte: " << m_pGeomGenerator->getVolume(CORNEOCYTE) << endl
+			<< "volume of lipid: " << m_pGeomGenerator->getVolume(LIPID) << endl
+			<< "Area of lipid: " << m_pGeomGenerator->getSurface(LIPID) << endl);
 
-	std::map<vector3, vector<Face*> > facesByNormal;
+	TKDSubsetType boundary = BOUNDARY_LIPID;
+
+	if(!b_scDomain)
+		boundary = BOUNDARY_CORN;
+
+	// perform mapping normal -> { faces }
+	FaceNormalMapping facesByNormal;
+	mapBoundaryFacesToNormals(facesByNormal, boundary);
 
 	//// perform stacking
 	uint count = rows * cols * layers;
-	count = 2;
 	if(count > 1) {
 		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
 
@@ -359,12 +397,8 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		//// calculate shift vectors for stapeling
 		UniqueVector3Set shiftVecs;
 		UniqueVector3Set::iterator shiftIter;
-		TKDSubsetType boundary = BOUNDARY_LIPID;
 
-		if(!b_scDomain)
-			boundary = BOUNDARY_CORN;
-
-		calculateShiftVectors(shiftVecs, facesByNormal, boundary);
+		calculateShiftVectors(shiftVecs, facesByNormal);
 
 		vector3 shiftHeight(0, 0, 0), shiftCols(0, 0, 0), shiftRows(0, 0, 0);
 
@@ -384,12 +418,11 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 				shiftCols = v;
 		}
 
-		UG_ASSERT(
-				VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL && VecLength(shiftRows) > SMALL,
-				"shifts not set correctly");
+		UG_ASSERT(VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL
+				&& VecLength(shiftRows) > SMALL, "shifts not set correctly")
 
-		UG_DLOG(APP, 1,
-				"shift vectors:\n" << "height: " << shiftHeight << "\tcols: " << shiftCols << "\trows: " << shiftRows << endl)
+		UG_DLOG(APP, 1,	"shift vectors:\n" << "height: " << shiftHeight
+				<< "\tcols: " << shiftCols << "\trows: " << shiftRows << endl)
 
 		//// staple in height direction
 		vector3 offset_high(0, 0, 0);
@@ -455,9 +488,10 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
 				aPosition, REMOVE_DOUBLES_THRESHOLD);
 
-//		assignPeriodicBoundaryFacesToSubsets(facesByNormal);
+
 	}
 
+	this->assignBoundaryFacesToSubsets(facesByNormal);
 	AssignSubsetColors(m_sh);
 
 	// activate hierarchical insertion for multigrid again

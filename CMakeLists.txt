@@ -24,6 +24,7 @@ set(SOURCES	plugin_main.cpp
             domain_generator.cpp
             geometry_generator.cpp
 			util/rotation_matrix.cpp
+			util/vecComparator.cpp
 			util/geometric_helper.cpp)
 
 # sources test
