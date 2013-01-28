@@ -6,6 +6,7 @@
  */
 
 #include "./domain_generator.h"
+#include "util/vecComparator.h"
 
 #include "lib_grid/algorithms/selection_util.h"
 #include "lib_grid/algorithms/subset_util.h"
@@ -18,6 +19,26 @@ using namespace std;
 
 namespace ug {
 namespace tkd {
+
+std::ostream& operator<< (std::ostream& os, const TKDSubsetType& t) {
+	switch(t) {
+	case LIPID:
+		os << "lipid";break;
+	case CORNEOCYTE:
+		os << "corneocyte";break;
+	case BOUNDARY_CORN:
+		os << "bnd_corn";break;
+	case BOUNDARY_LIPID:
+		os << "bnd_lip";break;
+	case TOP:
+		os << "top";break;
+	case BOTTOM:
+		os << "bottom";break;
+	default:
+		os << "unknown"; break;
+	}
+	return os;
+}
 
 const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-5;
 
@@ -151,15 +172,12 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 		SelectInterfaceElements(m_sel, m_sh, m_grid.begin<Face>(), m_grid.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(), BOUNDARY_CORN);
 
-//		if(!b_distinctBndSubsetInds) {
-			GeometricObjectCollection goc =
-					m_sh.get_geometric_objects_in_subset(LIPID);
-			m_sel.clear();
-			SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
-			// FIXME subset index is misused here
-			m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
-					BOUNDARY_LIPID);
-//		}
+		GeometricObjectCollection goc =
+				m_sh.get_geometric_objects_in_subset(LIPID);
+		m_sel.clear();
+		SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
+		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
+				BOUNDARY_LIPID);
 	}
 
 	AdjustSubsetsForSimulation(m_sh, true);
@@ -170,7 +188,9 @@ const TKDDomainGenerator::FaceVec& TKDDomainGenerator::getOppositeFaces(
 		const vector3& normal) const {
 	vector3 n_flip;
 	VecScale(n_flip, normal, -1);
-	return map.at(n_flip);
+	try {
+		return map.at(n_flip);
+	} UG_CATCH_THROW("lookup went wrong!")
 }
 
 
@@ -181,24 +201,37 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 		const FaceNormalMapping& facesByNormal) {
 	const vector3 top(0, 0, 1), bottom(0, 0, -1);
 
-	// start with last used index to assign boundary faces
-	int si = BOTTOM + 1;
+	// start with last used index to assign boundary faces (increase
+	int si = BOTTOM;
 	for (FNIter iter = facesByNormal.begin(); iter != facesByNormal.end(); ++iter) {
 		const vector3& n1 = (*iter).first;
 		const FaceVec& faces1 = (*iter).second;
 		// calculate normal with flipped orientation and lookup their faces
 		const FaceVec& faces2 = getOppositeFaces(facesByNormal, n1);
-		// da size passt, muss zuweisung vom subset schief gehen (mehrfache?!)
+		UG_ASSERT(faces1.size() == faces2.size(), "face arrays have to match")
+		TKDSubsetType t1 = static_cast<TKDSubsetType>(m_sh.get_subset_index(faces1[0])),
+			t2 = static_cast<TKDSubsetType>(m_sh.get_subset_index(faces2[0]));
 
-		if (m_sh.get_subset_index(faces1[0]) == BOUNDARY_LIPID &&
-			m_sh.get_subset_index(faces2[0]) == BOUNDARY_LIPID) {
-				// ensure faces are not yet assigned (contained in bnd lipid)
-				m_sh.assign_subset(faces1.begin(), faces1.end(), si);
-				si++;
-				m_sh.assign_subset(faces2.begin(), faces2.end(), si);
-		} else if(n1 == top) {
-			m_sh.assign_subset(faces1.begin(), faces1.end(), TOP);
-			m_sh.assign_subset(faces2.begin(), faces2.end(), BOTTOM);
+		UG_LOG("t1: " << t1 << " t2: " << t2 << endl)
+
+		// ensure faces are not yet assigned (contained in bnd lipid)
+		if(t1 >= TOP || t2 >= TOP)
+			continue;
+
+		if(n1 == bottom) {
+			m_sh.assign_subset(faces1.begin(), faces1.end(), BOTTOM);
+			m_sh.assign_subset(faces2.begin(), faces2.end(), TOP);
+		} else {
+			m_sh.assign_subset(faces1.begin(), faces1.end(), ++si);
+			if(faces1.size() == 6)
+				m_sh.subset_info(si).name = "hex";
+			else
+				m_sh.subset_info(si).name = "quad";
+			m_sh.assign_subset(faces2.begin(), faces2.end(), ++si);
+			if(faces1.size() == 6)
+				m_sh.subset_info(si).name = "hex";
+			else
+				m_sh.subset_info(si).name = "quad";
 		}
 	}
 }
@@ -211,6 +244,7 @@ void TKDDomainGenerator::mapBoundaryFacesToNormals(
 		FaceNormalMapping& facesByNormal, TKDSubsetType shIndex) {
 	GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(
 			shIndex);
+
 	vector3 normal;
 	for (FaceIterator iter = goc.begin<Face>(); iter != goc.end<Face>();
 			++iter) {
@@ -219,25 +253,6 @@ void TKDDomainGenerator::mapBoundaryFacesToNormals(
 		FaceVec& v = facesByNormal[normal];
 		v.push_back(face);
 	}
-
-#ifdef DEBUG
-	// debug print map ordering
-	int count = 0;
-	cout << setprecision(2);
-	for(FNIter iter = facesByNormal.begin(); iter!= facesByNormal.end();++iter) {
-		const vector3& normal = (*iter).first;
-		FaceVec& v = (*iter).second;
-		UG_LOG("normal:\t" << normal << "\nface: [")
-		UG_ASSERT((v.size() == 1) || v.size() == 6, "wrong num of faces per normal")
-		for(uint i = 0; i < v.size(); ++i)
-			UG_LOG(GetGeometricObjectCenter(m_grid, v[i]) << ",")
-
-		UG_LOG("]\n----------------------------------------------------\n")
-		count++;
-	}
-	UG_LOG("count : " << count << endl)
-	UG_ASSERT(count == 14, "need 14 faces.")
-#endif
 }
 
 /**
@@ -253,13 +268,11 @@ void TKDDomainGenerator::calculateShiftVectors(UniqueVector3Set& shiftVectors,
 	for (FNIter iter = facesByNormal.begin(); iter != facesByNormal.end();
 			++iter) {
 		const FaceVec& faces = (*iter).second;
-		// flip orientation of current normal
-//		vector3 inverseNormal;
-//		VecScale(inverseNormal, (*iter).first, -1);
-		// get parallel faces
-		const FaceVec& parallelHexagon = getOppositeFaces(facesByNormal, (*iter).first);
 		// hexagon?
 		if(faces.size() == 6) {
+			// get parallel faces
+			const FaceVec& parallelHexagon = getOppositeFaces(facesByNormal,
+					(*iter).first);
 			// calculate their center
 			c1 = CalculateCenter(faces.begin(), faces.end(), m_aaPos);
 			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
@@ -300,15 +313,15 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
 	m_sh.subset_info(BOUNDARY_CORN).color = boundary_color;
 
 	VecMultiply(boundary_color, corneocyte_color, s);
-	m_sh.subset_info(BOUNDARY_LIPID).name = "Boundary_lipid(TOP)";
+	m_sh.subset_info(BOUNDARY_LIPID).name = "BND-LIP";
 	m_sh.subset_info(BOUNDARY_LIPID).color = boundary_color;
 
 	VecMultiply(boundary_color, boundary_color, s);
-	m_sh.subset_info(TOP).name = "TOP2";
+	m_sh.subset_info(TOP).name = "TOP";
 	m_sh.subset_info(TOP).color = boundary_color;
 
 	VecMultiply(boundary_color, boundary_color, s);
-	m_sh.subset_info(BOTTOM).name = "bottom";
+	m_sh.subset_info(BOTTOM).name = "BOTTOM";
 	m_sh.subset_info(BOTTOM).color = boundary_color;
 }
 
