@@ -1,7 +1,6 @@
 #ifndef __coordinates_h__
 #define __coordinates_h__
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <vector>
 namespace ug {
@@ -22,8 +21,8 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 					+ 1. / 3. * (width - 2. * a_corneo) * (width - 2. * a_corneo));
 
 	number alpha = acos((width - 2.0 * a_corneo) / (2.0 * a1));
-	number beta = 90. / 180. * M_PI + acos(1. / 3. * high / (a1 * sin(alpha)));
-	number gamma = acos(1. / 3. * high / a1) + 90. / 180. * M_PI;
+	number beta = 90. / 180. * PI + acos(1. / 3. * high / (a1 * sin(alpha)));
+	number gamma = acos(1. / 3. * high / a1) + 90. / 180. * PI;
 
 	number high_l = high + d_lipid;
 
@@ -33,7 +32,7 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 	number m2 = dis / tan(gamma / 2.0);
 	number a_lipid = (b * a_corneo + m1 + m2) / b;
 
-	number a2 = 1. / 3. * high_l / sin(M_PI - gamma);
+	number a2 = 1. / 3. * high_l / sin(PI - gamma);
 
 	number bc = a1 * cos(alpha);
 	number bc1 = a2 * cos(alpha);
