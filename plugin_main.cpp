@@ -10,7 +10,7 @@
 #include "domain_generator.h"
 #include "geometry_generator.h"
 
-//#include <boost/mpl/list.hpp>
+#include <boost/mpl/list.hpp>
 #include <string>
 
 using std::string;
@@ -130,11 +130,12 @@ static void Domain(Registry& reg, string grp)
 // register tkd generator functions for usage in ug_script
 extern "C" void
 InitUGPlugin_TKDGenerator(Registry* reg, string grp) {
-	grp.append("/tkd");
+	grp.append("tkd");
 
 #ifdef UG_DIM_3
+	typedef boost::mpl::list<Domain3d> compile3d;
 	try {
-		RegisterDomainDependent<tkd::Functionality>(*reg, grp);
+		RegisterDomainDependent<tkd::Functionality, compile3d>(*reg, grp);
 	} UG_REGISTRY_CATCH_THROW(grp);
 #else
 	#warning "build with -DDIM=3 or -DDIM=ALL for usage of plugin TKDGenerator.")
