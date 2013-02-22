@@ -512,7 +512,6 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		mg->enable_hierarchical_insertion(true);
 
 	// TODO: grid _changed_callback??
-	UpdateMaxDimensionOfSubset(m_sh, "dim");
 }
 
 } // end of namespace tkd
