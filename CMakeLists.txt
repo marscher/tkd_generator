@@ -15,7 +15,7 @@ option(TKDTestsuite "Build TKDTestsuite" OFF)
 message(STATUS "Info: TKDTestsuite:      "${TKDTestsuite}" (options are: ON, OFF)")
 
 # include the definitions and dependencies for ug-plugins.
-include("../../../ug_plugin_cmake_includes.txt")
+include("../../../cmake/ug_plugin_includes.cmake")
 # needed for initialization of ug parallel env in boost testing framework
 include_directories("${UG_ROOT_PATH}/unit_tests/src")
 
