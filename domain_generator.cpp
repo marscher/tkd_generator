@@ -194,14 +194,21 @@ const TKDDomainGenerator::FaceVec& TKDDomainGenerator::getOppositeFaces(
 
 
 /**
- * assign top/bottom faces
+ * assign top/bottom and parallel faces to subset indices.
+ * Parallel ones will have consecutive indices and are named after scheme
+ * {quad, hex}{a,b}.
  */
 void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 		const FaceNormalMapping& facesByNormal) {
 	const vector3 top(0, 0, 1), bottom(0, 0, -1);
 
-	// start with last used index to assign boundary faces (increase
+	// start with last used index to assign boundary faces (will be incremented
+	// on first matching parallel faces pair)
 	int si = BOTTOM;
+	// count hexagons and quads for naming
+	uint count_hex = 0, count_quad = 0;
+	stringstream ss;
+
 	for (FNIter iter = facesByNormal.begin(); iter != facesByNormal.end(); ++iter) {
 		const vector3& n1 = (*iter).first;
 		const FaceVec& faces1 = (*iter).second;
@@ -219,16 +226,25 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 			m_sh.assign_subset(faces1.begin(), faces1.end(), BOTTOM);
 			m_sh.assign_subset(faces2.begin(), faces2.end(), TOP);
 		} else {
-			m_sh.assign_subset(faces1.begin(), faces1.end(), ++si);
-			if(faces1.size() == 6)
-				m_sh.subset_info(si).name = "hex";
-			else
-				m_sh.subset_info(si).name = "quad";
-			m_sh.assign_subset(faces2.begin(), faces2.end(), ++si);
-			if(faces1.size() == 6)
-				m_sh.subset_info(si).name = "hex";
-			else
-				m_sh.subset_info(si).name = "quad";
+			int a = ++si, b = si + 1;
+
+			if(faces1.size() == 6) {
+				ss << "hex" << count_hex++;
+			} else {
+				ss << "quad" << count_quad++;
+			}
+
+			// set subset names
+			m_sh.subset_info(a).name = ss.str().append("a");
+			m_sh.subset_info(b).name = ss.str().append("b");
+			ss.str("");
+
+			// assign faces to subsets
+			m_sh.assign_subset(faces1.begin(), faces1.end(), a);
+			m_sh.assign_subset(faces2.begin(), faces2.end(), b);
+
+			// set subset counter to last subset index used
+			si = b;
 		}
 	}
 }
