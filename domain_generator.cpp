@@ -23,7 +23,6 @@ namespace tkd {
 const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-5;
 
 TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
-		m_pDomain(&d),
 		m_grid(*d.grid()),
 		m_sh(*d.subset_handler()),
 		b_scDomain(true), b_distinctBndSubsetInds(false)
@@ -32,12 +31,11 @@ TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
 }
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
-		m_pDomain(NULL),
 		m_grid(grid),
 		m_sh(sh),
 		b_scDomain(true),
-		b_distinctBndSubsetInds(false) {
-	UG_WARNING("Please do not use this ctor anymore\nUse TKDDomainGenerator(domain()) instead.")
+		b_distinctBndSubsetInds(false)
+{
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
@@ -47,13 +45,11 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh,
 		bool scDomain, bool distinctBndSubsetInds) :
-		m_pDomain(NULL),
 		m_grid(grid),
 		m_sh(sh),
 		b_scDomain(scDomain),
-		b_distinctBndSubsetInds(distinctBndSubsetInds) {
-	UG_WARNING("Please do not use this ctor anymore\nUse TKDDomainGenerator(domain()) instead.")
-
+		b_distinctBndSubsetInds(distinctBndSubsetInds)
+{
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
@@ -117,7 +113,7 @@ bool TKDDomainGenerator::isSCDomain() const {
 void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 		const IndexArray& indices) {
 	// generate vertices in the grid and store them in an array, so that we can index them
-	std::vector<VertexBase*> vertices;
+	vector<VertexBase*> vertices;
 	vertices.resize(positions.size());
 	// for each position create vertex in grid and attach position to it
 	for (uint i = 0; i < positions.size(); ++i) {
@@ -291,7 +287,6 @@ void TKDDomainGenerator::calculateShiftVectors(UniqueVector3Set& shiftVectors,
 			c2 = CalculateCenter(parallelHexagon.begin(), parallelHexagon.end(),
 					m_aaPos);
 			// only store unique shifts
-			using std::abs;
 			shiftVectors.insert(
 					vector3(abs(c1.x) + abs(c2.x), abs(c1.y) + abs(c2.y),
 							abs(c1.z) + abs(c2.z)));
@@ -438,7 +433,6 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 		for (shiftIter = shiftVecs.begin(); shiftIter != shiftVecs.end();
 				++shiftIter) {
-			using std::abs;
 			const vector3& v = *shiftIter;
 
 			if(abs(v.x) < SMALL && abs(v.y) < SMALL) {
@@ -530,10 +524,8 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	if(hierarchicalInertionEnabled && mg)
 		mg->enable_hierarchical_insertion(true);
 
-	if(m_pDomain) {
-		m_grid.message_hub()->post_message(
-						GridMessage_Creation(GMCT_CREATION_STOPS, procRank));
-	}
+	m_grid.message_hub()->post_message(
+					GridMessage_Creation(GMCT_CREATION_STOPS, procRank));
 }
 
 } // end of namespace tkd

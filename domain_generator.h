@@ -109,7 +109,6 @@ public:
 	}
 
 private:
-	Domain<3>* m_pDomain;
 	Grid& m_grid;
 	ISubsetHandler& m_sh;
 	Selector m_sel;
