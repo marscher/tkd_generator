@@ -353,7 +353,12 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		UG_THROW("w > 2a geometric constraint not met!")
 
 	// add call back so dim property of subsets gets updates properly
-	m_grid.message_hub()->post_message(GridMessage_Creation(GMCT_CREATION_STARTS, procRank));
+	int procRank = -1;
+#ifdef UG_PARALLEL
+		procRank = pcl::GetProcRank();
+#endif
+	m_grid.message_hub()->post_message(
+			GridMessage_Creation(GMCT_CREATION_STARTS, procRank));
 
 	// deactivate hierarchical insertion for multigrid (creates empty levels...)
 	bool hierarchicalInertionEnabled = false;
@@ -510,10 +515,6 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		mg->enable_hierarchical_insertion(true);
 
 	if(m_pDomain) {
-		int procRank = -1;
-#ifdef UG_PARALLEL
-		procRank = pcl::GetProcRank();
-#endif
 		m_grid.message_hub()->post_message(
 						GridMessage_Creation(GMCT_CREATION_STOPS, procRank));
 	}
