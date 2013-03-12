@@ -52,6 +52,8 @@ static void Domain(Registry& reg, string grp)
 			"Grid to fill with TKD#SubsetHandler to use;"
 			"third parameter indicates whether a SC domain should be created")
 
+		.add_constructor<void (*)(ug::Domain<3>&)>()
+
 		.add_method("setIsSCDomain", &domGen::setSCDomain,
 			"switch whether a stratum corneum domain or a simple tkd domain"
 			"will be created on createDomain()")

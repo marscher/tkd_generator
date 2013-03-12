@@ -10,6 +10,7 @@
 #include "lib_grid/grid/grid.h"
 #include "lib_grid/tools/subset_handler_interface.h"
 #include "lib_grid/tools/selector_grid.h"
+#include "lib_disc/domain.h"
 
 #include "common_typedefs.h"
 #include "geometry_generator.h"
@@ -38,6 +39,8 @@ public:
 	// this uses std::less<vector3> to sort keys (see util/vecComparator.h)
 	typedef std::map<vector3, FaceVec> FaceNormalMapping;
 	typedef FaceNormalMapping::const_iterator FNIter;
+
+	TKDDomainGenerator(Domain<3>& domain3d);
 
 	/**
 	 *
@@ -106,6 +109,7 @@ public:
 	}
 
 private:
+	Domain<3>* m_pDomain;
 	Grid& m_grid;
 	ISubsetHandler& m_sh;
 	Selector m_sel;

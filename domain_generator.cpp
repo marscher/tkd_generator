@@ -20,30 +20,24 @@ using namespace std;
 namespace ug {
 namespace tkd {
 
-std::ostream& operator<< (std::ostream& os, const TKDSubsetType& t) {
-	switch(t) {
-	case LIPID:
-		os << "lipid";break;
-	case CORNEOCYTE:
-		os << "corneocyte";break;
-	case BOUNDARY_CORN:
-		os << "bnd_corn";break;
-	case BOUNDARY_LIPID:
-		os << "bnd_lip";break;
-	case TOP:
-		os << "top";break;
-	case BOTTOM:
-		os << "bottom";break;
-	default:
-		os << "unknown"; break;
-	}
-	return os;
-}
-
 const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-5;
 
+TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
+		m_pDomain(&d),
+		m_grid(*d.grid()),
+		m_sh(*d.subset_handler()),
+		b_scDomain(true), b_distinctBndSubsetInds(false)
+{
+	setupGridObjects();
+}
+
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
-		m_grid(grid), m_sh(sh), b_scDomain(true), b_distinctBndSubsetInds(false) {
+		m_pDomain(NULL),
+		m_grid(grid),
+		m_sh(sh),
+		b_scDomain(true),
+		b_distinctBndSubsetInds(false) {
+	UG_WARNING("Please do not use this ctor anymore\nUse TKDDomainGenerator(domain()) instead.")
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
@@ -53,8 +47,13 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
 
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh,
 		bool scDomain, bool distinctBndSubsetInds) :
-		m_grid(grid), m_sh(sh), b_scDomain(scDomain),
+		m_pDomain(NULL),
+		m_grid(grid),
+		m_sh(sh),
+		b_scDomain(scDomain),
 		b_distinctBndSubsetInds(distinctBndSubsetInds) {
+	UG_WARNING("Please do not use this ctor anymore\nUse TKDDomainGenerator(domain()) instead.")
+
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
 	}
@@ -212,8 +211,6 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 		TKDSubsetType t1 = static_cast<TKDSubsetType>(m_sh.get_subset_index(faces1[0])),
 			t2 = static_cast<TKDSubsetType>(m_sh.get_subset_index(faces2[0]));
 
-		UG_LOG("t1: " << t1 << " t2: " << t2 << endl)
-
 		// ensure faces are not yet assigned (contained in bnd lipid)
 		if(t1 >= TOP || t2 >= TOP)
 			continue;
@@ -354,6 +351,9 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	// check that constraint w > 2a is met
 	if((w - 2 * a) <= REMOVE_DOUBLES_THRESHOLD)
 		UG_THROW("w > 2a geometric constraint not met!")
+
+	// add call back so dim property of subsets gets updates properly
+	m_grid.message_hub()->post_message(GridMessage_Creation(GMCT_CREATION_STARTS, procRank));
 
 	// deactivate hierarchical insertion for multigrid (creates empty levels...)
 	bool hierarchicalInertionEnabled = false;
@@ -500,8 +500,6 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		// finally remove double vertices
 		RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
 				aPosition, REMOVE_DOUBLES_THRESHOLD);
-
-
 	}
 
 	this->assignBoundaryFacesToSubsets(facesByNormal);
@@ -511,7 +509,14 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	if(hierarchicalInertionEnabled && mg)
 		mg->enable_hierarchical_insertion(true);
 
-	// TODO: grid _changed_callback??
+	if(m_pDomain) {
+		int procRank = -1;
+#ifdef UG_PARALLEL
+		procRank = pcl::GetProcRank();
+#endif
+		m_grid.message_hub()->post_message(
+						GridMessage_Creation(GMCT_CREATION_STOPS, procRank));
+	}
 }
 
 } // end of namespace tkd
