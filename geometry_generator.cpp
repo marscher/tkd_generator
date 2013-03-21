@@ -8,18 +8,19 @@
 #include "util/geometric_helper.h"
 #include "coordinates.h"
 #include <algorithm>
+
 namespace ug {
 namespace tkd {
 
 const vector3 TKDGeometryGenerator::origin(0, 0, 0);
 
 TKDGeometryGenerator::TKDGeometryGenerator() :
-		b_createLipid(true), R(0), index(0) {
+		b_createLipid(true), R(0), m_num_verts_created(0) {
 }
 
 TKDGeometryGenerator::TKDGeometryGenerator(number a, number w, number h,
 		bool createLipid, number d_lipid) :
-		b_createLipid(createLipid), R(0), index(0) {
+		b_createLipid(createLipid), R(0), m_num_verts_created(0) {
 
 	setGeometricParams(a, w, h, d_lipid);
 }
@@ -116,10 +117,8 @@ void TKDGeometryGenerator::createCorneocyteMiddle(const vector3& origin) {
  * so that center of geometry is (0, 0, 0)
  */
 void TKDGeometryGenerator::createGeometry() {
-	// reset index
-	index = 0;
-	// clear output arrays
-	posOut.clear();
+	// clear output data
+	m_mCoordIndexMapping.clear();
 	indsOut.clear();
 
 	// init basic volume coordinates
@@ -128,15 +127,12 @@ void TKDGeometryGenerator::createGeometry() {
 	vector3 offset(0, 0, h_corneocyte / 2);
 	createCorneocyte(offset);
 
-	RotationMatrix R(60);
-	// rotate corneocyte by 60 deg
-	for (uint i = 0; i < posOut.size(); i++) {
-		posOut[i] = R * posOut[i];
-	}
-
 	if(b_createLipid) {
-		createLipidMatrix(origin);
-		createLipidMatrix(origin, 60, true);
+		// create top part. Due to stolen coordinate calculation,
+		// offset starts with 60° instead of 0.
+		createLipidMatrix(origin, 60);
+		// and bottom part
+		createLipidMatrix(origin, 120, true);
 
 		// clear lipid arrays after creation
 		obenInnenPrismL.clear();
@@ -222,8 +218,8 @@ void TKDGeometryGenerator::createLipidMatrix(const vector3& offset,
  * init basis geometrical parameters
  */
 void TKDGeometryGenerator::initGeometricParams() {
-	indsOut.reserve(702);
-	posOut.reserve(819);
+	m_num_verts_created = 0;
+	indsOut.reserve(114);
 
 	// height of base triangle of top inner prism
 	number g_cornoecyte = sqrt(3) * a_corneocyte / 2;
@@ -361,12 +357,9 @@ number TKDGeometryGenerator::getSurface(number a, number s, number h) {
 					* sqrt(1.0 / 9.0 * h * h + 1.0 / 4.0 * s * s);
 }
 
-const IndexArray& TKDGeometryGenerator::getIndices() const {
-	return indsOut;
-}
-
-const CoordsArray& TKDGeometryGenerator::getPositions() const {
-	return posOut;
+TKDGeometryGenerator::CoordIndexMap&
+TKDGeometryGenerator::getPositions() {
+	return m_mCoordIndexMapping;
 }
 
 number TKDGeometryGenerator::getHeight() const {
@@ -379,17 +372,30 @@ number TKDGeometryGenerator::getOverlap() const {
 
 void TKDGeometryGenerator::createGeometricObject(const CoordsArray& posIn) {
 	uint numCoords = posIn.size();
-	UG_ASSERT(
-			numCoords == Tetrahedron || numCoords == Pyramid || numCoords == Prism || numCoords == Hexahedron,
+	UG_ASSERT(numCoords == Tetrahedron || numCoords == Pyramid ||
+			numCoords == Prism || numCoords == Hexahedron,
 			"wrong number of coordinates in posIn");
 
-	// insert contents of posIn at end of global position array
-	posOut.insert(posOut.end(), posIn.begin(), posIn.end());
-
-	// tell lib_grid how much vertex indices are belonging to this geometric object
+	// how much indices are belonging to this geometric object
 	indsOut.push_back(numCoords);
-	// enum each node of this geometric object to assign unique node index
-	for (size_t current = index; index < current + numCoords; index++) {
+
+	// lookup index by position i, if position not yet known.
+	int index = -1;
+	for (uint i = 0; i < numCoords; ++i) {
+		const vector3& pos = posIn[i];
+
+		// try to find the position
+		CoordIndexMap::right_const_iterator li =
+				m_mCoordIndexMapping.right.find(posIn[i]);
+		// position not yet known, create new index and insert into map
+		if (li == m_mCoordIndexMapping.right.end()) {
+			index = m_num_verts_created++;
+			m_mCoordIndexMapping.insert(CoordIndexMap::value_type(index, pos));
+		} else {
+			// lookup index in bimap per position;
+			index = m_mCoordIndexMapping.right.at(pos);
+		}
+
 		indsOut.push_back(index);
 	}
 }

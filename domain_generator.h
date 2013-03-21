@@ -150,8 +150,8 @@ private:
 
 	void calculateShiftVectors(UniqueVector3Set&, const FaceNormalMapping&) const;
 
-	void createGridFromArrays(const CoordsArray& positions,
-			const IndexArray& indices);
+	void createGridFromArrays(const TKDGeometryGenerator::CoordIndexMap&,
+			const IndexArray&);
 
 	/**
 	 * Sets the geometric parameters of the encapsulated TKDGeometryGenerator

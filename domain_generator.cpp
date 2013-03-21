@@ -11,6 +11,7 @@
 #include "lib_grid/algorithms/selection_util.h"
 #include "lib_grid/algorithms/subset_util.h"
 #include "lib_grid/algorithms/duplicate.h"
+// debug stuff
 #include "lib_grid/algorithms/debug_util.h"
 
 #include <algorithm>
@@ -20,7 +21,7 @@ using namespace std;
 namespace ug {
 namespace tkd {
 
-const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-5;
+const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-8;
 
 TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
 		m_grid(*d.grid()),
@@ -110,31 +111,45 @@ bool TKDDomainGenerator::isSCDomain() const {
  * numInds == 6: prism
  * numInds == 8: hexahedron
  */
-void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
+void TKDDomainGenerator::createGridFromArrays(
+		const TKDGeometryGenerator::CoordIndexMap& positions,
 		const IndexArray& indices) {
-	// generate vertices in the grid and store them in an array, so that we can index them
-	vector<VertexBase*> vertices;
-	vertices.resize(positions.size());
-	// for each position create vertex in grid and attach position to it
-	for (uint i = 0; i < positions.size(); ++i) {
+	typedef TKDGeometryGenerator::CoordIndexMap::const_iterator CoordsIter;
+
+	// to lookup created vertices by their index given by geometry generator
+	std::map<uint, VertexBase*> verts;
+
+	// this shit iterates over all vertices (unique!!!)
+	for(CoordsIter iter = positions.begin(); iter != positions.end(); ++iter) {
+		// create vertex
 		VertexBase* v = *m_grid.create<Vertex>();
-		m_aaPos[v] = positions[i];
-		vertices[i] = v;
+		// attach position
+		m_aaPos[v] = iter->right;
+		// store created vertex by its id
+		verts[iter->left] = v;
 	}
+
 	// the VolumeDescriptor will be used to create new volumes
 	VolumeDescriptor vd;
+	// count how much volumes have been created
 	uint count = 0;
 	// create the elements from the given indices
 	for (uint i = 0; i < indices.size(); count++) {
 		// inner tkd = 63 elements, so lipid matrix volume index begins with 64
 		// this assumes that default subset index is set to CORNEOCYTE
+		// fixme constant is wrong
 		if(count > 62) {
 			m_sh.set_default_subset_index(LIPID);
 		}
+
 		int num = indices[i++];
 		vd.set_num_vertices(num);
-		for (int j = 0; j < num; ++j)
-			vd.set_vertex(j, vertices[indices[i++]]);
+
+		for (int j = 0; j < num; ++j) {
+			// lookup vertex by its index
+			vd.set_vertex(j, verts.at(indices[i++]));
+		}
+
 		switch (num) {
 		case 4:
 			m_grid.create<Tetrahedron>(vd);
@@ -153,9 +168,6 @@ void TKDDomainGenerator::createGridFromArrays(const CoordsArray& positions,
 		}
 	}
 
-	// remove double vertices
-	RemoveDoubles<3>(m_grid, m_grid.vertices_begin(), m_grid.vertices_end(),
-			aPosition, REMOVE_DOUBLES_THRESHOLD);
 	// assign elements of lower types than volumes to subset -1 (unassigned)
 	m_sh.assign_subset(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(), -1);
 	m_sh.assign_subset(m_grid.begin<EdgeBase>(), m_grid.end<EdgeBase>(), -1);
@@ -394,7 +406,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 	m_pGeomGenerator->createGeometry();
 	//// fill the grid object with coordinates and indices
-	createGridFromArrays(m_pGeomGenerator->getPositions(),	m_pGeomGenerator->getIndices());
+	createGridFromArrays(m_pGeomGenerator->getPositions(), m_pGeomGenerator->getIndices());
 	UG_LOG("Volume of corneocyte: " << m_pGeomGenerator->getVolume(CORNEOCYTE) << endl
 			<< "volume of lipid: " << m_pGeomGenerator->getVolume(LIPID) << endl
 			<< "Area of lipid: " << m_pGeomGenerator->getSurface(LIPID) << endl);
@@ -406,7 +418,8 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 	// perform mapping normal -> { faces }
 	FaceNormalMapping facesByNormal;
-	mapBoundaryFacesToNormals(facesByNormal, boundary);
+	// fixme renable
+	//mapBoundaryFacesToNormals(facesByNormal, boundary);
 
 	//// perform stacking
 	uint count = rows * cols * layers;
@@ -517,7 +530,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 				aPosition, REMOVE_DOUBLES_THRESHOLD);
 	}
 
-	this->assignBoundaryFacesToSubsets(facesByNormal);
+//	this->assignBoundaryFacesToSubsets(facesByNormal);
 	AssignSubsetColors(m_sh);
 
 	// activate hierarchical insertion for multigrid again
