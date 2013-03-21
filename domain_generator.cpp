@@ -233,6 +233,8 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 		if(n1 == bottom) {
 			m_sh.assign_subset(faces1.begin(), faces1.end(), BOTTOM);
 			m_sh.assign_subset(faces2.begin(), faces2.end(), TOP);
+			m_sh.subset_info(BOTTOM).name = "bottom";
+			m_sh.subset_info(TOP).name = "top";
 		} else {
 			int a = ++si, b = si + 1;
 
@@ -369,7 +371,7 @@ void TKDDomainGenerator::createSimpleTKDDomain(number a, number w, number h,
 void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		number d_lipid, int rows, int cols, int layers) {
 
-	UG_LOG("calling createSCDomain() with following parameter:\n" << "a: " << a
+	UG_DLOG(MAIN, 0, "calling createSCDomain() with following parameter:\n" << "a: " << a
 			<< " w: " << w << " h: " << h << " dl: " << d_lipid << endl);
 	// check that constraint w > 2a is met
 	if((w - 2 * a) <= REMOVE_DOUBLES_THRESHOLD)
@@ -407,7 +409,8 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	m_pGeomGenerator->createGeometry();
 	//// fill the grid object with coordinates and indices
 	createGridFromArrays(m_pGeomGenerator->getPositions(), m_pGeomGenerator->getIndices());
-	UG_LOG("Volume of corneocyte: " << m_pGeomGenerator->getVolume(CORNEOCYTE) << endl
+
+	UG_DLOG(MAIN, 0, "Volume of corneocyte: " << m_pGeomGenerator->getVolume(CORNEOCYTE) << endl
 			<< "volume of lipid: " << m_pGeomGenerator->getVolume(LIPID) << endl
 			<< "Area of lipid: " << m_pGeomGenerator->getSurface(LIPID) << endl);
 
@@ -418,13 +421,12 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 	// perform mapping normal -> { faces }
 	FaceNormalMapping facesByNormal;
-	// fixme renable
-	//mapBoundaryFacesToNormals(facesByNormal, boundary);
+	mapBoundaryFacesToNormals(facesByNormal, boundary);
 
 	//// perform stacking
 	uint count = rows * cols * layers;
 	if(count > 1) {
-		UG_LOG("creating " << count << " cells with lipid matrix." << endl);
+		UG_DLOG(MAIN, 0, "creating " << count << " cells with lipid matrix." << endl);
 
 		m_sel.clear();
 		m_sel.enable_autoselection(false);
@@ -462,7 +464,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		UG_ASSERT(VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL
 				&& VecLength(shiftRows) > SMALL, "shifts not set correctly")
 
-		UG_DLOG(APP, 1,	"shift vectors:\n" << "height: " << shiftHeight
+		UG_LOG(	"shift vectors:\n" << "height: " << shiftHeight
 				<< "\tcols: " << shiftCols << "\trows: " << shiftRows << endl)
 
 		//// staple in height direction
@@ -530,8 +532,11 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 				aPosition, REMOVE_DOUBLES_THRESHOLD);
 	}
 
-//	this->assignBoundaryFacesToSubsets(facesByNormal);
+	this->assignBoundaryFacesToSubsets(facesByNormal);
 	AssignSubsetColors(m_sh);
+
+	// erase temporary subset
+	m_sh.erase_subset(BOUNDARY_LIPID);
 
 	// activate hierarchical insertion for multigrid again
 	if(hierarchicalInertionEnabled && mg)
