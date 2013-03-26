@@ -107,22 +107,22 @@ static void Domain(Registry& reg, string grp)
 	///////////////////////////////////////////////////////////////////////////
 	// add static member function of TKDGeometryGenerator as global function
 	reg.add_function("GetVolume",
-			(number (*)(number, number, number)) (&geomGen::getVolume),
+			(number (*)(number, number, number)) (&geomGen::getVolume), grp,
 			"calculate Volume for given geometrical parameters");
 
 
 	// add static member function of TKDGeometryGenerator as global function
 	reg.add_function("GetSurface",
-			(number (*)(number, number, number)) (&geomGen::getSurface),
+			(number (*)(number, number, number)) (&geomGen::getSurface), grp,
 			"calculate Surface for given geometrical parameters");
 
 	// register helper functions for subset indices as global functions
 	reg.add_function("CorneocyteIndex",
-			(int (*)(void)) (&domGen::getCorneocyteIndex),
+			(int (*)(void)) (&domGen::getCorneocyteIndex), grp,
 				"Get subset index for corneocytes");
 
 	reg.add_function("LipidIndex",
-			(int (*)(void)) &domGen::getLipidIndex,
+			(int (*)(void)) &domGen::getLipidIndex, grp,
 				"Get subset index for lipid matrix");
 }
 
