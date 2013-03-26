@@ -9,11 +9,8 @@
 #include "bridge/util_domain_dependent.h"
 #include "domain_generator.h"
 #include "geometry_generator.h"
-
-#include <boost/mpl/list.hpp>
 #include <string>
 
-using std::string;
 using namespace ug::bridge;
 
 namespace ug {
@@ -36,7 +33,7 @@ struct Functionality
  * @param parentGroup		group for sorting of functionality
  */
 template <typename TDom>
-static void Domain(Registry& reg, string grp)
+static void Domain(Registry& reg, std::string grp)
 {
 	typedef ug::tkd::TKDGeometryGenerator geomGen;
 	typedef ug::tkd::TKDDomainGenerator domGen;
@@ -129,7 +126,7 @@ static void Domain(Registry& reg, string grp)
 
 // register tkd generator functions for usage in ug_script
 extern "C" void
-InitUGPlugin_TKDGenerator(Registry* reg, string grp) {
+InitUGPlugin_TKDGenerator(Registry* reg, std::string grp) {
 	grp.append("tkd_generator/");
 	RegisterDomain3dDependent<tkd::Functionality>(reg, grp);
 }
