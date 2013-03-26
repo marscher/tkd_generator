@@ -11,6 +11,13 @@ cmake_minimum_required(VERSION 2.6)
 
 project(TKD_GENERATOR)
 
+if(NOT "${DIM}" STREQUAL "ALL")
+	list(FIND DIM "3" 3d_enabled)
+	IF(3d_enabled EQUAL -1)
+	  message(WARNING "TKDGenerator plugin requires DIM=3, DIM=ALL, DIM=x;3")
+	ENDIF()
+endif()
+
 option(TKDTestsuite "Build TKDTestsuite" OFF)
 message(STATUS "Info: TKDTestsuite:      "${TKDTestsuite}" (options are: ON, OFF)")
 
@@ -31,6 +38,7 @@ set(SOURCES	plugin_main.cpp
 set(SOURCES_TEST test/testSuite.cpp
                  test/testLipidDistance.cpp
 				 test/testVolume.cpp
+				 test/testVolumeOrientation.cpp
 				 test/validateSwellResults.cpp
 				 util/volume_calculation.cpp)
 
