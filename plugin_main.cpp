@@ -9,7 +9,6 @@
 #include "bridge/util_domain_dependent.h"
 #include "domain_generator.h"
 #include "geometry_generator.h"
-#include <string>
 
 using namespace ug::bridge;
 
@@ -128,7 +127,7 @@ static void Domain(Registry& reg, std::string grp)
 extern "C" void
 InitUGPlugin_TKDGenerator(Registry* reg, std::string grp) {
 	grp.append("tkd_generator/");
-	RegisterDomain3dDependent<tkd::Functionality>(reg, grp);
+	RegisterDomain3dDependent<tkd::Functionality>(*reg, grp);
 }
 
 } // end namespace ug
