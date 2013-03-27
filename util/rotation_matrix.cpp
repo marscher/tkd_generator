@@ -7,8 +7,6 @@
 
 #include "rotation_matrix.h"
 #include "common/math/math_vector_matrix/math_matrix_vector_functions.h"
-// needed for M_PI macro
-#define _USE_MATH_DEFINES
 #include <cmath>
 namespace ug {
 namespace tkd {
@@ -17,7 +15,7 @@ namespace tkd {
  * sets rotation angle around z axis in degree
  */
 void RotationMatrix::setAngle(const number& deg) {
-	number theta = deg * M_PI / 180.0;
+	number theta = deg_to_rad(deg);
 
 	m_data[0][0] = cos(theta);
 	m_data[0][1] = -sin(theta);
