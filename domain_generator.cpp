@@ -330,19 +330,19 @@ void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
 	// set subset boundary infos
 	number s = 3. / 4;
 	vector4 boundary_color;
-	VecMultiply(boundary_color, lipid_color, s);
+	VecScale(boundary_color, lipid_color, s);
 	m_sh.subset_info(BOUNDARY_CORN).name = "COR-LIP";
 	m_sh.subset_info(BOUNDARY_CORN).color = boundary_color;
 
-	VecMultiply(boundary_color, corneocyte_color, s);
+	VecScale(boundary_color, corneocyte_color, s);
 	m_sh.subset_info(BOUNDARY_LIPID).name = "BND-LIP";
 	m_sh.subset_info(BOUNDARY_LIPID).color = boundary_color;
 
-	VecMultiply(boundary_color, boundary_color, s);
+	VecScale(boundary_color, boundary_color, s);
 	m_sh.subset_info(TOP).name = "TOP";
 	m_sh.subset_info(TOP).color = boundary_color;
 
-	VecMultiply(boundary_color, boundary_color, s);
+	VecScale(boundary_color, boundary_color, s);
 	m_sh.subset_info(BOTTOM).name = "BOTTOM";
 	m_sh.subset_info(BOTTOM).color = boundary_color;
 }
