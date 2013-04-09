@@ -134,6 +134,7 @@ void TKDDomainGenerator::createGridFromArrays(
 	// count how much volumes have been created
 	uint count = 0;
 	// create the elements from the given indices
+	m_sh.set_default_subset_index(CORNEOCYTE);
 	for (uint i = 0; i < indices.size(); count++) {
 		// inner tkd = 63 elements, so lipid matrix volume index begins with 64
 		// this assumes that default subset index is set to CORNEOCYTE
@@ -174,8 +175,8 @@ void TKDDomainGenerator::createGridFromArrays(
 	m_sh.assign_subset(m_grid.begin<Face>(), m_grid.end<Face>(), -1);
 
 	// assign boundary faces of single tkd
+	m_sel.clear();
 	if(b_scDomain) {
-		m_sel.clear();
 		SelectInterfaceElements(m_sel, m_sh, m_grid.begin<Face>(), m_grid.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(), BOUNDARY_CORN);
 
@@ -185,6 +186,12 @@ void TKDDomainGenerator::createGridFromArrays(
 		SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
 				BOUNDARY_LIPID);
+	} else {
+		GeometricObjectCollection goc =
+						m_sh.get_geometric_objects_in_subset(CORNEOCYTE);
+		SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
+		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
+					BOUNDARY_CORN);
 	}
 
 	AdjustSubsetsForSimulation(m_sh, true);
