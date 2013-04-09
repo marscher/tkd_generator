@@ -34,8 +34,8 @@ struct Functionality
 template <typename TDom>
 static void Domain(Registry& reg, std::string grp)
 {
-	typedef ug::tkd::TKDGeometryGenerator geomGen;
-	typedef ug::tkd::TKDDomainGenerator domGen;
+	typedef TKDGeometryGenerator geomGen;
+	typedef TKDDomainGenerator domGen;
 
 	// register tkd domain generator class
 	reg.add_class_<domGen>("TKDDomainGenerator", grp, "Domain (grid) generator for tkds.")
@@ -43,10 +43,13 @@ static void Domain(Registry& reg, std::string grp)
 			"Grid to fill with TKD#SubsetHandler to use")
 
 		.add_constructor<void (*)(Grid&, ISubsetHandler&, bool, bool)>(
-			"Grid to fill with TKD#SubsetHandler to use;"
-			"third parameter indicates whether a SC domain should be created")
+			"Grid to fill with TKD"
+			"#SubsetHandler to use"
+			"#whether a SC domain should be created"
+			"#distinct subset for every outer hexagon and quad")
 
-		.add_constructor<void (*)(ug::Domain<3>&)>()
+		.add_constructor<void (*)(ug::Domain<3>&)>(
+				"fill grid and subset handler of given domain")
 
 		.add_method("setIsSCDomain", &domGen::setSCDomain,
 			"switch whether a stratum corneum domain or a simple tkd domain"
