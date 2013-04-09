@@ -129,7 +129,7 @@ static void Domain(Registry& reg, std::string grp)
 // register tkd generator functions for usage in ug_script
 extern "C" void
 InitUGPlugin_TKDGenerator(Registry* reg, std::string grp) {
-	grp.append("tkd_generator/");
+	grp.append("TKDGenerator/");
 	RegisterDomain3dDependent<tkd::Functionality>(*reg, grp);
 }
 
