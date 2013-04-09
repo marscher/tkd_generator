@@ -81,7 +81,7 @@ public:
 	void createSimpleTKDDomain(number a, number w, number h, int rows = 1,
 			int cols = 1, int layers = 1);
 
-	const VertexAttachmentAccessor3d& getVertexAttachmentAccessor() const {
+	VertexAttachmentAccessor3d& getVertexAttachmentAccessor() {
 		return m_aaPos;
 	}
 

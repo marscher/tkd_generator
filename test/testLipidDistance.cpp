@@ -17,7 +17,6 @@
 #include <cmath>
 
 using namespace boost::unit_test;
-//using namespace tkd;
 using namespace ug;
 using namespace ug::tkd;
 
@@ -73,7 +72,7 @@ BOOST_AUTO_TEST_CASE(compareThicknessWithOld) {
 	gen.createSCDomain(a,w,h,d_lipid);
 
 	// grid created with same params with old tkdmodeller
-	string oldfile =
+	std::string oldfile =
 	PathProvider::get_path(ROOT_PATH)
 	+ "/../plugins/experimental/tkd_generator/test/nucleus3d_10-24.495-30-8.000_1x1x1.ugx";
 
