@@ -26,7 +26,7 @@ const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-8;
 TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
 		m_grid(*d.grid()),
 		m_sh(*d.subset_handler()),
-		b_scDomain(true), b_distinctBndSubsetInds(false)
+		b_scDomain(true)
 {
 	setupGridObjects();
 }
@@ -34,8 +34,7 @@ TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
 		m_grid(grid),
 		m_sh(sh),
-		b_scDomain(true),
-		b_distinctBndSubsetInds(false)
+		b_scDomain(true)
 {
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
@@ -48,8 +47,7 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh,
 		bool scDomain, bool distinctBndSubsetInds) :
 		m_grid(grid),
 		m_sh(sh),
-		b_scDomain(scDomain),
-		b_distinctBndSubsetInds(distinctBndSubsetInds)
+		b_scDomain(scDomain)
 {
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
@@ -238,10 +236,13 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 			continue;
 
 		if(n1 == bottom) {
+			UG_LOG("bottom/top assigned\n")
 			m_sh.assign_subset(faces1.begin(), faces1.end(), BOTTOM);
 			m_sh.assign_subset(faces2.begin(), faces2.end(), TOP);
-			m_sh.subset_info(BOTTOM).name = "bottom";
-			m_sh.subset_info(TOP).name = "top";
+			// names of these subsets have to be added here, due to the internal
+			// handling of subset handler...
+			m_sh.subset_info(TOP).name = "TOP";
+			m_sh.subset_info(BOTTOM).name = "BOTTOM";
 		} else {
 			int a = ++si, b = si + 1;
 
@@ -316,42 +317,16 @@ void TKDDomainGenerator::calculateShiftVectors(UniqueVector3Set& shiftVectors,
 }
 
 /**
- * set Subset informations
- * @param corneocyte_name
- * @param lipid_name default
- * @param corneocyte_color
- * @param lipid_color
+ * set Subset names for
  */
-void TKDDomainGenerator::setSubsetHandlerInfo(const char* corneocyte_name,
-		const char* lipid_name, const vector4& corneocyte_color,
-		const vector4& lipid_color) {
+void TKDDomainGenerator::setSubsetNames() {
+	m_sh.subset_info(CORNEOCYTE).name = "COR";
 
-	// Subset 1 for corneocytes (same as in Feuchters tkdmodeller)
-	m_sh.set_default_subset_index(CORNEOCYTE);
-	m_sh.subset_info(CORNEOCYTE).name = corneocyte_name;
-	m_sh.subset_info(CORNEOCYTE).color = corneocyte_color;
-
-	m_sh.subset_info(LIPID).name = lipid_name;
-	m_sh.subset_info(LIPID).color = lipid_color;
-
-	// set subset boundary infos
-	number s = 3. / 4;
-	vector4 boundary_color;
-	VecScale(boundary_color, lipid_color, s);
-	m_sh.subset_info(BOUNDARY_CORN).name = "COR-LIP";
-	m_sh.subset_info(BOUNDARY_CORN).color = boundary_color;
-
-	VecScale(boundary_color, corneocyte_color, s);
-	m_sh.subset_info(BOUNDARY_LIPID).name = "BND-LIP";
-	m_sh.subset_info(BOUNDARY_LIPID).color = boundary_color;
-
-	VecScale(boundary_color, boundary_color, s);
-	m_sh.subset_info(TOP).name = "TOP";
-	m_sh.subset_info(TOP).color = boundary_color;
-
-	VecScale(boundary_color, boundary_color, s);
-	m_sh.subset_info(BOTTOM).name = "BOTTOM";
-	m_sh.subset_info(BOTTOM).color = boundary_color;
+	// set subset names only needed if SC domain is wanted
+	if(b_scDomain) {
+		m_sh.subset_info(LIPID).name = "LIP";
+		m_sh.subset_info(BOUNDARY_CORN).name = "COR-LIP";
+	}
 }
 
 /**
@@ -396,9 +371,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 		mg->enable_hierarchical_insertion(false);
 	}
 
-	if(b_scDomain)
-		setSubsetHandlerInfo("corneocytes", "lipid matrix", vector4(0, 1, 0, 0),
-				vector4(0, 0, 1, 0));
+	setSubsetNames();
 
 	//// set grid options
 	m_grid.set_options(GRIDOPT_STANDARD_INTERCONNECTION);
@@ -539,7 +512,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	AssignSubsetColors(m_sh);
 
 	// erase temporary subset
-	m_sh.erase_subset(BOUNDARY_LIPID);
+	m_sh.erase_subset(boundary);
 
 	// activate hierarchical insertion for multigrid again
 	if(hierarchicalInertionEnabled && mg)

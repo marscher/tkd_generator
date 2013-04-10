@@ -68,13 +68,6 @@ public:
 	 */
 	bool isSCDomain() const;
 
-	/**
-	 *
-	 */
-	void setSubsetHandlerInfo(const char* corneocyte_name,
-			const char* lipid_name, const vector4& corneocyte_color,
-			const vector4& lipid_color);
-
 	void createSCDomain(number a, number w, number h, number d_lipid, int rows =
 			1, int cols = 1, int layers = 1);
 
@@ -125,12 +118,6 @@ private:
 	bool b_scDomain;
 
 	/**
-	 * indicates whether each boundary face with same normal
-	 * should be added to a distinct subset (set in ctor)
-	 */
-	bool b_distinctBndSubsetInds;
-
-	/**
 	 * returns the faces container in given map with opposite of given normal
 	 */
 	inline const FaceVec& getOppositeFaces(const FaceNormalMapping& map,
@@ -169,6 +156,8 @@ private:
 	 * set up common grid objects
 	 */
 	void setupGridObjects();
+
+	void setSubsetNames();
 };
 
 } // end of namespace tkd

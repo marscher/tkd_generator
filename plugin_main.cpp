@@ -71,11 +71,6 @@ static void Domain(Registry& reg, std::string grp)
 			"with given parameters a, h, w and d_lipid",
 			"a#w#h#d_lipid#rows#cols#layers")
 
-	// register setSubsetHandlerInfo()
-		.add_method("setSubsetInfo", &domGen::setSubsetHandlerInfo,
-			"Set SubsetHandler informations (name, color) for corneocytes and lipid matrix",
-			"corneocyte_name#lipid_name#corneocyte_color#lipid_color")
-
 	// register TKDGeometryGenerator& getGeometryGenerator() const
 		.add_method("getGeometryGenerator",	&domGen::getGeometryGenerator,
 			"Geometry generator used to build coordinate informations. \
