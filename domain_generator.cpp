@@ -232,6 +232,8 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 			AssignAssociatedVerticesToSubset(m_sh, faces1.begin(), faces1.end(), BOTTOM);
 			AssignAssociatedVerticesToSubset(m_sh, faces2.begin(), faces2.end(), TOP);
 
+			// todo assign inner edges to subset
+
 			// names of these subsets have to be added here, due to the internal
 			// handling of subset handler...
 			m_sh.subset_info(TOP).name = "TOP";
@@ -256,6 +258,8 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
 			// and their vertices
 			AssignAssociatedVerticesToSubset(m_sh, faces1.begin(), faces1.end(), a);
 			AssignAssociatedVerticesToSubset(m_sh, faces2.begin(), faces2.end(), b);
+
+			// todo assign inner edges to subset
 
 			// set subset counter to last subset index used
 			si = b;
@@ -507,8 +511,6 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 	if(!b_scDomain)
 		boundary = BOUNDARY_CORN;
-
-	UG_ASSERT(m_sh.contains_faces(boundary), "bnd does not contain faces")
 
 	// perform mapping normal -> { faces }
 	FaceNormalMapping facesByNormal;
