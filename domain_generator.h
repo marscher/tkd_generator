@@ -50,8 +50,7 @@ public:
 	/**
 	 *
 	 */
-	TKDDomainGenerator(Grid&, ISubsetHandler&, bool scDomain,
-			bool distinctBndSubsetInds = true);
+	TKDDomainGenerator(Grid&, ISubsetHandler&, bool scDomain);
 
 	/**
 	 * sets grid and subset handler to use
@@ -158,6 +157,13 @@ private:
 	void setupGridObjects();
 
 	void setSubsetNames();
+
+	/**
+	 * if rows*cols*layers > 1, stacks the generated tkd's (with or without
+	 * lipid channels)
+	 */
+	void performStacking(uint rows, uint cols, uint layers,
+			const FaceNormalMapping&);
 };
 
 } // end of namespace tkd
