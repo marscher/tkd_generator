@@ -42,7 +42,7 @@ static void Domain(Registry& reg, std::string grp)
 		.add_constructor<void (*)(Grid&, ISubsetHandler&)>(
 			"Grid to fill with TKD#SubsetHandler to use")
 
-		.add_constructor<void (*)(Grid&, ISubsetHandler&, bool, bool)>(
+		.add_constructor<void (*)(Grid&, ISubsetHandler&, bool)>(
 			"Grid to fill with TKD"
 			"#SubsetHandler to use"
 			"#whether a SC domain should be created"
