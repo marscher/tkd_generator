@@ -19,9 +19,20 @@ namespace tkd {
 typedef std::vector<vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
 
-// subset indices
+/// subset indices in created domains subset handler
 enum TKDSubsetType {
-	LIPID = 0, CORNEOCYTE, BOUNDARY_CORN, BOUNDARY_LIPID, TOP, BOTTOM
+	/// index for lipid volumes (volumes surrounding inner tkd)
+	LIPID = 0,
+	/// index for corneocyte (inner tkd)
+	CORNEOCYTE,
+	/// boundary faces of corneocyte (inner tkd)
+	BOUNDARY_CORN,
+	/// boundary faces of lipid volumes
+	BOUNDARY_LIPID,
+	/// top hexagon (in z direction)
+	TOP,
+	/// bottom hexagon (in z direction)
+	BOTTOM
 };
 
 } // end of namespace tkd
