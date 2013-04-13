@@ -107,7 +107,7 @@ private:
 	VertexAttachmentAccessor3d m_aaPos;
 	std::auto_ptr<TKDGeometryGenerator> m_pGeomGenerator;
 	/**
-	 * threshold for lib_grid's <RemoveDoubles>() to indicate when objects
+	 * threshold for lib_grid's \<RemoveDoubles\>() to indicate when objects
 	 * are too close to each other and will be removed.
 	 */
 	static const number REMOVE_DOUBLES_THRESHOLD;
