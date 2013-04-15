@@ -475,7 +475,10 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 			"a: " << a << " w: " << w << " h: " << h << " dl: " << d_lipid);
 	// check that constraint w > 2a is met
 	if((w - 2 * a) <= REMOVE_DOUBLES_THRESHOLD)
-		UG_THROW("w > 2a geometric constraint not met!")
+		UG_THROW("w > 2a geometric constraint not met!");
+
+	if(std::abs(d_lipid) <= REMOVE_DOUBLES_THRESHOLD)
+		UG_THROW("Lipid channel too small.");
 
 	// add call back so dim property of subsets gets updates properly
 	m_grid.message_hub()->post_message(
