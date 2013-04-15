@@ -16,6 +16,9 @@
 namespace ug {
 namespace tkd {
 
+/// \addtogroup tkd_generator
+/// \{
+
 typedef std::vector<vector3> CoordsArray;
 typedef std::vector<int> IndexArray;
 
@@ -34,6 +37,9 @@ enum TKDSubsetType {
 	/// bottom hexagon (in z direction)
 	BOTTOM
 };
+
+// end group tkd_generator
+/// \}
 
 } // end of namespace tkd
 } // end of namespace ug

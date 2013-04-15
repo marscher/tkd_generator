@@ -23,6 +23,9 @@
 namespace ug {
 namespace tkd {
 
+/// \addtogroup tkd_generator
+/// \{
+
 /**
  *
  */
@@ -165,6 +168,9 @@ private:
 	void performStacking(uint rows, uint cols, uint layers,
 			const FaceNormalMapping&);
 };
+
+// end group tkd_generator
+/// \}
 
 } // end of namespace tkd
 } // end of namespace ug

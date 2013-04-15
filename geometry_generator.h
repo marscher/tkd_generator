@@ -16,6 +16,9 @@
 namespace ug {
 namespace tkd {
 
+/// \addtogroup tkd_generator
+/// \{
+
 /**
  * generates domain decomposition of tetrakaidecahedron.
  * After calling createDomain() you can get the positions and indices
@@ -223,6 +226,9 @@ protected:
 
 	const static vector3 origin;
 };
+
+// end group tkd_generator
+/// \}
 
 } //end of namespace tkd
 }// end of namespace ug

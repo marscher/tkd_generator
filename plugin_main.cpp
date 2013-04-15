@@ -15,6 +15,13 @@ using namespace ug::bridge;
 namespace ug {
 namespace tkd {
 
+/** 
+ *  \defgroup tkd_generator TKDGenerator
+ *  \ingroup plugins_experimental
+ *  \brief Generator for Tetrakaidekahedra (TKD).
+ *  \{
+ */
+
 /**
  * Class exporting the functionality. All functionality that is to
  * be used in scripts or visualization must be registered here.
@@ -119,6 +126,10 @@ static void Domain(Registry& reg, std::string grp)
 }
 
 }; // end Functionality
+
+// end group tkd_generator
+/// \}
+
 } // end namespace tkd
 
 // register tkd generator functions for usage in ug_script

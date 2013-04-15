@@ -6,6 +6,9 @@
 namespace ug {
 namespace tkd {
 
+/// \addtogroup tkd_generator
+/// \{
+
 void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		number width, number d_lipid, const vector3& offset) {
 	using std::vector;
@@ -158,6 +161,9 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		l[i].z += offset.z;
 	}
 }
+
+// end group tkd_generator
+/// \}
 
 } // end of namespace tkd
 } // end of namespace ug
