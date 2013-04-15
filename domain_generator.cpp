@@ -386,7 +386,7 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 			//// staple in height direction
 			vector3 offset_high(0, 0, 0);
 
-	for (int k = 0; k < layers - 1; k++) {
+	for (uint k = 0; k < layers - 1; k++) {
 		VecAdd(offset_high, offset_high, shiftHeight);
 		Duplicate(m_grid, m_sel, offset_high, aPosition, deselectOld,
 				selectNew);
@@ -401,7 +401,7 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 	//	Iterate from 0 to rows - 1 only!
 	// every column is shifted by +shiftRows
 	// every 3rd column is shifted by -h
-	for (int row = 0; row < rows - 1; row++) {
+	for (uint row = 0; row < rows - 1; row++) {
 		VecAdd(offset_rows, offset_rows, shiftRows);
 		// next duplicate will complete basis cell
 		if((row % 3) == 1) {
@@ -423,7 +423,7 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 	vector3 oneThirdHeight;
 	VecScale(oneThirdHeight, shiftHeight, 1 / 3.0);
 	// loop only to cols - 1, because we already have one column,
-	for (int col = 0; col < cols - 1; col++) {
+	for (uint col = 0; col < cols - 1; col++) {
 		VecAdd(offset_cols, offset_cols, shiftCols);
 
 		// shift every second col by -1/3h and -shiftRows.
