@@ -117,7 +117,7 @@ private:
 	/**
 	 * indicates whether a stratum corneum domain is beeing created (set in ctor)
 	 */
-	bool b_scDomain;
+	bool m_bSCDomain;
 
 	/**
 	 * returns the faces container in given map with opposite of given normal

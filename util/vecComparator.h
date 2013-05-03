@@ -15,7 +15,6 @@ namespace ug {
 
 /**
  * performs a lexicographical sort on given vectors, started by first component.
- * fixme leads to wrong sort?!
  */
 template <std::size_t dim, typename T>
 bool operator<(const MathVector<dim, T>& a, const MathVector<dim, T>& b) {

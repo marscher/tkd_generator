@@ -20,7 +20,7 @@ const number TKDDomainGenerator::REMOVE_DOUBLES_THRESHOLD = 10E-8;
 TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
 		m_grid(*d.grid()),
 		m_sh(*d.subset_handler()),
-		b_scDomain(true)
+		m_bSCDomain(true)
 {
 	setupGridObjects();
 }
@@ -28,7 +28,7 @@ TKDDomainGenerator::TKDDomainGenerator(Domain<3>& d) :
 TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh) :
 		m_grid(grid),
 		m_sh(sh),
-		b_scDomain(true)
+		m_bSCDomain(true)
 {
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
@@ -41,7 +41,7 @@ TKDDomainGenerator::TKDDomainGenerator(Grid& grid, ISubsetHandler& sh,
 		bool scDomain) :
 		m_grid(grid),
 		m_sh(sh),
-		b_scDomain(scDomain)
+		m_bSCDomain(scDomain)
 {
 	if(&grid != sh.grid()) {
 		UG_THROW("ERROR: given SubsetHandler not assigned to given Grid instance.");
@@ -81,14 +81,14 @@ void TKDDomainGenerator::setTKDGeometryGenerator(number a, number w, number h,
 }
 
 void TKDDomainGenerator::setSCDomain(bool sc_domain) {
-	this->b_scDomain = sc_domain;
-	if(b_scDomain && !getGeometryGenerator().createLipid()) {
-		getGeometryGenerator().setCreateLipid(b_scDomain);
+	this->m_bSCDomain = sc_domain;
+	if(m_bSCDomain && !getGeometryGenerator().createLipid()) {
+		getGeometryGenerator().setCreateLipid(m_bSCDomain);
 	}
 }
 
 bool TKDDomainGenerator::isSCDomain() const {
-	return b_scDomain;
+	return m_bSCDomain;
 }
 
 /**
@@ -167,7 +167,7 @@ void TKDDomainGenerator::createGridFromArrays(
 
 	// for SC domain assign interface faces of inner tkd to BOUNDARY_CORN and
 	// outer faces of lipid volumes to BOUNDARY_LIPID
-	if(b_scDomain) {
+	if(m_bSCDomain) {
 		SelectInterfaceElements(m_sel, m_sh, m_grid.begin<Face>(), m_grid.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(), BOUNDARY_CORN);
 
@@ -311,26 +311,29 @@ void TKDDomainGenerator::calculateShiftVectors(UniqueVector3Set& shiftVectors,
 					m_aaPos);
 			// only store unique shifts
 			shiftVectors.insert(
-					vector3(abs(c1.x) + abs(c2.x), abs(c1.y) + abs(c2.y),
-							abs(c1.z) + abs(c2.z)));
+					vector3(std::abs(c1.x) + std::abs(c2.x),
+							std::abs(c1.y) + std::abs(c2.y),
+							std::abs(c1.z) + std::abs(c2.z)));
 		}
 	}
 }
 
 /**
- * set Subset names for
+ * set subset names
  */
 void TKDDomainGenerator::setSubsetNames() {
 	m_sh.subset_info(CORNEOCYTE).name = "COR";
 
 	// set subset names only needed if SC domain is wanted
-	if(b_scDomain) {
+	if(m_bSCDomain) {
 		m_sh.subset_info(LIPID).name = "LIP";
 		m_sh.subset_info(BOUNDARY_CORN).name = "COR-LIP";
 	}
 }
 
-// fixme this is currently buggy (overlap between tkds is not correct)
+/**
+ * stacks the created single TKD according to given parameters.
+ */
 void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 		const FaceNormalMapping& facesByNormal) {
 	uint count = rows * cols * layers;
@@ -338,11 +341,6 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 		return;
 
 	UG_DLOG(MAIN, 0, "creating " << count << " cells." << std::endl);
-
-	/// we have to rotate the tkd, because we want to stack the hexagons together
-	RotationMatrix r(-60);
-	TransformVertices(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(),
-			r, m_aaPos);
 
 	m_sel.clear();
 	m_sel.enable_autoselection(false);
@@ -366,11 +364,11 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 			++shiftIter) {
 		const vector3& v = *shiftIter;
 
-		if(abs(v.x) < SMALL && abs(v.y) < SMALL) {
+		if(std::abs(v.x) < SMALL && std::abs(v.y) < SMALL) {
 			shiftHeight = v;
 			shiftHeight.x = 0;
 			shiftHeight.y = 0;
-		} else if(abs(v.x) < SMALL) {
+		} else if(std::abs(v.x) < SMALL) {
 			shiftRows = v;
 			shiftRows.x = 0;
 		} else
@@ -378,13 +376,13 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 	}
 
 	UG_ASSERT(VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL
-			&& VecLength(shiftRows) > SMALL, "shifts not set correctly")
+			&& VecLength(shiftRows) > SMALL, "shifts not set correctly");
 
 	UG_LOG("shift vectors:\n" << "height: " << shiftHeight
-			<< "\tcols: " << shiftCols << "\trows: " << shiftRows << std::endl)
+			<< "\tcols: " << shiftCols << "\trows: " << shiftRows << std::endl);
 
-			//// staple in height direction
-			vector3 offset_high(0, 0, 0);
+	//// staple in height direction
+	vector3 offset_high(0, 0, 0);
 
 	for (uint k = 0; k < layers - 1; k++) {
 		VecAdd(offset_high, offset_high, shiftHeight);
@@ -495,7 +493,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	setSubsetNames();
 
 	/// create coordinates and vertex indices for 1 tetrakaidecahedron
-	if(b_scDomain)
+	if(m_bSCDomain)
 		setTKDGeometryGenerator(a, w, h, true, d_lipid);
 	else
 		setTKDGeometryGenerator(a, w, h, false);
@@ -512,8 +510,14 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 	TKDSubsetType boundary = BOUNDARY_LIPID;
 
-	if(!b_scDomain)
+	if(!m_bSCDomain)
 		boundary = BOUNDARY_CORN;
+
+
+	/// we have to rotate the tkd, because we want to stack the hexagons together
+	RotationMatrix r(60);
+	TransformVertices(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(),
+			r, m_aaPos);
 
 	// perform mapping normal -> { faces }
 	FaceNormalMapping facesByNormal;
@@ -523,7 +527,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	performStacking(rows, cols, layers, facesByNormal);
 
 	/// put boundary faces to named subsets according to (quad|hex) and color them
-	this->assignBoundaryFacesToSubsets(facesByNormal);
+	assignBoundaryFacesToSubsets(facesByNormal);
 	AssignSubsetColors(m_sh);
 
 	// erase temporary subset
