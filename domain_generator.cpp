@@ -378,7 +378,7 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 	UG_ASSERT(VecLength(shiftHeight) > SMALL && VecLength(shiftCols) > SMALL
 			&& VecLength(shiftRows) > SMALL, "shifts not set correctly");
 
-	UG_LOG("shift vectors:\n" << "height: " << shiftHeight
+	UG_DLOG(MAIN,0, "shift vectors:\n" << "height: " << shiftHeight
 			<< "\tcols: " << shiftCols << "\trows: " << shiftRows << std::endl);
 
 	//// staple in height direction
