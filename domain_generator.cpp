@@ -526,7 +526,8 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	performStacking(rows, cols, layers, facesByNormal);
 
 	/// put boundary faces to named subsets according to (quad|hex) and color them
-	assignBoundaryFacesToSubsets(facesByNormal);
+	if ( rows * cols * layers == 1)
+		assignBoundaryFacesToSubsets(facesByNormal);
 	AssignSubsetColors(m_sh);
 
 	// erase temporary subset
