@@ -113,7 +113,7 @@ void TKDDomainGenerator::createGridFromArrays(
 	// to lookup created vertices by their index given by geometry generator
 	std::map<uint, VertexBase*> verts;
 
-	// this shit iterates over all vertices (unique!!!)
+	// iterates over all unique vertices and attach position
 	for(CoordsIter iter = positions.begin(); iter != positions.end(); ++iter) {
 		// create vertex
 		VertexBase* v = *m_grid.create<Vertex>();
