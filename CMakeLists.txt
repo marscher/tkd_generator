@@ -7,33 +7,16 @@
 # overlapping tetrakaidecahedrons
 ################################################################################
 
-cmake_minimum_required(VERSION 2.6)
-
-project(TKD_GENERATOR)
-
-if(NOT "${DIM}" STREQUAL "ALL")
-	list(FIND DIM "3" 3d_enabled)
-	IF(3d_enabled EQUAL -1)
-		message(WARNING "TKDGenerator plugin requires DIM=3, DIM=ALL, DIM=x;3")
-	ENDIF()
-endif()
-
-option(TKDTestsuite "Build TKDTestsuite" OFF)
-message(STATUS "Info: TKDTestsuite:	"${TKDTestsuite}" (options are: ON, OFF)")
-
-# include the definitions and dependencies for ug-plugins.
-include("../../../cmake/ug_plugin_includes.cmake")
-# needed for initialization of ug parallel env in boost testing framework
-include_directories("${UG_ROOT_PATH}/unit_tests/src")
-
-# sources plugin
+# Name of your plugin, path to your plugin (relative to ug's root path) and sources.
+set(pluginName	TKDGenerator)
+set(pluginPath	plugins/experimental/tkd_generator)
 set(SOURCES plugin_main.cpp
 			domain_generator.cpp
 			geometry_generator.cpp
 			util/rotation_matrix.cpp
 			util/vecComparator.cpp
 			util/geometric_helper.cpp)
-
+			
 # sources test
 set(SOURCES_TEST test/testSuite.cpp
 				 test/testLipidDistance.cpp
@@ -41,6 +24,25 @@ set(SOURCES_TEST test/testSuite.cpp
 				 test/testVolumeOrientation.cpp
 				 test/validateSwellResults.cpp
 				 util/volume_calculation.cpp)
+				 
+option(TKDTestsuite "Build TKDTestsuite" OFF)
+message(STATUS "Info: TKDTestsuite:	"${TKDTestsuite}" (options are: ON, OFF)")
+
+cmake_minimum_required(VERSION 2.6)
+
+project(UG_PLUGIN_${pluginName})
+
+if(NOT "${DIM}" STREQUAL "ALL")
+	list(FIND DIM "3" 3d_enabled)
+	IF(3d_enabled EQUAL -1)
+		message(WARNING "${pluginName} plugin requires DIM=3, DIM=ALL, DIM=x;3")
+	ENDIF()
+endif()
+
+# include the definitions and dependencies for ug-plugins.
+include("../../../cmake/ug_plugin_includes.cmake")
+# needed for initialization of ug parallel env in boost testing framework
+include_directories("${UG_ROOT_PATH}/unit_tests/src")
 
 if(TKDTestsuite)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UG_ROOT_PATH}/bin/)
@@ -53,9 +55,13 @@ if(TKDTestsuite)
 	add_executable(TKDTestsuite ${SOURCES_TEST})
 endif(TKDTestsuite)
 
+################################################################################
+# The code below doesn't have to be changed (usually)
+################################################################################
+
 if(buildEmbeddedPlugins)
 	# add the sources to ug4's sources
-	EXPORTSOURCES(plugins/experimental/tkd_generator ${SOURCES})
+	EXPORTSOURCES(${pluginPath} ${SOURCES})
 	if(TKDTestsuite)
 		target_link_libraries (TKDTestsuite
 							${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
@@ -63,8 +69,8 @@ if(buildEmbeddedPlugins)
 	endif(TKDTestsuite)
 else(buildEmbeddedPlugins)
 	# create a shared library from the sources and link it against ug4.
-	add_library(TKDGenerator SHARED ${SOURCES})
-	target_link_libraries (TKDGenerator ug4)
+	add_library(${pluginName} SHARED ${SOURCES})
+	target_link_libraries (${pluginName} ug4)
 	if(TKDTestsuite)
 		target_link_libraries (TKDTestsuite
 								TKDGenerator
