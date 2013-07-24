@@ -152,7 +152,7 @@ void TKDGeometryGenerator::createGeometry() {
 void TKDGeometryGenerator::createCorneocyte(const vector3& offset) {
 	createCorneocyteTop(offset, 0);
 
-	vector3 offset_h(offset.x, offset.y, offset.z - h_corneocyte);
+	vector3 offset_h(offset.x(), offset.y(), offset.z() - h_corneocyte);
 
 	createCorneocyteMiddle(offset_h);
 
@@ -229,33 +229,33 @@ void TKDGeometryGenerator::initGeometricParams() {
 	// assign common vertices needed for construction.
 	const vector3 v1(a_corneocyte, 0, 0);
 	const vector3 v2(0, 0, h_corneocyte);
-	const vector3 v3(v1.x, 0, h_corneocyte);
+	const vector3 v3(v1.x(), 0, h_corneocyte);
 
-	const vector3 v4(v1.x / 2, g_cornoecyte, 0);
-	const vector3 v5(v4.x, v4.y, h_corneocyte);
+	const vector3 v4(v1.x() / 2, g_cornoecyte, 0);
+	const vector3 v5(v4.x(), v4.y(), h_corneocyte);
 
-	const vector3 v6(-v4.x, v4.y, 0);
-	const vector3 v7(v6.x, v4.y, h_corneocyte);
+	const vector3 v6(-v4.x(), v4.y(), 0);
+	const vector3 v7(v6.x(), v4.y(), h_corneocyte);
 
-	const vector3 v8(v4.x, v4.y + s_corneocyte, 0);
-	const vector3 v9(v6.x, v8.y, 0);
-	const vector3 v10(v4.x, v8.y, h_corneocyte);
-	const vector3 v11(v6.x, v8.y, h_corneocyte);
+	const vector3 v8(v4.x(), v4.y() + s_corneocyte, 0);
+	const vector3 v9(v6.x(), v8.y(), 0);
+	const vector3 v10(v4.x(), v8.y(), h_corneocyte);
+	const vector3 v11(v6.x(), v8.y(), h_corneocyte);
 
-	const vector3 v12(v4.x, v4.y + s_corneocyte / 2, 0);
-	const vector3 v13(v6.x, v12.y, 0);
-	const vector3 v14(v6.x, v12.y, h_corneocyte);
-	const vector3 v15(v4.x, v12.y, h_corneocyte);
+	const vector3 v12(v4.x(), v4.y() + s_corneocyte / 2, 0);
+	const vector3 v13(v6.x(), v12.y(), 0);
+	const vector3 v14(v6.x(), v12.y(), h_corneocyte);
+	const vector3 v15(v4.x(), v12.y(), h_corneocyte);
 
-	const vector3 v16(v4.x + b, v12.y, 0);
-	const vector3 v17(v16.x, v12.y, h_corneocyte);
-	const vector3 v18(v16.x, v8.y, h_corneocyte);
+	const vector3 v16(v4.x() + b, v12.y(), 0);
+	const vector3 v17(v16.x(), v12.y(), h_corneocyte);
+	const vector3 v18(v16.x(), v8.y(), h_corneocyte);
 
 	///// lipid vertices
 	// top/bottom prism
 	const vector3 v20(a_lipid, 0, d_lipid / 2 + h_corneocyte);
-	const vector3 v21(a_lipid / 2.0, a_lipid * sqrt(3) / 2, v20.z);
-	const vector3 v22(0, 0, v20.z);
+	const vector3 v21(a_lipid / 2.0, a_lipid * sqrt(3) / 2, v20.z());
+	const vector3 v22(0, 0, v20.z());
 
 	///// Initialization of top/bottom segments
 	obenInnen << CLEAR << origin << v1 << v4 << v2 << v3 << v5;

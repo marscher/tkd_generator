@@ -310,9 +310,9 @@ void TKDDomainGenerator::calculateShiftVectors(UniqueVector3Set& shiftVectors,
 					m_aaPos);
 			// only store unique shifts
 			shiftVectors.insert(
-					vector3(std::abs(c1.x) + std::abs(c2.x),
-							std::abs(c1.y) + std::abs(c2.y),
-							std::abs(c1.z) + std::abs(c2.z)));
+					vector3(std::abs(c1.x()) + std::abs(c2.x()),
+							std::abs(c1.y()) + std::abs(c2.y()),
+							std::abs(c1.z()) + std::abs(c2.z())));
 		}
 	}
 }
@@ -363,13 +363,13 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 			++shiftIter) {
 		const vector3& v = *shiftIter;
 
-		if(std::abs(v.x) < SMALL && std::abs(v.y) < SMALL) {
+		if(std::abs(v.x()) < SMALL && std::abs(v.y()) < SMALL) {
 			shiftHeight = v;
-			shiftHeight.x = 0;
-			shiftHeight.y = 0;
-		} else if(std::abs(v.x) < SMALL) {
+			shiftHeight.x() = 0;
+			shiftHeight.y() = 0;
+		} else if(std::abs(v.x()) < SMALL) {
 			shiftRows = v;
-			shiftRows.x = 0;
+			shiftRows.x() = 0;
 		} else
 			shiftCols = v;
 	}
@@ -433,7 +433,7 @@ void TKDDomainGenerator::performStacking(uint rows, uint cols, uint layers,
 		}
 		// in every third row, the y offset has to be reset
 		if((col % 3) == 1) {
-			offset_cols.y = 0;
+			offset_cols.y() = 0;
 		}
 
 		Duplicate(m_grid, m_sel, offset_cols, aPosition, deselectOld,

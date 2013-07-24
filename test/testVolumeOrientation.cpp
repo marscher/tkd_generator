@@ -51,9 +51,9 @@ void performSubsetChecks(Grid&g, SubsetHandler& sh,
 	// check subsets are anti parallel
 	vector3 sum;
 	VecAdd(sum, n1, n2);
-	BOOST_CHECK_SMALL(sum.x, 1e-6);
-	BOOST_CHECK_SMALL(sum.y, 1e-6);
-	BOOST_CHECK_SMALL(sum.z, 1e-6);
+	BOOST_CHECK_SMALL(sum.x(), 1e-6);
+	BOOST_CHECK_SMALL(sum.y(), 1e-6);
+	BOOST_CHECK_SMALL(sum.z(), 1e-6);
 }
 
 BOOST_FIXTURE_TEST_SUITE(stuff, gridFixture)

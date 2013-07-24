@@ -58,9 +58,9 @@ std::ostream & operator <<(std::ostream & out, const CoordsArray& coords) {
 
 vector3 mirror(const vector3& vec, const int axis) {
 	vector3 result;
-	result.x = vec.x * (axis == xAxis ? -1 : 1);
-	result.y = vec.y * (axis == yAxis ? -1 : 1);
-	result.z = vec.z * (axis == zAxis ? -1 : 1);
+	result.x() = vec.x() * (axis == xAxis ? -1 : 1);
+	result.y() = vec.y() * (axis == yAxis ? -1 : 1);
+	result.z() = vec.z() * (axis == zAxis ? -1 : 1);
 	return result;
 }
 
@@ -74,9 +74,9 @@ CoordsArray mirror(const CoordsArray& coords, const int axis) {
 
 vector3 translate(const vector3& vec, const vector3& offset) {
 	vector3 result;
-	result.x = vec.x + offset.x;
-	result.y = vec.y + offset.y;
-	result.z = vec.z + offset.z;
+	result.x() = vec.x() + offset.x();
+	result.y() = vec.y() + offset.y();
+	result.z() = vec.z() + offset.z();
 	return result;
 }
 
