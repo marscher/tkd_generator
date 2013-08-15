@@ -63,7 +63,8 @@ void TKDDomainGenerator::setGridObject(Grid& grid, ISubsetHandler& sh) {
 
 void TKDDomainGenerator::setupGridObjects() {
 	//// set grid options
-	m_grid.enable_options(GRIDOPT_AUTOGENERATE_SIDES);
+	m_grid.enable_options(GRIDOPT_AUTOGENERATE_SIDES |
+			GRIDOPT_FULL_INTERCONNECTION);
 	m_grid.attach_to_vertices(aPosition);
 	m_aaPos.access(m_grid, aPosition);
 	m_sel.assign_grid(m_grid);
