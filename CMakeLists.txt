@@ -9,24 +9,24 @@
 
 # Name of your plugin, path to your plugin (relative to ug's root path) and sources.
 set(pluginName	TKDGenerator)
-set(pluginPath	plugins/experimental/tkd_generator)
-set(SOURCES plugin_main.cpp
-			domain_generator.cpp
-			geometry_generator.cpp
-			util/rotation_matrix.cpp
-			util/vecComparator.cpp
-			util/geometric_helper.cpp)
+#set(pluginPath	plugins/experimental/tkd_generator)
+set(SOURCES src/plugin_main.cpp
+            src/domain_generator.cpp
+            src/geometry_generator.cpp
+            src/util/rotation_matrix.cpp
+            src/util/vecComparator.cpp
+            src/util/geometric_helper.cpp)
 			
 # sources test
-set(SOURCES_TEST test/testSuite.cpp
-				 test/testLipidDistance.cpp
-				 test/testVolume.cpp
-				 test/testVolumeOrientation.cpp
-				 test/validateSwellResults.cpp
-				 util/volume_calculation.cpp)
+set(SOURCES_TEST test/testSuite.cpp 
+                 test/testLipidDistance.cpp
+                 test/testVolume.cpp
+                 test/testVolumeOrientation.cpp
+                 test/validateSwellResults.cpp
+                 src/util/volume_calculation.cpp)
 				 
 option(TKDTestsuite "Build TKDTestsuite" OFF)
-message(STATUS "Info: TKDTestsuite:	"${TKDTestsuite}" (options are: ON, OFF)")
+message(STATUS "Info: TKDTestsuite: "${TKDTestsuite}" (options are: ON, OFF)")
 
 cmake_minimum_required(VERSION 2.6)
 
@@ -40,7 +40,7 @@ if(NOT "${DIM}" STREQUAL "ALL")
 endif()
 
 # include the definitions and dependencies for ug-plugins.
-include("../../../cmake/ug_plugin_includes.cmake")
+include(${UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake)
 # needed for initialization of ug parallel env in boost testing framework
 include_directories("${UG_ROOT_PATH}/unit_tests/src")
 
@@ -63,18 +63,13 @@ if(buildEmbeddedPlugins)
 	# add the sources to ug4's sources
 	EXPORTSOURCES(${pluginPath} ${SOURCES})
 	if(TKDTestsuite)
-		target_link_libraries (TKDTestsuite
-							${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-							ug4_s)
+		target_link_libraries (TKDTestsuite ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ug4_s)
 	endif(TKDTestsuite)
 else(buildEmbeddedPlugins)
 	# create a shared library from the sources and link it against ug4.
 	add_library(${pluginName} SHARED ${SOURCES})
 	target_link_libraries (${pluginName} ug4)
 	if(TKDTestsuite)
-		target_link_libraries (TKDTestsuite
-								TKDGenerator
-								${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-								ug4)
+		target_link_libraries (TKDTestsuite TKDGenerator ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ug4)
 	endif(TKDTestsuite)
 endif(buildEmbeddedPlugins)
