@@ -9,7 +9,6 @@
 
 # Name of your plugin, path to your plugin (relative to ug's root path) and sources.
 set(pluginName	TKDGenerator)
-#set(pluginPath	plugins/experimental/tkd_generator)
 set(SOURCES src/plugin_main.cpp
             src/domain_generator.cpp
             src/geometry_generator.cpp
@@ -26,11 +25,15 @@ set(SOURCES_TEST test/testSuite.cpp
                  src/util/volume_calculation.cpp)
 				 
 option(TKDTestsuite "Build TKDTestsuite" OFF)
-message(STATUS "Info: TKDTestsuite: "${TKDTestsuite}" (options are: ON, OFF)")
+message(STATUS "Info: TKDTestsuite: ${TKDTestsuite} (options are: ON, OFF)")
 
 cmake_minimum_required(VERSION 2.6)
 
 project(UG_PLUGIN_${pluginName})
+# include the definitions and dependencies for ug-plugins.
+include("$ENV{UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake")
+# needed for initialization of ug parallel env in boost testing framework
+include_directories("$ENV{UG_ROOT_PATH}/unit_tests/src")
 
 if(NOT "${DIM}" STREQUAL "ALL")
 	list(FIND DIM "3" 3d_enabled)
@@ -39,10 +42,6 @@ if(NOT "${DIM}" STREQUAL "ALL")
 	ENDIF()
 endif()
 
-# include the definitions and dependencies for ug-plugins.
-include(${UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake)
-# needed for initialization of ug parallel env in boost testing framework
-include_directories("${UG_ROOT_PATH}/unit_tests/src")
 
 if(TKDTestsuite)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UG_ROOT_PATH}/bin/)
