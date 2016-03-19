@@ -117,7 +117,7 @@ void TKDDomainGenerator::createGridFromArrays(
 	// iterates over all unique vertices and attach position
 	for(CoordsIter iter = positions.begin(); iter != positions.end(); ++iter) {
 		// create vertex
-		Vertex* v = *m_grid.create<Vertex>();
+		Vertex* v = *m_grid.create<RegularVertex>();
 		// attach position
 		m_aaPos[v] = iter->right;
 		// store created vertex by its id
