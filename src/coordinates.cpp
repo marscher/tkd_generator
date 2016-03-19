@@ -1,52 +1,51 @@
-#ifndef __coordinates_h__
-#define __coordinates_h__
-
 #include <cmath>
 #include <vector>
+#include "coordinates.h"
+
 namespace ug {
 namespace tkd {
 
 /// \addtogroup tkd_generator
 /// \{
 
-void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
-		number width, number d_lipid, const vector3& offset) {
+void CalculateLipidCoords(CoordsArray& l, double a_corneo, double height,
+		double width, double d_lipid, const vector3& offset) {
 	using std::vector;
 
-	const number b = sqrt(3);
+	const double b = sqrt(3);
 	// corneocyte outer points
 	CoordsArray c(38);
 
 	unsigned int i;
 
-	number a1 = sqrt(
-			1. / 9. * high * high
+	double a1 = sqrt(
+			1. / 9. * height * height
 					+ 1. / 3. * (width - 2. * a_corneo) * (width - 2. * a_corneo));
 
-	number alpha = acos((width - 2.0 * a_corneo) / (2.0 * a1));
-	number beta = 90. / 180. * PI + acos(1. / 3. * high / (a1 * sin(alpha)));
-	number gamma = acos(1. / 3. * high / a1) + 90. / 180. * PI;
+	double alpha = acos((width - 2.0 * a_corneo) / (2.0 * a1));
+	double beta = 90. / 180. * PI + acos(1. / 3. * height / (a1 * sin(alpha)));
+	double gamma = acos(1. / 3. * height / a1) + 90. / 180. * PI;
 
-	number high_l = high + d_lipid;
+	double high_l = height + d_lipid;
 
-	number dis = d_lipid / 2.0;
+	double dis = d_lipid / 2.0;
 
-	number m1 = dis / tan(beta / 2.0);
-	number m2 = dis / tan(gamma / 2.0);
-	number a_lipid = (b * a_corneo + m1 + m2) / b;
+	double m1 = dis / tan(beta / 2.0);
+	double m2 = dis / tan(gamma / 2.0);
+	double a_lipid = (b * a_corneo + m1 + m2) / b;
 
-	number a2 = 1. / 3. * high_l / sin(PI - gamma);
+	double a2 = 1. / 3. * high_l / sin(PI - gamma);
 
-	number bc = a1 * cos(alpha);
-	number bc1 = a2 * cos(alpha);
-	number ab = a1 * cos(alpha) * 2.0 / b;
-	number ab1 = a2 * cos(alpha) * 2.0 / b;
-	number ac = a1 * cos(alpha) / b;
-	number ac1 = a2 * cos(alpha) / b;
-	number ec = ac * b / 2.0;
-	number ec1 = ac1 * b / 2.0;
-	number af = ac * 0.5;
-	number af1 = ac1 * 0.5;
+	double bc = a1 * cos(alpha);
+	double bc1 = a2 * cos(alpha);
+	double ab = a1 * cos(alpha) * 2.0 / b;
+	double ab1 = a2 * cos(alpha) * 2.0 / b;
+	double ac = a1 * cos(alpha) / b;
+	double ac1 = a2 * cos(alpha) / b;
+	double ec = ac * b / 2.0;
+	double ec1 = ac1 * b / 2.0;
+	double af = ac * 0.5;
+	double af1 = ac1 * 0.5;
 
 	l[0] = vector3(-a_lipid / 2.0, -a_lipid * b / 2.0, dis);
 	l[1] = vector3(-l[0].x(), l[0].y(), l[0].z());
@@ -68,7 +67,7 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		l[i + 7] = c[i];
 	}
 
-	c[7] = vector3(c[0].x(), c[0].y() - ab, c[0].z() - 1. / 3 * high);
+	c[7] = vector3(c[0].x(), c[0].y() - ab, c[0].z() - 1. / 3 * height);
 
 	l[14] = vector3(l[0].x(), l[0].y() - ab1, l[0].z() - 1.0 / 3.0 * high_l);
 	l[15] = vector3(l[1].x(), l[14].y(), l[14].z());
@@ -83,7 +82,7 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 	l[24] = vector3(-l[17].x(), l[17].y(), l[14].z());
 	l[25] = vector3(-l[16].x(), l[16].y(), l[14].z());
 
-	c[8] = vector3(c[1].x(), c[7].y(), c[0].z() - 1.0 / 3.0 * high);
+	c[8] = vector3(c[1].x(), c[7].y(), c[0].z() - 1.0 / 3.0 * height);
 	c[9] = vector3(c[1].x() + ec, c[1].y() - af, c[8].z());
 	c[10] = vector3(c[2].x() + ec, c[2].y() - af, c[9].z());
 	c[11] = vector3(c[2].x() + bc, c[2].y() + ac, c[10].z());
@@ -99,7 +98,7 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		l[19 + i] = c[i];
 	}
 
-	c[31] = vector3(c[0].x(), c[0].y(), c[0].z() - high);
+	c[31] = vector3(c[0].x(), c[0].y(), c[0].z() - height);
 	c[32] = vector3(c[1].x(), c[1].y(), c[31].z());
 	c[33] = vector3(c[2].x(), c[2].y(), c[31].z());
 	c[34] = vector3(c[3].x(), c[3].y(), c[31].z());
@@ -124,7 +123,7 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 		l[31 + i] = c[i];
 	}
 
-	c[19] = vector3(c[31].x() - bc, c[31].y() - ac, c[0].z() - 2.0 / 3.0 * high);
+	c[19] = vector3(c[31].x() - bc, c[31].y() - ac, c[0].z() - 2.0 / 3.0 * height);
 	c[20] = vector3(c[31].x(), c[19].y(), c[19].z());
 	c[21] = vector3(c[32].x(), c[20].y(), c[20].z());
 	c[22] = vector3(-c[19].x(), c[21].y(), c[20].z());
@@ -167,4 +166,4 @@ void CalculateLipidCoords(CoordsArray& l, number a_corneo, number high,
 
 } // end of namespace tkd
 } // end of namespace ug
-#endif
+

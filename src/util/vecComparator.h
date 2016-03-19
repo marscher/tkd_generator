@@ -16,7 +16,7 @@ namespace ug {
 /**
  * performs a lexicographical sort on given vectors, started by first component.
  */
-template <std::size_t dim, typename T>
+/*template <std::size_t dim, typename T>
 bool operator<(const MathVector<dim, T>& a, const MathVector<dim, T>& b) {
 	for (size_t i = 0; i < dim; ++i) {
 		if(a.m_data[i] < b.m_data[i] - SMALL)
@@ -26,7 +26,7 @@ bool operator<(const MathVector<dim, T>& a, const MathVector<dim, T>& b) {
 	}
 
 	return false;
-}
+}*/
 
 // already template defined for operator==, so specialize it only for 3d
 bool operator==(const vector3& a, const vector3& b);

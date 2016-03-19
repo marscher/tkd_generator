@@ -7,7 +7,7 @@
 #include <boost/test/unit_test.hpp>
 #include <vector>
 #include "lib_grid/lib_grid.h"
-#include "../util/volume_calculation.h"
+#include "util/volume_calculation.h"
 
 using namespace ug;
 //using std::vector;
@@ -26,14 +26,14 @@ struct volFixture {
 	Grid grid;
 	Grid::VertexAttachmentAccessor<APosition> aaPos;
 	VolumeDescriptor vd;
-	vector<VertexBase*> vertices;
+	vector<Vertex*> vertices;
 };
 
 BOOST_FIXTURE_TEST_SUITE(volume, volFixture);
 
 BOOST_AUTO_TEST_CASE(volHexahedron) {
 	for(uint i = 0; i < 8; i++)
-	vertices.push_back(*grid.create<Vertex>());
+	vertices.push_back(*grid.create<RegularVertex>());
 
 	//	assign coordinates of unit cube
 	aaPos[vertices[0]] = vector3(1, 0, 0);
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(volHexahedron) {
 BOOST_AUTO_TEST_CASE(volTetrahedron) {
 	//	create vertices
 	for(uint i = 0; i < 4; i++)
-	vertices.push_back(*grid.create<Vertex>());
+	vertices.push_back(*grid.create<RegularVertex>());
 
 	//	assign coordinates
 	aaPos[vertices[0]] = vector3(0, 1, 0);
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(volTetrahedron) {
 BOOST_AUTO_TEST_CASE(volPrism) {
 	//	create vertices
 	for(uint i = 0; i < 6; i++)
-		vertices.push_back(*grid.create<Vertex>());
+		vertices.push_back(*grid.create<RegularVertex>());
 
 	//	assign coordinates
 	aaPos[vertices[0]] = vector3(0, 0, 0);
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(volPrism) {
 BOOST_AUTO_TEST_CASE(volPyramid) {
 	//	create vertices
 	for(uint i = 0; i < 5; i++)
-	vertices.push_back(*grid.create<Vertex>());
+	vertices.push_back(*grid.create<RegularVertex>());
 
 	//	assign coordinates
 	aaPos[vertices[0]] = vector3(0, 0, 0);

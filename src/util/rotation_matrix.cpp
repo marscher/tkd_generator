@@ -5,9 +5,11 @@
  *      Author: marscher
  */
 
-#include "rotation_matrix.h"
-#include "common/math/math_vector_matrix/math_matrix_vector_functions.h"
 #include <cmath>
+#include "rotation_matrix.h"
+// ug4 include
+#include "common/math/math_vector_matrix/math_matrix_vector_functions.h"
+
 namespace ug {
 namespace tkd {
 
@@ -52,10 +54,7 @@ RotationMatrix::RotationMatrix(const number& deg, const bool mirror) {
 	m_data[2][0] = 0;
 	m_data[2][1] = 0;
 
-	if (mirror)
-		m_data[2][2] = -1;
-	else
-		m_data[2][2] = 1;
+	setMirrorZAxis(mirror);
 }
 
 /**

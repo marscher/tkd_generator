@@ -1,0 +1,23 @@
+{
+	"minUGHubVersion":	"1.0.0",
+	"packages": [
+		{
+			"name":				"TKDGenerator",
+			"url":				"https://github.com/marscher/tkd_generator.git",
+			"repoType":			"git",
+			"defaultBranch":	"master",
+			"prefix":			"plugins",
+			"license":			"gpl",
+			"categories":		["ug4", "plugins"],
+			"dependencies":[
+				{
+					"packages":	[
+						{
+							"name":		"ugcore",
+							"branch":	"master"
+						}
+					]
+				}
+			]
+		}
+]

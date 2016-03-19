@@ -11,6 +11,7 @@
 #include "lib_grid/algorithms/selection_util.h"
 #include "lib_grid/algorithms/subset_util.h"
 #include "lib_grid/algorithms/duplicate.h"
+#include "lib_grid/grid/grid_object_collection.h"
 
 namespace ug {
 namespace tkd {
@@ -111,12 +112,12 @@ void TKDDomainGenerator::createGridFromArrays(
 	typedef TKDGeometryGenerator::CoordIndexMap::const_iterator CoordsIter;
 
 	// to lookup created vertices by their index given by geometry generator
-	std::map<uint, VertexBase*> verts;
+	std::map<uint, Vertex*> verts;
 
 	// iterates over all unique vertices and attach position
 	for(CoordsIter iter = positions.begin(); iter != positions.end(); ++iter) {
 		// create vertex
-		VertexBase* v = *m_grid.create<Vertex>();
+		Vertex* v = *m_grid.create<RegularVertex>();
 		// attach position
 		m_aaPos[v] = iter->right;
 		// store created vertex by its id
@@ -171,16 +172,16 @@ void TKDDomainGenerator::createGridFromArrays(
 		SelectInterfaceElements(m_sel, m_sh, m_grid.begin<Face>(), m_grid.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(), BOUNDARY_CORN);
 
-		GeometricObjectCollection goc =
-				m_sh.get_geometric_objects_in_subset(LIPID);
+		GridObjectCollection goc =
+				m_sh.get_grid_objects_in_subset(LIPID);
 		m_sel.clear();
 		SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
 				BOUNDARY_LIPID);
 	} else {
 	// for a simple domain assign outer faces to BOUNDARY_CORN
-		GeometricObjectCollection goc =
-						m_sh.get_geometric_objects_in_subset(CORNEOCYTE);
+		GridObjectCollection goc =
+						m_sh.get_grid_objects_in_subset(CORNEOCYTE);
 		SelectBoundaryElements(m_sel, goc.begin<Face>(), goc.end<Face>());
 		m_sh.assign_subset(m_sel.begin<Face>(), m_sel.end<Face>(),
 					BOUNDARY_CORN);
@@ -274,7 +275,7 @@ void TKDDomainGenerator::assignBoundaryFacesToSubsets(
  */
 void TKDDomainGenerator::mapBoundaryFacesToNormals(
 		FaceNormalMapping& facesByNormal, TKDSubsetType shIndex) {
-	GeometricObjectCollection goc = m_sh.get_geometric_objects_in_subset(
+	GridObjectCollection goc = m_sh.get_grid_objects_in_subset(
 			shIndex);
 
 	vector3 normal;
@@ -516,7 +517,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 
 	/// we have to rotate the tkd, because we want to stack the hexagons together
 	RotationMatrix r(60);
-	TransformVertices(m_grid.begin<VertexBase>(), m_grid.end<VertexBase>(),
+	TransformVertices(m_grid.begin<Vertex>(), m_grid.end<Vertex>(),
 			r, m_aaPos);
 
 	// perform mapping normal -> { faces }
@@ -527,7 +528,7 @@ void TKDDomainGenerator::createSCDomain(number a, number w, number h,
 	performStacking(rows, cols, layers, facesByNormal);
 
 	/// put boundary faces to named subsets according to (quad|hex) and color them
-	if ( rows * cols * layers == 1)
+	if (rows * cols * layers == 1)
 		assignBoundaryFacesToSubsets(facesByNormal);
 	AssignSubsetColors(m_sh);
 
