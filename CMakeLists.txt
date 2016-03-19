@@ -32,7 +32,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(UG_PLUGIN_${pluginName})
 # include the definitions and dependencies for ug-plugins.
-include("$ENV{UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake")
+include("$ENV{UG4_ROOT}/ugcore/cmake/ug_plugin_includes.cmake")
 # needed for initialization of ug parallel env in boost testing framework
 include_directories("$ENV{UG_ROOT_PATH}/unit_tests/src" src)
 
