@@ -186,36 +186,35 @@ protected:
 	void flipOrientationHexahedron(CoordsArray& hexaPos) const;
 
 	///// segments of top and bottom
-	CoordsArray obenInnen;
-	// G(Ki -> ObenAussenPr)
-	CoordsArray obenAussenPrism;
+	CoordsArray topInner;
+	CoordsArray topOuterPrism;
 
-	CoordsArray obenAussenPr_rightTetrahedron;
-	CoordsArray obenAussenPr_leftTetrahedron;
-	CoordsArray obenAussenPr2T_prism;
+	CoordsArray topOuter_Pr_rightTetrahedron;
+	CoordsArray topOuter_Pr_leftTetrahedron;
+	CoordsArray topOuter_Pr2T_prism;
 
 	///// segments of middle part
 	// outer prism
-	CoordsArray mitteAussenP1;
+	CoordsArray middleOuterPrism1;
 	// inner prism
-	CoordsArray mitteAussenP2;
+	CoordsArray middleOuterPrism2;
 
 	// below obenAussenPr_rightTetrahedron
-	CoordsArray mitteAussenH2Pr_tetrahedron;
-	CoordsArray mitteAussenH2Pr_pyramid;
+	CoordsArray middleOuterH2Pr_tetrahedron;
+	CoordsArray middleOuterH2Pr_pyramid;
 
-	CoordsArray mitteAussen2PrH_tetrahedron;
-	CoordsArray mitteAussen2PrH_pyramid;
+	CoordsArray middleOuter2PrH_tetrahedron;
+	CoordsArray middleOuter2PrH_pyramid;
 
 	// below obenAussenPrism
-	CoordsArray mitteAussenHexahedron;
+	CoordsArray middleOuterHexahedron;
 
 	// lipid matrix
 	/// lipid hexagon
-	CoordsArray obenInnenPrismL;
-	CoordsArray obenAussenPrismL;
-	CoordsArray obenAussen_leftPrismL;
-	CoordsArray obenAussen_rightPrismL;
+	CoordsArray topInnerPrismL;
+	CoordsArray topOuterPrismL;
+	CoordsArray topOuter_leftPrismL;
+	CoordsArray topOuter_rightPrismL;
 	CoordsArray upperHexahedronL;
 	CoordsArray bottomOuterHexahedronL;
 	CoordsArray bottomLeftPrismL;
