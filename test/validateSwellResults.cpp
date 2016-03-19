@@ -12,10 +12,10 @@
 
 #include <lib_grid/lib_grid.h>
 
-#include "../common_typedefs.h"
-#include "../domain_generator.h"
-#include "../geometry_generator.h"
-#include "../util/volume_calculation.h"
+#include "common_typedefs.h"
+#include "domain_generator.h"
+#include "geometry_generator.h"
+#include "util/volume_calculation.h"
 
 #include <vector>
 #include <fstream>
@@ -88,7 +88,7 @@ number calculateSurfaceArea(Grid& grid, SubsetHandler& sh, int subset,
 void eraseVolumes(Grid& grid, SubsetHandler&sh) {
 	Selector sel(grid);
 	SelectBoundaryElements(sel, grid.begin<Face>(), grid.end<Face>());
-	SelectAssociatedGeometricObjects(sel);
+	SelectAssociatedGridObjects(sel);
 
 	for (VolumeIterator viter = sh.begin<Volume>(LIPID);
 			viter != sh.end<Volume>(LIPID); viter++) {
@@ -108,7 +108,7 @@ void eraseVolumes(Grid& grid, SubsetHandler&sh) {
 		}
 	}
 
-	SelectAssociatedGeometricObjects(sel);
+	SelectAssociatedGridObjects(sel);
 	InvertSelection(sel);
 	EraseSelectedObjects(sel);
 }

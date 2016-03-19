@@ -5,7 +5,7 @@
  *      Author: marscher
  */
 #include <boost/test/unit_test.hpp>
-#include "../domain_generator.h"
+#include "domain_generator.h"
 #include <lib_grid/lib_grid.h>
 #include <lib_disc/common/geometry_util.h>
 #include <map>
@@ -40,8 +40,8 @@ void performSubsetChecks(Grid&g, SubsetHandler& sh,
 	BOOST_REQUIRE_MESSAGE(si_b != -1,
 			"subset index for subset named " << sb<< " not found");
 
-	GeometricObjectCollection goc1 = sh.get_geometric_objects_in_subset(si_a);
-	GeometricObjectCollection goc2 = sh.get_geometric_objects_in_subset(si_b);
+	GridObjectCollection goc1 = sh.get_grid_objects_in_subset(si_a);
+	GridObjectCollection goc2 = sh.get_grid_objects_in_subset(si_b);
 
 	BOOST_CHECK(goc1.num<Face>() == goc2.num<Face>());
 	vector3 n1, n2;

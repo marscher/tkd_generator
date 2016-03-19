@@ -12,6 +12,7 @@ set(pluginName	TKDGenerator)
 set(SOURCES src/plugin_main.cpp
             src/domain_generator.cpp
             src/geometry_generator.cpp
+            src/coordinates.cpp
             src/util/rotation_matrix.cpp
             src/util/vecComparator.cpp
             src/util/geometric_helper.cpp)
@@ -33,7 +34,7 @@ project(UG_PLUGIN_${pluginName})
 # include the definitions and dependencies for ug-plugins.
 include("$ENV{UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake")
 # needed for initialization of ug parallel env in boost testing framework
-include_directories("$ENV{UG_ROOT_PATH}/unit_tests/src")
+include_directories("$ENV{UG_ROOT_PATH}/unit_tests/src" src)
 
 if(NOT "${DIM}" STREQUAL "ALL")
 	list(FIND DIM "3" 3d_enabled)

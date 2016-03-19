@@ -11,7 +11,7 @@
 #include "common/util/file_util.h"
 
 #include "testHelper.h"
-#include "../domain_generator.h"
+#include "domain_generator.h"
 
 #include <utility>
 #include <cmath>

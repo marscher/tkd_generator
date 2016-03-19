@@ -8,7 +8,7 @@
 #ifndef TESTHELPER_H_
 #define TESTHELPER_H_
 
-#include "../domain_generator.h"
+#include "domain_generator.h"
 #include "lib_grid/lib_grid.h"
 #include <numeric>
 
