@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(test_subset_parallelity) {
 	}
 
 	// perform checks for top and bottom
-	performSubsetChecks(grid, sh, aaPos, "top", "bottom");
+	performSubsetChecks(grid, sh, aaPos, "TOP", "BOTTOM");
 }
 
 //BOOST_AUTO_TEST_CASE(test_vol_orientation) {
