@@ -18,7 +18,8 @@ Now add the source of TKDGenerator to your ug4 installation:
     
 
 Now you are now ready to install/compile ugcore and TKDGenerator plugin from your ug4 home:
-  cd $UG4_ROOT
-  mkdir build
-  cmake -DTKDGenerator=ON ..
-  make
+
+    cd $UG4_ROOT
+    mkdir build
+    cmake -DTKDGenerator=ON ..
+    make
